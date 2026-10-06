@@ -15,7 +15,6 @@ import {
   mkdirSync,
   writeFileSync,
   readFileSync,
-  copyFileSync,
   readdirSync,
 } from 'node:fs';
 import { createHash } from 'node:crypto';
