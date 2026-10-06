@@ -1,0 +1,159 @@
+diff --git a/dist/chunks/rpc.-pEldfrD.js b/dist/chunks/rpc.-pEldfrD.js
+index a48eb0174a4fbc508a36c46ff78b0f9bf7ba6295..0ad3705bd712d88c5583419c6d812bdd029ee1f5 100644
+--- a/dist/chunks/rpc.-pEldfrD.js
++++ b/dist/chunks/rpc.-pEldfrD.js
+@@ -4,80 +4,89 @@ import { g as getWorkerState } from './utils.XdZDrNZV.js';
+ 
+ const { get } = Reflect;
+ function withSafeTimers(fn) {
+-	const { setTimeout, clearTimeout, nextTick, setImmediate, clearImmediate } = getSafeTimers();
+-	const currentSetTimeout = globalThis.setTimeout;
+-	const currentClearTimeout = globalThis.clearTimeout;
+-	const currentSetImmediate = globalThis.setImmediate;
+-	const currentClearImmediate = globalThis.clearImmediate;
+-	const currentNextTick = globalThis.process?.nextTick;
+-	try {
+-		globalThis.setTimeout = setTimeout;
+-		globalThis.clearTimeout = clearTimeout;
+-		globalThis.setImmediate = setImmediate;
+-		globalThis.clearImmediate = clearImmediate;
+-		if (globalThis.process) globalThis.process.nextTick = nextTick;
+-		const result = fn();
+-		return result;
+-	} finally {
+-		globalThis.setTimeout = currentSetTimeout;
+-		globalThis.clearTimeout = currentClearTimeout;
+-		globalThis.setImmediate = currentSetImmediate;
+-		globalThis.clearImmediate = currentClearImmediate;
+-		if (globalThis.process) nextTick(() => {
+-			globalThis.process.nextTick = currentNextTick;
+-		});
+-	}
++        const { setTimeout, clearTimeout, nextTick, setImmediate, clearImmediate } = getSafeTimers();
++        const currentSetTimeout = globalThis.setTimeout;
++        const currentClearTimeout = globalThis.clearTimeout;
++        const currentSetImmediate = globalThis.setImmediate;
++        const currentClearImmediate = globalThis.clearImmediate;
++        const currentNextTick = globalThis.process?.nextTick;
++        try {
++                globalThis.setTimeout = setTimeout;
++                globalThis.clearTimeout = clearTimeout;
++                globalThis.setImmediate = setImmediate;
++                globalThis.clearImmediate = clearImmediate;
++                if (globalThis.process) globalThis.process.nextTick = nextTick;
++                const result = fn();
++                return result;
++        } finally {
++                globalThis.setTimeout = currentSetTimeout;
++                globalThis.clearTimeout = currentClearTimeout;
++                globalThis.setImmediate = currentSetImmediate;
++                globalThis.clearImmediate = currentClearImmediate;
++                if (globalThis.process) nextTick(() => {
++                        globalThis.process.nextTick = currentNextTick;
++                });
++        }
+ }
+ const promises = /* @__PURE__ */ new Set();
+ async function rpcDone() {
+-	if (!promises.size) return;
+-	const awaitable = Array.from(promises);
+-	return Promise.all(awaitable);
++        if (!promises.size) return;
++        const awaitable = Array.from(promises);
++        return Promise.all(awaitable);
+ }
+ function createRuntimeRpc(options) {
+-	let setCancel = (_reason) => {};
+-	const onCancel = new Promise((resolve) => {
+-		setCancel = resolve;
+-	});
+-	const rpc = createSafeRpc(createBirpc({ onCancel: setCancel }, {
+-		eventNames: [
+-			"onUserConsoleLog",
+-			"onCollected",
+-			"onCancel"
+-		],
+-		onTimeoutError(functionName, args) {
+-			let message = `[vitest-worker]: Timeout calling "${functionName}"`;
+-			if (functionName === "fetch" || functionName === "transform" || functionName === "resolveId") message += ` with "${JSON.stringify(args)}"`;
+-			// JSON.stringify cannot serialize Error instances
+-			if (functionName === "onUnhandledError") message += ` with "${args[0]?.message || args[0]}"`;
+-			throw new Error(message);
+-		},
+-		...options
+-	}));
+-	return {
+-		rpc,
+-		onCancel
+-	};
++        let setCancel = (_reason) => {};
++        const onCancel = new Promise((resolve) => {
++                setCancel = resolve;
++        });
++        const rpc = createSafeRpc(createBirpc({ onCancel: setCancel }, {
++                eventNames: [
++                        "onUserConsoleLog",
++                        "onCollected",
++                        "onCancel"
++                ],
++                onTimeoutError(functionName, args) {
++                        let message = `[vitest-worker]: Timeout calling "${functionName}"`;
++                        if (functionName === "fetch" || functionName === "transform" || functionName === "resolveId") message += ` with "${JSON.stringify(args)}"`;
++                        // JSON.stringify cannot serialize Error instances
++                        if (functionName === "onUnhandledError") message += ` with "${args[0]?.message || args[0]}"`;
++                        throw new Error(message);
++                },
++                // arivo patch (vitest-dev/vitest#11082): birpc's DEFAULT_TIMEOUT
++                // of 60s is not configurable in 3.2.7. on loaded CI runners the
++                // host loop can be starved past 60s for a single ACK (our
++                // destroy suite's fs storms saturate the runner disk) — every
++                // test passes and the run still exits 1. fixed upstream in
++                // vitest 4 (PR #8297) — drop this patch on the 4.x upgrade.
++                // this only buys patience for result delivery; test outcomes
++                // are still bounded by testTimeout.
++                timeout: 300000,
++                ...options
++        }));
++        return {
++                rpc,
++                onCancel
++        };
+ }
+ function createSafeRpc(rpc) {
+-	return new Proxy(rpc, { get(target, p, handler) {
+-		const sendCall = get(target, p, handler);
+-		const safeSendCall = (...args) => withSafeTimers(async () => {
+-			const result = sendCall(...args);
+-			promises.add(result);
+-			try {
+-				return await result;
+-			} finally {
+-				promises.delete(result);
+-			}
+-		});
+-		safeSendCall.asEvent = sendCall.asEvent;
+-		return safeSendCall;
+-	} });
++        return new Proxy(rpc, { get(target, p, handler) {
++                const sendCall = get(target, p, handler);
++                const safeSendCall = (...args) => withSafeTimers(async () => {
++                        const result = sendCall(...args);
++                        promises.add(result);
++                        try {
++                                return await result;
++                        } finally {
++                                promises.delete(result);
++                        }
++                });
++                safeSendCall.asEvent = sendCall.asEvent;
++                return safeSendCall;
++        } });
+ }
+ function rpc() {
+-	const { rpc } = getWorkerState();
+-	return rpc;
++        const { rpc } = getWorkerState();
++        return rpc;
+ }
+ 
+ export { rpcDone as a, createRuntimeRpc as c, rpc as r };

@@ -162,6 +162,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  vitest@3.2.7: 55240ae06c716a164373c75a9c16666a8210d79b55fe66e1d99d9a17cdbb5515
+
 importers:
 
   .:
@@ -198,7 +201,7 @@ importers:
         version: 8.71.0(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3)
       vitest:
         specifier: ^3.0.0
-        version: 3.2.7(@types/debug@4.1.13)(@types/node@24.19.1)(jiti@2.7.0)(supports-color@7.2.0)
+        version: 3.2.7(patch_hash=55240ae06c716a164373c75a9c16666a8210d79b55fe66e1d99d9a17cdbb5515)(@types/debug@4.1.13)(@types/node@24.19.1)(jiti@2.7.0)(supports-color@7.2.0)
 
   apps/desktop:
     dependencies:
@@ -6517,7 +6520,7 @@ snapshots:
       fsevents: 2.3.3
       jiti: 2.7.0
 
-  vitest@3.2.7(@types/debug@4.1.13)(@types/node@24.19.1)(jiti@2.7.0)(supports-color@7.2.0):
+  vitest@3.2.7(patch_hash=55240ae06c716a164373c75a9c16666a8210d79b55fe66e1d99d9a17cdbb5515)(@types/debug@4.1.13)(@types/node@24.19.1)(jiti@2.7.0)(supports-color@7.2.0):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/expect': 3.2.7
