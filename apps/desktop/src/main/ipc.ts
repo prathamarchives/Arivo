@@ -120,4 +120,6 @@ export function registerIpc(getServices: () => Services): void {
   handle('dev:rebuild-index', () => s().rebuildIndex());
   handle('dev:reconcile', () => s().reconcile());
   handle('recovery:note', () => s().startupNote());
+  handle('diagnostics:report', () => s().diagnostics());
+  handle('diagnostics:export', () => s().exportDiagnostics());
 }

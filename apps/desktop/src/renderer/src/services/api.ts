@@ -233,6 +233,19 @@ export function createMockApi(): ArivoApi {
     recovery: {
       note: async () => null,
     },
+    diagnostics: {
+      report: async () => ({
+        appVersion: 'web',
+        platform: 'web',
+        generatedAt: Date.now(),
+        schemaVersion: null,
+        library: { books: state.books.length, highlights: state.highlights.length },
+        lastReconciliation: null,
+        eventCounts: {},
+        events: [],
+      }),
+      export: async () => null,
+    },
   };
   return mock;
 }

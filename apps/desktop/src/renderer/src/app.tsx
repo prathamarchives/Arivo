@@ -6,6 +6,18 @@ import { useUi } from './stores/ui.ts';
 import { LibraryScreen } from './screens/Library.tsx';
 import { ReaderScreen } from './screens/Reader.tsx';
 import { CommandPalette } from './features/palette/CommandPalette.tsx';
+import { api } from './services/api.ts';
+
+/** the recovery banner: the system tells the truth about itself (item 17) */
+function RecoveryBanner(): ReactNode {
+  const toast = useUi((s) => s.toast);
+  useEffect(() => {
+    void api.recovery.note().then((note) => {
+      if (note) toast(note);
+    });
+  }, [toast]);
+  return null;
+}
 
 function Toaster(): ReactNode {
   const toasts = useUi((s) => s.toasts);
@@ -48,6 +60,7 @@ export function App(): ReactNode {
       {view.kind === 'library' ? <LibraryScreen /> : <ReaderScreen bookId={view.bookId} />}
       <CommandPalette />
       <Toaster />
+      <RecoveryBanner />
     </>
   );
 }

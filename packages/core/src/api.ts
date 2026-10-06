@@ -13,6 +13,7 @@ import type {
   SearchHit,
 } from './types.ts';
 import type { SerializedArivoError } from './errors.ts';
+import type { DiagnosticsReport } from './diagnostics.ts';
 
 /**
  * THE IPC ENVELOPE — typed errors survive the bridge.
@@ -108,5 +109,9 @@ export interface ArivoApi {
   recovery: {
     /** the startup recovery note, when the index was rebuilt */
     note(): Promise<string | null>;
+  };
+  diagnostics: {
+    report(): Promise<DiagnosticsReport>;
+    export(): Promise<string | null>;
   };
 }

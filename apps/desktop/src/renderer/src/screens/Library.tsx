@@ -82,6 +82,11 @@ function BookCard({
       }}
     >
       <Cover book={book} size={size} />
+      {book.fileMissing && (
+        <div className="book-flag book-flag-missing" title="the book file is missing — annotations are safe">
+          missing file
+        </div>
+      )}
       <div className="book-meta">
         <div className="book-title" title={book.title}>
           {book.title}

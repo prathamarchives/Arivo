@@ -270,6 +270,25 @@
   border-radius: var(--r1);
 }
 
+/* truth states on the shelf: the library never hides uncertainty */
+.book-flag {
+  position: absolute;
+  bottom: var(--s1);
+  left: var(--s1);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: var(--r1);
+  pointer-events: none;
+}
+
+.book-flag-missing {
+  color: var(--amber, #8a5a00);
+  background: color-mix(in srgb, var(--amber, #d4a24e) 18%, var(--bg-raised));
+  border: 1px solid color-mix(in srgb, var(--amber, #d4a24e) 45%, transparent);
+}
+
 .book-meta {
   padding-top: var(--s2);
   display: flex;

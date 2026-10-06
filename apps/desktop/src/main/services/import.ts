@@ -19,9 +19,11 @@ import { validateImportSource } from './paths.ts';
 export interface ImportDeps {
   store: ArivoStore;
   libraryRoot(): string;
+  /** observability hook — the diagnostics recorder subscribes */
+  onResult?: (result: ImportResult) => void;
 }
 
-export function createImportService({ store, libraryRoot }: ImportDeps) {
+export function createImportService({ store, libraryRoot, onResult }: ImportDeps) {
   const journal = new MutationJournal(libraryRoot());
 
   async function importOne(rawPath: string): Promise<ImportResult> {
@@ -30,12 +32,14 @@ export function createImportService({ store, libraryRoot }: ImportDeps) {
     try {
       source = validateImportSource(rawPath);
     } catch (err) {
-      return {
+      const rejected: ImportResult = {
         ok: false,
         bookId: null,
         title: path.basename(rawPath),
         reason: err instanceof Error ? err.message : 'import failed',
       };
+      onResult?.(rejected);
+      return rejected;
     }
 
     const bookId = uuidv7();
@@ -45,7 +49,14 @@ export function createImportService({ store, libraryRoot }: ImportDeps) {
       const inspected = await inspectFile(source); // typed rejection on bad input
       if (store.findByHash(inspected.hash)) {
         journal.commit(op);
-        return { ok: false, bookId: null, title: inspected.title, reason: 'already in library' };
+        const duplicate: ImportResult = {
+          ok: false,
+          bookId: null,
+          title: inspected.title,
+          reason: 'already in library',
+        };
+        onResult?.(duplicate);
+        return duplicate;
       }
 
       // EXTRACTING: the complete folder, written under arivo's scratch
@@ -60,7 +71,9 @@ export function createImportService({ store, libraryRoot }: ImportDeps) {
       // INDEXING: the row appears only after the folder is committed
       store.indexBook(record);
       journal.commit(op);
-      return { ok: true, bookId, title: inspected.title, reason: null };
+      const done: ImportResult = { ok: true, bookId, title: inspected.title, reason: null };
+      onResult?.(done);
+      return done;
     } catch (err) {
       // any failure leaves the library exactly as it was
       journal.commit(op); // the attempt is OVER (swept); truth never landed
@@ -70,7 +83,9 @@ export function createImportService({ store, libraryRoot }: ImportDeps) {
           : err instanceof Error
             ? err.message
             : 'import failed';
-      return { ok: false, bookId: null, title: path.basename(source), reason };
+      const failed: ImportResult = { ok: false, bookId: null, title: path.basename(source), reason };
+      onResult?.(failed);
+      return failed;
     }
   }
 

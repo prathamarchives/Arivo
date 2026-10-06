@@ -9,7 +9,9 @@ import fs from 'node:fs';
 import { ArivoStore, readSettings, writeSettings } from '@arivo/database';
 import {
   DEFAULT_SETTINGS,
+  DiagnosticsRecorder,
   type AppSettings,
+  type DiagnosticsReport,
   type ImportResult,
   type ReconciliationReport,
 } from '@arivo/core';
@@ -30,6 +32,8 @@ export interface Services {
   rebuildIndex(): { books: number; highlights: number; bookmarks: number };
   reconcile(): ReconciliationReport | null;
   startupNote(): string | null;
+  diagnostics(): DiagnosticsReport;
+  exportDiagnostics(): string | null;
   autoSeed(seedDir: string): Promise<void>;
 }
 
@@ -48,7 +52,32 @@ export function createServices(): Services {
   const startup = recoverAtStartup(app.getPath('userData'), root);
   const store = startup.store;
 
-  const imports = createImportService({ store, libraryRoot: () => root });
+  // observability: every significant outcome leaves structured evidence
+  const diagnostics = new DiagnosticsRecorder();
+  if (startup.dbRecovered) {
+    diagnostics.record('database.rebuilt', 'warn', { note: startup.dbRecovered });
+  }
+  if (startup.reconciliation) {
+    diagnostics.setReconciliation(startup.reconciliation);
+  }
+  diagnostics.setStats({
+    appVersion: app.getVersion(),
+    platform: `electron/${process.platform}-${process.arch}`,
+    schemaVersion: null, // filled below from the live store
+    library: { books: store.listBooks().length, highlights: 0 },
+  });
+
+  const imports = createImportService({
+    store,
+    libraryRoot: () => root,
+    onResult: (result) => {
+      diagnostics.record(
+        result.ok ? 'book.import.completed' : 'book.import.failed',
+        result.ok ? 'info' : 'warn',
+        { title: result.title, reason: result.reason ?? undefined },
+      );
+    },
+  });
 
   return {
     store,
@@ -113,6 +142,21 @@ export function createServices(): Services {
     rebuildIndex: () => store.rebuildIndex(),
     reconcile: () => startup.reconciliation,
     startupNote: () => startup.dbRecovered,
+    diagnostics: () => diagnostics.export(),
+    exportDiagnostics() {
+      // the destination is main-side (dialog); the report is scrubbed by the
+      // recorder's privacy rule — counts and statuses, never book text
+      const report = JSON.stringify(diagnostics.export(), null, 2);
+      const target = dialog.showSaveDialogSync({
+        title: 'Export diagnostics report',
+        defaultPath: `arivo-diagnostics-${new Date().toISOString().slice(0, 10)}.json`,
+        filters: [{ name: 'JSON', extensions: ['json'] }],
+      });
+      if (!target) return null;
+      fs.writeFileSync(target, report, 'utf-8');
+      diagnostics.record('diagnostics.exported', 'info');
+      return target;
+    },
     async autoSeed(seedDir) {
       try {
         const books = store.listBooks();
