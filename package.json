@@ -12,7 +12,7 @@
     "dev": "pnpm --filter @arivo/desktop dev",
     "dev:web": "pnpm --filter @arivo/desktop dev:web",
     "build": "pnpm --filter @arivo/desktop build",
-    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/database && tsc --noEmit -p packages/documents && tsc --noEmit -p packages/ui && tsc --noEmit -p packages/reader && tsc --noEmit -p apps/desktop",
+    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/persistence && tsc --noEmit -p packages/database && tsc --noEmit -p packages/documents && tsc --noEmit -p packages/ui && tsc --noEmit -p packages/reader && tsc --noEmit -p apps/desktop",
     "lint": "eslint .",
     "test": "vitest run",
     "check": "pnpm typecheck && pnpm lint && pnpm test",

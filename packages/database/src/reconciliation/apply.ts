@@ -4,8 +4,9 @@
  * apply performs LIVE duplicate checks: the snapshot may be stale the moment
  * a register lands.
  */
-import { readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { writeFileSyncAtomic } from '@arivo/persistence';
 import type { BookFolderMeta } from '@arivo/core';
 import type { PlanAction } from './types.ts';
 
@@ -27,12 +28,9 @@ export interface AppliedAction {
   detail?: string;
 }
 
-/** atomic metadata write (upgraded to the shared persistence layer in the crash-safety pass) */
+/** atomic metadata write — the same primitive every truth write uses */
 function writeMetaFile(dir: string, meta: BookFolderMeta): void {
-  const file = join(dir, 'metadata.json');
-  const tmp = `${file}.tmp-${process.pid}-${Date.now()}`;
-  writeFileSync(tmp, JSON.stringify(meta, null, 2), 'utf-8');
-  renameSync(tmp, file);
+  writeFileSyncAtomic(join(dir, 'metadata.json'), JSON.stringify(meta, null, 2));
 }
 
 function readMetaFile(dir: string): BookFolderMeta | null {

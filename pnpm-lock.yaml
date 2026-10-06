@@ -274,6 +274,9 @@ importers:
       '@arivo/core':
         specifier: workspace:*
         version: link:../core
+      '@arivo/persistence':
+        specifier: workspace:*
+        version: link:../persistence
       better-sqlite3:
         specifier: ^13.0.3
         version: 13.0.3
@@ -287,9 +290,14 @@ importers:
       '@arivo/core':
         specifier: workspace:*
         version: link:../core
+      '@arivo/persistence':
+        specifier: workspace:*
+        version: link:../persistence
       jszip:
         specifier: ^3.10.1
         version: 3.10.2
+
+  packages/persistence: {}
 
   packages/reader:
     dependencies:

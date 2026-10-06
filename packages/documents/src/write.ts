@@ -1,26 +1,12 @@
-/** writing the book folder: the library is human-browsable, deletion is unambiguous. */
-import { copyFile, mkdir, writeFile } from 'node:fs/promises';
+/** writing the book folder: the library is human-browsable, deletion is unambiguous.
+ * every file lands atomically — a crash mid-import leaves no partial truth. */
+import { copyFile, mkdir, rename, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import { writeFileSyncAtomic } from '@arivo/persistence';
+import type { BookFolderMeta } from '@arivo/core';
 import type { InspectedFile } from './inspect.ts';
 
-export interface BookFolderRecord {
-  id: string;
-  title: string;
-  subtitle: string | null;
-  authors: string[];
-  description: string | null;
-  language: string | null;
-  publisher: string | null;
-  publishedYear: string | null;
-  coverPath: string | null;
-  format: 'epub' | 'pdf';
-  hash: string;
-  fileName: string;
-  fileSize: number;
-  tags: string[];
-  addedAt?: number;
-  updatedAt?: number;
-}
+export type BookFolderRecord = BookFolderMeta;
 
 /**
  * the folder shape (the library IS the truth):
@@ -43,9 +29,10 @@ export async function writeBookFolder(
   let coverPath: string | null = null;
   if (inspected.cover) {
     coverPath = 'cover.jpg';
-    await writeFile(join(bookDir, 'cover.jpg'), inspected.cover);
+    writeFileSyncAtomic(join(bookDir, 'cover.jpg'), new Uint8Array(inspected.cover));
   }
 
+  const fileStat = await stat(dest);
   const record: BookFolderRecord = {
     id: bookId,
     title: inspected.title,
@@ -63,14 +50,25 @@ export async function writeBookFolder(
     tags: [],
     addedAt: Date.now(),
     updatedAt: Date.now(),
+    fileMtime: fileStat.mtimeMs,
   };
 
-  await writeFile(join(bookDir, 'metadata.json'), JSON.stringify(record, null, 2), 'utf-8');
-  await writeFile(
+  writeFileSyncAtomic(join(bookDir, 'metadata.json'), JSON.stringify(record, null, 2));
+  writeFileSyncAtomic(
     join(bookDir, 'annotations.json'),
     JSON.stringify({ version: 1, bookId, progress: null, highlights: [], bookmarks: [] }, null, 2),
-    'utf-8',
   );
 
   return record;
+}
+
+/**
+ * the staging commit — THE crash-safe import boundary.
+ * prepare the folder under {library}/.staging/{bookId}/, then this renames
+ * it into place: one atomic rename on the same filesystem. a crash before
+ * the rename leaves only staging (swept at next startup); after it, the
+ * book exists completely.
+ */
+export async function commitBookFolder(stagingDir: string, bookDir: string): Promise<void> {
+  await rename(stagingDir, bookDir);
 }

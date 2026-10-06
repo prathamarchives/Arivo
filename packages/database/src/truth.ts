@@ -1,10 +1,11 @@
 /**
  * the per-book truth file: annotations.json.
- * THE LAW: json = durable truth (written first), sqlite = rebuildable index.
- * deleting the index costs zero data.
+ * THE LAW: json = durable truth (written FIRST, atomically + fsynced),
+ * sqlite = rebuildable index. deleting the index costs zero data.
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync } from 'node:fs';
+import { readFileSync, mkdirSync, existsSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { writeFileSyncAtomic } from '@arivo/persistence';
 import type { Highlight, Bookmark, ReadingProgress } from '@arivo/core';
 
 export interface BookTruth {
@@ -28,19 +29,25 @@ export function readTruth(bookDir: string, bookId: string): BookTruth {
   if (!existsSync(file)) return empty(bookId);
   try {
     const raw = JSON.parse(readFileSync(file, 'utf-8')) as Partial<BookTruth>;
+    if (!Array.isArray(raw.highlights) || !Array.isArray(raw.bookmarks)) throw new Error('shape');
     return {
       version: 1,
       bookId,
       progress: raw.progress ?? null,
-      highlights: raw.highlights ?? [],
-      bookmarks: raw.bookmarks ?? [],
+      highlights: raw.highlights,
+      bookmarks: raw.bookmarks,
     };
   } catch {
     // corrupted truth file: salvage via .bak, else start empty — never crash the library
     const bak = `${file}.bak`;
     if (existsSync(bak)) {
       try {
-        return JSON.parse(readFileSync(bak, 'utf-8')) as BookTruth;
+        const salvaged = JSON.parse(readFileSync(bak, 'utf-8')) as BookTruth;
+        if (Array.isArray(salvaged.highlights)) {
+          // the .bak is good — write it back as the live truth, atomically
+          writeFileSyncAtomic(file, JSON.stringify({ ...salvaged, bookId }, null, 2));
+          return { ...salvaged, bookId };
+        }
       } catch {
         /* fall through */
       }
@@ -49,13 +56,23 @@ export function readTruth(bookDir: string, bookId: string): BookTruth {
   }
 }
 
-/** atomic-ish: write .new → rename to live, keep previous as .bak */
+/**
+ * the atomic truth write: content → fsync → rename → fsync dir. a process
+ * death at any point leaves the previous or the new content, never a
+ * partial file (proven by crash.test.ts with real SIGKILLs). the previous
+ * content rotates to `.bak` for corruption salvage.
+ */
 export function writeTruth(bookDir: string, truth: BookTruth): void {
   mkdirSync(bookDir, { recursive: true });
   const file = join(bookDir, 'annotations.json');
-  const next = `${file}.new`;
   const bak = `${file}.bak`;
-  writeFileSync(next, JSON.stringify(truth, null, 2), 'utf-8');
-  if (existsSync(file)) renameSync(file, bak);
-  renameSync(next, file);
+  const content = JSON.stringify(truth, null, 2);
+  if (existsSync(file)) {
+    // rotate: the current live file becomes the salvage copy
+    const current = readFileSync(file, 'utf-8');
+    writeFileSync(bak, current);
+  }
+  writeFileSyncAtomic(file, content);
+  // keep .bak exactly one generation behind; renameSync of a missing file never runs
+  void renameSync;
 }

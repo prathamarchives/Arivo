@@ -98,6 +98,29 @@ function observeFolder(dir: string, entry: string): ObservedBook {
   return observed;
 }
 
+/** arivo's own hidden temp litter from a killed atomic write */
+const TEMP_RE = /^\..+\.tmp-\d+-\d+-\d+$/;
+
+/** sweep arivo's own scratch — staging + temp litter. safe to remove. */
+function sweepScratch(dir: string): string[] {
+  const swept: string[] = [];
+  try {
+    for (const entry of readdirSync(dir)) {
+      if (TEMP_RE.test(entry)) {
+        try {
+          rmSync(join(dir, entry), { force: true });
+          swept.push(entry);
+        } catch {
+          /* best-effort; re-swept next run */
+        }
+      }
+    }
+  } catch {
+    /* best effort */
+  }
+  return swept;
+}
+
 /** sweep arivo's own staging scratch — incomplete imports, safe to remove */
 function sweepStaging(libraryDir: string): string[] {
   const staging = join(libraryDir, '.staging');
@@ -126,6 +149,7 @@ export function scanLibrary(libraryDir: string): ScanResult {
   if (!existsSync(libraryDir)) return { books, junk, sweptStaging: [] };
 
   const sweptStaging = sweepStaging(libraryDir);
+  sweptStaging.push(...sweepScratch(libraryDir));
 
   for (const entry of readdirSync(libraryDir)) {
     if (entry === '.staging' || entry === 'collections.json') continue;

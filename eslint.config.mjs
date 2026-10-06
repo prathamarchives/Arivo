@@ -7,7 +7,8 @@ import tseslint from 'typescript-eslint';
  * a violation fails CI — the constitution is executable.
  */
 const forbidden = {
-  'packages/core/src': ['@arivo/database', '@arivo/documents', '@arivo/ui', '@arivo/reader', 'electron'],
+  'packages/core/src': ['@arivo/database', '@arivo/documents', '@arivo/ui', '@arivo/reader', '@arivo/persistence', 'electron'],
+  'packages/persistence/src': ['@arivo/database', '@arivo/documents', '@arivo/ui', '@arivo/reader', '@arivo/core', 'electron'],
   'packages/database/src': ['@arivo/documents', '@arivo/ui', '@arivo/reader', 'electron'],
   'packages/documents/src': ['@arivo/database', '@arivo/ui', '@arivo/reader', 'electron'],
   'packages/ui/src': ['@arivo/database', '@arivo/documents', '@arivo/reader', 'electron'],

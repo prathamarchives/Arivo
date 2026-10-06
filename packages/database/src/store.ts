@@ -5,8 +5,6 @@
 import { join } from 'node:path';
 import {
   readFileSync,
-  writeFileSync,
-  renameSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -26,6 +24,7 @@ import type {
   ResolutionStatus,
 } from '@arivo/core';
 import { uuidv7, exportReadingNotes } from '@arivo/core';
+import { writeFileSyncAtomic } from '@arivo/persistence';
 import { openDb, openMemoryDb, type Db } from './db.ts';
 import { readTruth, writeTruth } from './truth.ts';
 
@@ -516,7 +515,7 @@ export class ArivoStore {
   }
 
   private writeCollections(c: CollectionsTruth): void {
-    writeFileSync(this.collectionsFile(), JSON.stringify(c, null, 2), 'utf-8');
+    writeFileSyncAtomic(this.collectionsFile(), JSON.stringify(c, null, 2));
   }
 
   listCollections(): { collection: Collection; count: number }[] {
@@ -706,13 +705,15 @@ export class ArivoStore {
           bookmarks += result.bookmarks;
         } else if (result.duplicateOf) {
           suppressed += 1;
-          const truthFile = join(this.bookDir(meta.id), 'metadata.json');
           try {
-            const fresh = JSON.parse(readFileSync(truthFile, 'utf-8')) as BookRecord;
+            const fresh = JSON.parse(
+              readFileSync(join(this.bookDir(meta.id), 'metadata.json'), 'utf-8'),
+            ) as BookRecord;
             fresh.duplicateOf = result.duplicateOf;
-            const tmp = `${truthFile}.tmp`;
-            writeFileSync(tmp, JSON.stringify(fresh, null, 2), 'utf-8');
-            renameSync(tmp, truthFile);
+            writeFileSyncAtomic(
+              join(this.bookDir(meta.id), 'metadata.json'),
+              JSON.stringify(fresh, null, 2),
+            );
           } catch {
             /* marker is best-effort; rebuild stays deterministic either way */
           }
@@ -742,5 +743,5 @@ export function readSettings(configDir: string, defaults: Record<string, unknown
 
 export function writeSettings(configDir: string, settings: Record<string, unknown>): void {
   mkdirSync(configDir, { recursive: true });
-  writeFileSync(join(configDir, 'settings.json'), JSON.stringify(settings, null, 2), 'utf-8');
+  writeFileSyncAtomic(join(configDir, 'settings.json'), JSON.stringify(settings, null, 2));
 }
