@@ -32,11 +32,13 @@ const importsOf = (file: string): string[] => {
   return specifiers;
 };
 
+const rel = (file: string): string => relative(ROOT, file).split('\\').join('/');
+
 const violations = (dir: string, banned: (spec: string) => boolean): { file: string; spec: string }[] => {
   const out: { file: string; spec: string }[] = [];
   for (const file of walk(join(ROOT, dir))) {
     for (const spec of importsOf(file)) {
-      if (banned(spec)) out.push({ file: relative(ROOT, file), spec });
+      if (banned(spec)) out.push({ file: rel(file), spec });
     }
   }
   return out;
@@ -97,7 +99,7 @@ describe('the renderer isolation law (I-26)', () => {
   it('renderer code never touches the ipc bridge directly (only window.arivo)', () => {
     const bad = walk(join(ROOT, 'apps/desktop/src/renderer'))
       .filter((f) => readFileSync(f, 'utf-8').includes('ipcRenderer'))
-      .map((f) => relative(ROOT, f));
+      .map(rel);
     expect(bad).toEqual([]);
   });
 
@@ -109,7 +111,7 @@ describe('the renderer isolation law (I-26)', () => {
       for (const spec of importsOf(file)) {
         const allowed =
           spec === 'electron' || spec.startsWith('@arivo/core') || spec.startsWith('./');
-        if (!allowed) bad.push({ file: relative(ROOT, file), spec });
+        if (!allowed) bad.push({ file: rel(file), spec });
       }
     }
     expect(bad).toEqual([]);
@@ -118,7 +120,7 @@ describe('the renderer isolation law (I-26)', () => {
   it('preload scripts are the only contextBridge users', () => {
     const bridgeUsers = walk(join(ROOT, 'apps/desktop/src'))
       .filter((f) => readFileSync(f, 'utf-8').includes('contextBridge'))
-      .map((f) => relative(ROOT, f));
+      .map(rel);
     expect(bridgeUsers.every((f) => f.startsWith('apps/desktop/src/preload'))).toBe(true);
   });
 });

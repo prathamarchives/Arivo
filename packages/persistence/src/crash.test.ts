@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, readFileSync, readdirSync, chmodSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,9 +34,14 @@ describe('the atomic write survives process death at every point', () => {
       const dir = mkdtempSync(join(tmpdir(), 'arivo-crash-'));
       try {
         const target = join(dir, 'annotations.json');
-        const { signal } = runChild(target, point);
-        // the child must have actually died at the point
-        expect(signal).toBe('SIGKILL');
+        const { signal, status } = runChild(target, point);
+        // the child must have actually died at the point (windows reports
+        // exit code 1 — there is no SIGKILL signal there)
+        if (process.platform === 'win32') {
+          expect(status).not.toBe(0);
+        } else {
+          expect(signal).toBe('SIGKILL');
+        }
         // the invariant: parseable, and one of the two complete states
         const content = JSON.parse(readFileSync(target, 'utf-8')) as { state: string };
         expect(['old', 'new']).toContain(content.state);
@@ -44,7 +49,7 @@ describe('the atomic write survives process death at every point', () => {
         // scratch that reconciliation sweeps on the next scan
         expect(readdirSync(dir).every((f) => f === 'annotations.json' || f.startsWith('.'))).toBe(true);
       } finally {
-        rmSync(dir, { recursive: true, force: true });
+        rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 120 });
       }
     });
   }
@@ -68,14 +73,9 @@ describe('the atomic write survives process death at every point', () => {
     try {
       const target = join(dir, 'settings.json');
       writeFileSyncAtomic(target, OLD);
-      // simulate a failing write: the directory refuses new files (EACCES —
-      // the same failure shape as a full disk)
-      chmodSync(dir, 0o555);
-      try {
-        expect(() => writeFileSyncAtomic(target, NEW)).toThrow();
-      } finally {
-        chmodSync(dir, 0o755);
-      }
+      // simulate a failing write: invalid data throws at the temp-write
+      // step on EVERY platform (the same failure shape as a full disk)
+      expect(() => writeFileSyncAtomic(target, 42 as unknown as string)).toThrow();
       const content = JSON.parse(readFileSync(target, 'utf-8')) as { state: string };
       expect(content.state).toBe('old');
       expect(readdirSync(dir)).toEqual(['settings.json']);

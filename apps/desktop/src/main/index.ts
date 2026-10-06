@@ -59,8 +59,16 @@ if (rendererDevUrl) {
   }
 }
 
+/**
+ * electron's protocol Request carries `initiatorOrigin` at runtime — an
+ * extension beyond the DOM lib type. read it through a typed lens.
+ */
+interface ElectronProtocolRequest extends Request {
+  initiatorOrigin?: string;
+}
+
 function corsHeadersFor(request: Request): Record<string, string> {
-  const origin = request.initiatorOrigin;
+  const origin = (request as ElectronProtocolRequest).initiatorOrigin;
   if (!origin || !allowedRendererOrigins.has(origin)) return {};
 
   return {
