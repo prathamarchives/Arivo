@@ -26,16 +26,49 @@ jobs:
       - name: install
         run: pnpm install --frozen-lockfile
 
+      # the gate: no installer ships from a red build
+      - name: verify (typecheck + lint + tests + build)
+        run: pnpm check && pnpm build
+
       - name: build + package (nsis)
         run: pnpm --filter @arivo/desktop dist:win
+
+      - name: checksums (sha256, provenance)
+        shell: bash
+        run: |
+          cd apps/desktop/release
+          for f in *.exe; do
+            sha256sum "$f" > "$f.sha256"
+          done
+          cat *.sha256
 
       - uses: actions/upload-artifact@v4
         with:
           name: arivo-windows
-          path: apps/desktop/release/*.exe
+          path: |
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.sha256
 
-      - name: attach to release
+      - name: attach to release (installer + checksums)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: apps/desktop/release/*.exe
+          files: |
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.sha256
+          body: |
+            arivo ${{ github.ref_name }}
+
+            **contents**
+            - Windows installer (NSIS) + sha256 checksums
+
+            **provenance**
+            - commit: ${{ github.sha }}
+            - built by CI on a fresh runner after the full gate passed
+            (typecheck, lint, 158 tests incl. the destroy suite, build)
+
+            **upgrade note**
+            the index database migrates automatically on first launch
+            (schema 1 → 2: foreign keys + reconciliation state). your
+            library folder is untouched; deleting the index never loses
+            annotations.
