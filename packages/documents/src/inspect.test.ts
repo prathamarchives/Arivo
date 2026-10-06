@@ -1,14 +1,18 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { readFile, writeFile, mkdtemp } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inspectFile, inspectEpub, detectFormat, ImportError } from './inspect.ts';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
+const ROOT = join(HERE, '../../..');
+// the committed deterministic fixture — runs everywhere (fresh clones, CI)
+const FIXTURE_EPUB = join(ROOT, 'test-fixtures/fixture.epub');
+// the owner's real book — present on the dev machine, gitignored, skipped elsewhere
 const REAL_EPUB = join(
-  HERE,
-  '../../../',
+  ROOT,
   'apps/desktop/public/seed/The Burnout Society.epub',
 );
 
@@ -26,7 +30,32 @@ describe('detectFormat', () => {
   });
 });
 
-describe('inspectEpub — on the owner\u2019s real book', () => {
+describe('inspectEpub — on the committed fixture (runs everywhere, incl. CI)', () => {
+  it('extracts metadata, cover, and a stable hash', async () => {
+    const result = await inspectEpub(FIXTURE_EPUB);
+    expect(result.format).toBe('epub');
+    expect(result.title).toBe('A Fixture Book');
+    expect(result.authors).toEqual(['Fixture Author']);
+    expect(result.language).toBe('en');
+    expect(result.publisher).toBe('Arivo Press');
+    expect(result.publishedYear).toBe('2015');
+    expect(result.hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.fileSize).toBe((await readFile(FIXTURE_EPUB)).length);
+    // the fixture ships a real cover through the epub2 meta path (epub3
+    // properties + guide are also declared — chain order picks meta first)
+    expect(result.cover).not.toBeNull();
+    expect(result.cover!.length).toBeGreaterThan(1000);
+  });
+
+  it('is deterministic — same file, same truth', async () => {
+    const a = await inspectEpub(FIXTURE_EPUB);
+    const b = await inspectEpub(FIXTURE_EPUB);
+    expect(a.hash).toBe(b.hash);
+    expect(a.title).toBe(b.title);
+  });
+});
+
+describe.skipIf(!existsSync(REAL_EPUB))('inspectEpub — on the owner\u2019s real book', () => {
   it('extracts metadata, cover, and a stable hash', async () => {
     const result = await inspectEpub(REAL_EPUB);
     expect(result.format).toBe('epub');

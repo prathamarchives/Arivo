@@ -14,7 +14,31 @@ import { openDb } from './db.ts';
 import { uuidv7, type Highlight, type Bookmark } from '@arivo/core';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
-const REAL_EPUB = join(HERE, '../../../', 'apps/desktop/public/seed/The Burnout Society.epub');
+const ROOT = join(HERE, '../../..');
+
+/**
+ * the book under test: the owner's real book when present (dev machine),
+ * the committed fixture otherwise (fresh clones, CI). the portability law
+ * must run everywhere — the fixture guarantees it never depends on a
+ * gitignored file.
+ */
+const REAL_EPUB = join(ROOT, 'apps/desktop/public/seed/The Burnout Society.epub');
+const FIXTURE_EPUB = join(ROOT, 'test-fixtures/fixture.epub');
+const book = existsSync(REAL_EPUB)
+  ? {
+      path: REAL_EPUB,
+      title: 'The Burnout Society',
+      authors: ['Byung-Chul Han'],
+      fileName: 'The Burnout Society.epub',
+      search: 'burnout',
+    }
+  : {
+      path: FIXTURE_EPUB,
+      title: 'A Fixture Book',
+      authors: ['Fixture Author'],
+      fileName: 'fixture.epub',
+      search: 'fixture',
+    };
 
 let root: string;
 let dbPath: string;
@@ -32,9 +56,9 @@ const bookSeedId = uuidv7();
 function seedRecord(hash: string): Parameters<ArivoStore['indexBook']>[0] {
   return {
     id: bookSeedId,
-    title: 'The Burnout Society',
+    title: book.title,
     subtitle: null,
-    authors: ['Byung-Chul Han'],
+    authors: book.authors,
     description: null,
     language: 'en',
     publisher: 'Stanford University Press',
@@ -42,8 +66,8 @@ function seedRecord(hash: string): Parameters<ArivoStore['indexBook']>[0] {
     coverPath: 'cover.jpg',
     format: 'epub',
     hash,
-    fileName: 'The Burnout Society.epub',
-    fileSize: readFileSync(REAL_EPUB).length,
+    fileName: book.fileName,
+    fileSize: readFileSync(book.path).length,
     tags: [],
     addedAt: Date.now(),
     updatedAt: Date.now(),
@@ -53,11 +77,11 @@ function seedRecord(hash: string): Parameters<ArivoStore['indexBook']>[0] {
 describe('the golden path data layer', () => {
   it('indexes a book folder (the shape the documents layer writes) and lists it', () => {
     const store = new ArivoStore(openDb(dbPath), root);
-    const bytes = readFileSync(REAL_EPUB);
+    const bytes = readFileSync(book.path);
     const hash = createHash('sha256').update(bytes).digest('hex');
     const bookDir = join(root, 'library', bookSeedId);
     mkdirSync(bookDir, { recursive: true });
-    copyFileSync(REAL_EPUB, join(bookDir, 'The Burnout Society.epub'));
+    copyFileSync(book.path, join(bookDir, book.fileName));
     writeFileSync(join(bookDir, 'cover.jpg'), bytes.subarray(0, 2048));
     writeFileSync(
       join(bookDir, 'metadata.json'),
@@ -71,8 +95,8 @@ describe('the golden path data layer', () => {
 
     const books = store.listBooks();
     expect(books.length).toBe(1);
-    expect(books[0]!.title).toBe('The Burnout Society');
-    expect(books[0]!.authors.join(' ')).toContain('Han');
+    expect(books[0]!.title).toBe(book.title);
+    expect(books[0]!.authors.join(' ')).toContain(book.authors[0]!);
     expect(books[0]!.hash).toBe(hash);
     expect(existsSync(join(bookDir, 'annotations.json'))).toBe(true);
     store.close();
@@ -80,7 +104,7 @@ describe('the golden path data layer', () => {
 
   it('refuses to import the same book twice (hash = identity)', () => {
     const store = new ArivoStore(openDb(dbPath), root);
-    const bytes = readFileSync(REAL_EPUB);
+    const bytes = readFileSync(book.path);
     const hash = createHash('sha256').update(bytes).digest('hex');
     expect(store.findByHash(hash)).toBe(bookSeedId);
     store.close();
@@ -182,7 +206,7 @@ describe('THE PORTABILITY LAW — dual-write, kill the index, rebuild, zero loss
 
   it('step 4: the rebuilt index still searches (FTS5 restored)', () => {
     const store = new ArivoStore(openDb(dbPath), root);
-    const byBook = store.search('burnout');
+    const byBook = store.search(book.search);
     expect(byBook.some((h) => h.kind === 'book')).toBe(true);
     const byHighlight = store.search('multitasking');
     expect(byHighlight.some((h) => h.kind === 'highlight')).toBe(true);
