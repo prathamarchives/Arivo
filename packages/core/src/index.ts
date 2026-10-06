@@ -7,3 +7,4 @@ export * from './api.ts';
 export * from './errors.ts';
 export * from './validation.ts';
 export * from './diagnostics.ts';
+export * from './mutex.ts';

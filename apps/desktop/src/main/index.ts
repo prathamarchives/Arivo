@@ -168,7 +168,7 @@ app.whenReady().then(async () => {
 
   if (isRebuild) {
     services = createServices();
-    const result = services.rebuildIndex();
+    const result = await services.rebuildIndex();
     console.warn(`[arivo] index rebuilt: ${result.books} books, ${result.highlights} highlights`);
     app.exit(0);
     return;

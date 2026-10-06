@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import { ArivoStore, readSettings, writeSettings } from '@arivo/database';
 import {
   DEFAULT_SETTINGS,
+  createWriteQueue,
   DiagnosticsRecorder,
   type AppSettings,
   type DiagnosticsReport,
@@ -29,7 +30,7 @@ export interface Services {
   saveNotes(bookId: string): string | null;
   getSettings(): AppSettings;
   setSettings(s: AppSettings): void;
-  rebuildIndex(): { books: number; highlights: number; bookmarks: number };
+  rebuildIndex(): Promise<{ books: number; highlights: number; bookmarks: number }>;
   reconcile(): ReconciliationReport | null;
   startupNote(): string | null;
   diagnostics(): DiagnosticsReport;
@@ -67,6 +68,10 @@ export function createServices(): Services {
     library: { books: store.listBooks().length, highlights: 0 },
   });
 
+  // single-writer discipline (I-29): imports, reconciliation, and rebuilds
+  // are multi-step mutations — they serialize against each other
+  const writer = createWriteQueue();
+
   const imports = createImportService({
     store,
     libraryRoot: () => root,
@@ -99,7 +104,7 @@ export function createServices(): Services {
         return null;
       }
     },
-    importPaths: (paths) => imports.importPaths(paths),
+    importPaths: (paths) => writer.runExclusive('import', () => imports.importPaths(paths)),
     pickFiles() {
       const picked = dialog.showOpenDialogSync({
         title: 'Import books',
@@ -139,7 +144,10 @@ export function createServices(): Services {
         root = s.booksDir;
       }
     },
-    rebuildIndex: () => store.rebuildIndex(),
+    rebuildIndex: async () => {
+      const r = await writer.runExclusive('rebuild', () => Promise.resolve(store.rebuildIndex()));
+      return { books: r.books, highlights: r.highlights, bookmarks: r.bookmarks };
+    },
     reconcile: () => startup.reconciliation,
     startupNote: () => startup.dbRecovered,
     diagnostics: () => diagnostics.export(),
