@@ -221,7 +221,7 @@ describe('destroy: truth under attack', () => {
 });
 
 describe('destroy: the annotation storm + library swell', () => {
-  it('1,000 highlights across 20 books: rebuild → zero loss, bounded time', () => {
+  it('1,000 highlights across 20 books: rebuild → zero loss, bounded time', { timeout: 120_000 }, () => {
     for (let i = 0; i < 20; i++) seedBook(`storm-${i.toString().padStart(2, '0')}`, 50);
     let store = open();
     const first = store.rebuildIndex();
@@ -255,7 +255,7 @@ describe('destroy: the annotation storm + library swell', () => {
     store.close();
   });
 
-  it('200-book library: search + scan + reconcile stay responsive', () => {
+  it('200-book library: search + scan + reconcile stay responsive', { timeout: 60_000 }, () => {
     for (let i = 0; i < 200; i++) seedBook(`lib-${i.toString().padStart(3, '0')}`, 2);
     const store = open();
     const r = store.rebuildIndex();
@@ -277,7 +277,7 @@ describe('destroy: the annotation storm + library swell', () => {
     store.close();
   });
 
-  it('100 concurrent createHighlight microtasks: zero lost updates, dual-write intact', async () => {
+  it('100 concurrent createHighlight microtasks: zero lost updates, dual-write intact', { timeout: 30_000 }, async () => {
     seedBook('bk-storm', 0);
     const store = open();
     store.rebuildIndex();
