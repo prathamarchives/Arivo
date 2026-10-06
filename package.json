@@ -18,6 +18,7 @@
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "smoke": "pnpm --filter @arivo/desktop smoke",
     "dist:win": "pnpm --filter @arivo/desktop dist:win",
+    "rebuild:native": "pnpm --filter @arivo/desktop rebuild:native",
     "rebuild-index": "node scripts/rebuild-index.mjs"
   },
   "devDependencies": {
