@@ -1,12 +1,25 @@
 /**
  * the import pipeline's inspection stage: a file walks in, truth walks out.
  * state machine: validating → parsing → extracting → indexing → done | failed.
+ * documents are hostile input: shape + limits are enforced BEFORE any parse.
  */
 import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { basename, extname } from 'node:path';
 import JSZip from 'jszip';
 import type { BookFormat } from '@arivo/core';
+import {
+  DocumentRejected,
+  ImportError,
+  LIMITS,
+  capField,
+  probeZipEntries,
+  traversalShaped,
+  validateFileShape,
+  validateZipShape,
+} from './security.ts';
+
+export { ImportError, DocumentRejected };
 
 export interface InspectedFile {
   format: BookFormat;
@@ -23,12 +36,7 @@ export interface InspectedFile {
   cover: Buffer | null;
 }
 
-export class ImportError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ImportError';
-  }
-}
+/** legacy name — the typed base lives in security.ts (INVALID_DOCUMENT) */
 
 export function detectFormat(path: string): BookFormat | null {
   const ext = extname(path).toLowerCase();
@@ -63,30 +71,50 @@ const allMatches = (xml: string, re: RegExp): string[] => {
 
 /** the epub is untrusted input: we read strings + one image, we never execute it */
 export async function inspectEpub(path: string): Promise<InspectedFile> {
+  // validating: file-level shape first — size and extension
+  const size = (await stat(path)).size;
+  validateFileShape(path, size, extname(path).toLowerCase());
+
   const data = await readFile(path);
   const hash = createHash('sha256').update(data).digest('hex');
-  const size = (await stat(path)).size;
 
   const zip = await JSZip.loadAsync(data).catch(() => {
-    throw new ImportError('not a readable zip — the file is damaged');
+    throw new DocumentRejected('not a readable zip — the file is damaged');
   });
+
+  // validating: the archive's SHAPE before any entry is decompressed —
+  // entry count, per-entry + total sizes, compression ratios, traversal names
+  validateZipShape(probeZipEntries(zip.files as Record<string, unknown>));
 
   // validating: a real epub has a container
   const containerXml = await zip.file('META-INF/container.xml')?.async('string');
-  if (!containerXml) throw new ImportError('missing META-INF/container.xml — not an epub');
+  if (!containerXml) throw new DocumentRejected('missing META-INF/container.xml — not an epub');
 
   const rootfile = containerXml.match(/full-path="([^"]+)"/)?.[1];
-  if (!rootfile) throw new ImportError('container.xml has no rootfile — not an epub');
+  if (!rootfile) throw new DocumentRejected('container.xml has no rootfile — not an epub');
+  if (traversalShaped(rootfile)) {
+    throw new DocumentRejected('the container points outside the archive — not an epub');
+  }
 
   const opf = await zip.file(rootfile)?.async('string');
-  if (!opf) throw new ImportError(`missing ${rootfile} — the epub is damaged`);
+  if (!opf) throw new DocumentRejected(`missing ${rootfile} — the epub is damaged`);
 
-  // parsing: metadata
-  const title = firstMatch(opf, /<dc:title[^>]*>([\s\S]*?)<\/dc:title>/i) ?? basename(path, extname(path));
-  const creators = allMatches(opf, /<dc:creator[^>]*>([\s\S]*?)<\/dc:creator>/gi);
-  const description = firstMatch(opf, /<dc:description[^>]*>([\s\S]*?)<\/dc:description>/i);
-  const language = firstMatch(opf, /<dc:language[^>]*>([\s\S]*?)<\/dc:language>/i);
-  const publisher = firstMatch(opf, /<dc:publisher[^>]*>([\s\S]*?)<\/dc:publisher>/i);
+  // parsing: metadata (hostile metadata is capped, never fatal)
+  const title =
+    capField(firstMatch(opf, /<dc:title[^>]*>([\s\S]*?)<\/dc:title>/i), 'title') ??
+    basename(path, extname(path)).slice(0, LIMITS.maxMetadataLength);
+  const creators = allMatches(opf, /<dc:creator[^>]*>([\s\S]*?)<\/dc:creator>/gi).map((c) =>
+    c.slice(0, LIMITS.maxMetadataLength),
+  );
+  const description = capField(
+    firstMatch(opf, /<dc:description[^>]*>([\s\S]*?)<\/dc:description>/i),
+    'description',
+  );
+  const language = capField(firstMatch(opf, /<dc:language[^>]*>([\s\S]*?)<\/dc:language>/i), 'language');
+  const publisher = capField(
+    firstMatch(opf, /<dc:publisher[^>]*>([\s\S]*?)<\/dc:publisher>/i),
+    'publisher',
+  );
   const rawDate = firstMatch(opf, /<dc:date[^>]*>([\s\S]*?)<\/dc:date>/i);
   const publishedYear = rawDate?.match(/(\d{4})/)?.[1] ?? null;
 
@@ -138,14 +166,16 @@ export async function inspectEpub(path: string): Promise<InspectedFile> {
   }
 
   let cover: Buffer | null = null;
-  if (coverHref) {
+  if (coverHref && !traversalShaped(coverHref)) {
     const zipPath = coverHref.startsWith('/')
       ? coverHref.slice(1)
       : joinZipPath(rootfile, decodeHref(coverHref));
-    const entry = zip.file(zipPath);
-    if (entry) {
-      const bytes = await entry.async('nodebuffer');
-      if (bytes.length > 0 && bytes.length < 12 * 1024 * 1024) cover = bytes;
+    if (!traversalShaped(zipPath)) {
+      const entry = zip.file(zipPath);
+      if (entry) {
+        const bytes = await entry.async('nodebuffer');
+        if (bytes.length > 0 && bytes.length < LIMITS.maxCoverBytes) cover = bytes;
+      }
     }
   }
 
@@ -172,16 +202,21 @@ function joinZipPath(opfPath: string, href: string): string {
 
 /** pdf inspection v0.1: honest minimal — filename is the title, truth discovered on open */
 export async function inspectPdf(path: string): Promise<InspectedFile> {
+  const size = (await stat(path)).size;
+  validateFileShape(path, size, '.pdf');
   const data = await readFile(path);
   const head = data.subarray(0, 5).toString('latin1');
-  if (head !== '%PDF-') throw new ImportError('not a pdf file');
+  if (head !== '%PDF-') throw new DocumentRejected('not a pdf file');
   const hash = createHash('sha256').update(data).digest('hex');
-  const size = (await stat(path)).size;
   const base = basename(path, extname(path)).replace(/[_-]+/g, ' ').trim();
   // try to pull the title from the pdf info dict (best effort, no parser dep)
-  const tail = data.subarray(Math.max(0, data.length - 4096)).toString('latin1');
+  const tail = data.subarray(Math.max(0, data.length - LIMITS.pdfTailBytes)).toString('latin1');
   const titleMatch = tail.match(/\/Title\s*\(([^)]{1,200})\)/)?.[1];
-  const title = titleMatch ? titleMatch.trim() : base.length > 0 ? base : basename(path);
+  const title = titleMatch
+    ? titleMatch.trim()
+    : base.length > 0
+      ? base.slice(0, LIMITS.maxMetadataLength)
+      : basename(path);
   return {
     format: 'pdf',
     hash,
@@ -202,5 +237,5 @@ export async function inspectFile(path: string): Promise<InspectedFile> {
   const format = detectFormat(path);
   if (format === 'epub') return inspectEpub(path);
   if (format === 'pdf') return inspectPdf(path);
-  throw new ImportError('unsupported format — arivo reads epub and pdf');
+  throw new ImportError('arivo reads epub and pdf', 'UNSUPPORTED_FORMAT');
 }
