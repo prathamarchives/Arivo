@@ -3,3 +3,4 @@ export * from './migrations/index.ts';
 export * from './truth.ts';
 export * from './store.ts';
 export * from './reconciliation/index.ts';
+export * from './search-query.ts';

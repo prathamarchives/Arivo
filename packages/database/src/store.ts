@@ -27,6 +27,7 @@ import { uuidv7, exportReadingNotes } from '@arivo/core';
 import { writeFileSyncAtomic } from '@arivo/persistence';
 import { openDb, openMemoryDb, type Db } from './db.ts';
 import { readTruth, writeTruth } from './truth.ts';
+import { toFtsPrefixQuery } from './search-query.ts';
 
 /** the folder contract (metadata.json) is the domain shape — see @arivo/core */
 export type BookRecord = BookFolderMeta;
@@ -589,9 +590,8 @@ export class ArivoStore {
   // ---------- search ----------
 
   search(query: string): SearchHit[] {
-    const q = query.trim();
-    if (q.length < 2) return [];
-    const ftsQ = `${q}*`; // prefix search
+    const ftsQ = toFtsPrefixQuery(query);
+    if (ftsQ === null) return [];
     const hits: SearchHit[] = [];
 
     const bookRows = this.db.raw
@@ -638,7 +638,7 @@ export class ArivoStore {
     }
 
     for (const { collection } of this.listCollections()) {
-      if (collection.name.toLowerCase().includes(q.toLowerCase())) {
+      if (collection.name.toLowerCase().includes(query.trim().toLowerCase())) {
         hits.push({
           kind: 'collection',
           id: collection.id,
