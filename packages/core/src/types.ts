@@ -143,6 +143,8 @@ export interface Book {
   addedAt: number;
   updatedAt: number;
   tags: string[];
+  /** reconciliation state: the book file is gone but truth remains (ORPHANED_DATA) */
+  fileMissing?: boolean;
 }
 
 export interface ReadingProgress {

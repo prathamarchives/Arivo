@@ -18,7 +18,11 @@ export interface ReconcileStore {
     highlights: number;
     bookmarks: number;
   };
-  updateBookRow(id: string, patch: { hash: string; fileSize: number; fileName: string }): void;
+  updateBookRow(
+    id: string,
+    patch: { hash: string; fileSize: number; fileName: string; fileMissing?: boolean },
+  ): void;
+  setBookFileMissing(id: string, missing: boolean): void;
   removeIndexRow(id: string): void;
 }
 
@@ -114,11 +118,15 @@ function applyOne(store: ReconcileStore, action: PlanAction): AppliedAction['out
     }
     case 'markFileMissing': {
       const meta = readMetaFile(action.dir);
-      if (!meta) return 'skipped';
-      if (Boolean(meta.fileMissing) !== action.missing) {
-        meta.fileMissing = action.missing;
-        writeMetaFile(action.dir, meta);
+      if (meta) {
+        if (Boolean(meta.fileMissing) !== action.missing) {
+          meta.fileMissing = action.missing;
+          writeMetaFile(action.dir, meta);
+        }
       }
+      // the row carries the flag too — the library list shows it without
+      // reading a single metadata.json
+      store.setBookFileMissing(action.id, action.missing);
       return 'applied';
     }
     case 'dropRow': {

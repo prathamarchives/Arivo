@@ -4,7 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { ArivoStore, openDb, readSettings, writeSettings } from '@arivo/database';
 import { inspectFile, writeBookFolder, ImportError } from '@arivo/documents';
-import { uuidv7, DEFAULT_SETTINGS, type AppSettings, type ImportResult } from '@arivo/core';
+import { uuidv7, ArivoError, DEFAULT_SETTINGS, type AppSettings, type ImportResult } from '@arivo/core';
 
 export interface Services {
   store: ArivoStore;
@@ -34,7 +34,35 @@ export function createServices(): Services {
 
   // the index lives in app data — never inside the synced library folder
   const dbPath = path.join(app.getPath('userData'), 'index.db');
-  const store = new ArivoStore(openDb(dbPath), root);
+
+  /** corruption at open is recovered, never fatal: backup → fresh → rebuild */
+  function openStoreWithRecovery(): { store: ArivoStore; recovered: boolean; note?: string } {
+    try {
+      return { store: new ArivoStore(openDb(dbPath), root), recovered: false };
+    } catch (err) {
+      if (!(err instanceof ArivoError) || err.code !== 'DATABASE_CORRUPT') throw err;
+      // move the damaged index aside (forensics, never silent loss)
+      const backup = `${dbPath}.corrupt-${Date.now()}`;
+      try {
+        fs.renameSync(dbPath, backup);
+        for (const side of ['-wal', '-shm']) {
+          if (fs.existsSync(`${dbPath}${side}`)) fs.renameSync(`${dbPath}${side}`, `${backup}${side}`);
+        }
+      } catch {
+        /* the fresh db below will replace whatever remains */
+      }
+      const store = new ArivoStore(openDb(dbPath), root);
+      const rebuilt = store.rebuildIndex();
+      return {
+        store,
+        recovered: true,
+        note: `index was damaged — rebuilt from your library: ${rebuilt.books} books, ${rebuilt.highlights} highlights, ${rebuilt.bookmarks} bookmarks, 0 truth records lost`,
+      };
+    }
+  }
+
+  const opened = openStoreWithRecovery();
+  const store = opened.store;
 
   async function importOne(p: string): Promise<ImportResult> {
     try {

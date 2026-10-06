@@ -52,6 +52,7 @@ const rowToBook = (r: BookRow): Book => ({
   addedAt: r.added_at,
   updatedAt: r.updated_at,
   tags: [],
+  fileMissing: r.file_missing === 1,
 });
 
 interface BookRow {
@@ -71,6 +72,7 @@ interface BookRow {
   added_at: number;
   updated_at: number;
   fts_row: number;
+  file_missing: number;
 }
 
 interface HighlightRow {
@@ -296,12 +298,22 @@ export class ArivoStore {
   }
 
   /** row-level fingerprint update (metadata.json was already written first) */
-  updateBookRow(id: string, patch: { hash: string; fileSize: number; fileName: string }): void {
+  updateBookRow(
+    id: string,
+    patch: { hash: string; fileSize: number; fileName: string; fileMissing?: boolean },
+  ): void {
     this.db.raw
       .prepare(
-        'UPDATE books SET hash = @hash, file_name = @fileName, file_size = @fileSize, updated_at = @now WHERE id = @id',
+        'UPDATE books SET hash = @hash, file_name = @fileName, file_size = @fileSize, updated_at = @now, file_missing = @fileMissing WHERE id = @id',
       )
-      .run({ ...patch, now: Date.now(), id });
+      .run({ ...patch, fileMissing: patch.fileMissing ? 1 : 0, now: Date.now(), id });
+  }
+
+  /** reconciliation's ORPHANED_DATA flag — row-level, cheap */
+  setBookFileMissing(id: string, missing: boolean): void {
+    this.db.raw
+      .prepare('UPDATE books SET file_missing = ?, updated_at = ? WHERE id = ?')
+      .run(missing ? 1 : 0, Date.now(), id);
   }
 
   /**
