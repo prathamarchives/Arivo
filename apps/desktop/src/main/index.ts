@@ -19,7 +19,15 @@ const isRebuild = process.argv.includes('--rebuild-index');
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'arivo',
-    privileges: { standard: true, supportFetchAPI: true, stream: true },
+    // The renderer loads over app:// and fetches book bytes from arivo://.
+    // Keep the custom scheme secure and explicitly CORS-capable.
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true,
+    },
   },
   {
     // the built renderer loads over app:// — file:// blocks module scripts (CORS)
@@ -39,6 +47,27 @@ app.on('second-instance', () => {
     mainWindow.focus();
   }
 });
+
+const rendererDevUrl = process.env['ELECTRON_RENDERER_URL'];
+const allowedRendererOrigins = new Set<string>(['app://arivo']);
+
+if (rendererDevUrl) {
+  try {
+    allowedRendererOrigins.add(new URL(rendererDevUrl).origin);
+  } catch {
+    // Ignore an invalid development renderer URL; packaged builds still use app://arivo.
+  }
+}
+
+function corsHeadersFor(request: Request): Record<string, string> {
+  const origin = request.initiatorOrigin;
+  if (!origin || !allowedRendererOrigins.has(origin)) return {};
+
+  return {
+    'access-control-allow-origin': origin,
+    vary: 'Origin',
+  };
+}
 
 function seedDir(): string {
   return app.isPackaged
@@ -111,15 +140,31 @@ async function createWindow(): Promise<BrowserWindow> {
 app.whenReady().then(async () => {
   // the library protocol: arivo://book/{id} and arivo://cover/{id}
   protocol.handle('arivo', async (request) => {
+    const cors = corsHeadersFor(request);
+
+    // GET is the normal reader path. Support OPTIONS as well so future
+    // range/header requests do not fail CORS preflight.
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          ...cors,
+          'access-control-allow-methods': 'GET, HEAD, OPTIONS',
+          'access-control-allow-headers': 'Content-Type, Range',
+          'access-control-max-age': '600',
+        },
+      });
+    }
+
     try {
       const url = new URL(request.url);
       const kind = url.hostname;
       const id = decodeURIComponent(url.pathname.replace(/^\//, '').split('/')?.[0] ?? '');
       if (!services || !id || (kind !== 'book' && kind !== 'cover')) {
-        return new Response('not found', { status: 404 });
+        return new Response('not found', { status: 404, headers: cors });
       }
       const file = services.libraryFile(id, kind === 'cover');
-      if (!file) return new Response('not found', { status: 404 });
+      if (!file) return new Response('not found', { status: 404, headers: cors });
       const data = await fs.promises.readFile(file);
       const mime = file.endsWith('.jpg')
         ? 'image/jpeg'
@@ -129,10 +174,13 @@ app.whenReady().then(async () => {
             ? 'application/pdf'
             : 'application/epub+zip';
       return new Response(new Uint8Array(data), {
-        headers: { 'content-type': mime },
+        headers: {
+          'content-type': mime,
+          ...cors,
+        },
       });
     } catch {
-      return new Response('not found', { status: 404 });
+      return new Response('not found', { status: 404, headers: cors });
     }
   });
 
