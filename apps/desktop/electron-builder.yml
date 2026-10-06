@@ -17,3 +17,13 @@ nsis:
   artifactName: Arivo-${version}-setup.${ext}
 electronDownload:
   cache: true
+
+# the auto-update feed: emitting app-update.yml into the package (so
+# installed builds know their feed) + latest.yml / .blockmap into release/
+# (the feed itself). publishing stays manual — the release workflow owns
+# release creation, checksums, and attachment (--publish never).
+publish:
+  provider: github
+  owner: prathamarchives
+  repo: Arivo
+

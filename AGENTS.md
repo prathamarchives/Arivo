@@ -56,6 +56,16 @@ pnpm dist:win    the windows installer
   the load, or you never see the event (this cost us a smoke run).
 - **the epub is untrusted input.** strings and one image, never scripts.
   contextIsolation on, nodeIntegration off, sandbox on.
+- **cross-scheme fetch needs corsEnabled + the ACAO header.** the renderer
+  (app://arivo) fetching arivo:// dies as "FAILED TO FETCH" unless the
+  scheme declares `corsEnabled: true` and the handler answers
+  `access-control-allow-origin: app://arivo` (the 2ea230c scar). the smoke
+  probe regression-gates this chain — never delete it.
+- **packaging is CI's job.** local nsis builds on linux/mac need wine; the
+  release workflow builds the installer on a real windows runner. the
+  update-feed artifacts (latest.yml, app-update.yml, blockmap) are
+  release-blocking and asserted by the workflow — see
+  docs/RELEASE-AND-UPDATES.md before touching electron-builder.yml.
 
 ## the qa gates
 

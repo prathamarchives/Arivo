@@ -33,6 +33,18 @@ jobs:
       - name: build + package (nsis)
         run: pnpm --filter @arivo/desktop dist:win
 
+      # the auto-update feed artifacts are release-blocking: without them an
+      # installed build can discover nothing. latest.yml is the feed;
+      # app-update.yml inside the package is how the installed build knows
+      # which feed to read.
+      - name: update-feed emission gate
+        shell: bash
+        run: |
+          test -f apps/desktop/release/latest.yml || { echo "::error::latest.yml not emitted — publish config broken"; exit 1; }
+          test -f apps/desktop/release/win-unpacked/resources/app-update.yml || { echo "::error::app-update.yml not packaged — installed builds have no feed"; exit 1; }
+          echo "— latest.yml —"; cat apps/desktop/release/latest.yml
+          echo "— app-update.yml —"; cat apps/desktop/release/win-unpacked/resources/app-update.yml
+
       - name: checksums (sha256, provenance)
         shell: bash
         run: |
@@ -48,27 +60,42 @@ jobs:
           path: |
             apps/desktop/release/*.exe
             apps/desktop/release/*.sha256
+            apps/desktop/release/latest.yml
+            apps/desktop/release/*.blockmap
 
-      - name: attach to release (installer + checksums)
+      - name: attach to release (installer + checksums + update feed)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
             apps/desktop/release/*.exe
             apps/desktop/release/*.sha256
+            apps/desktop/release/latest.yml
+            apps/desktop/release/*.blockmap
           body: |
             arivo ${{ github.ref_name }}
 
             **contents**
             - Windows installer (NSIS) + sha256 checksums
+            - update feed (latest.yml + blockmap) — installed 0.2.1+ builds
+            auto-update from this release
 
             **provenance**
             - commit: ${{ github.sha }}
             - built by CI on a fresh runner after the full gate passed
-            (typecheck, lint, 158 tests incl. the destroy suite, build)
+            (typecheck, lint, 158+ tests incl. the destroy suite, build)
 
             **upgrade note**
             the index database migrates automatically on first launch
             (schema 1 → 2: foreign keys + reconciliation state). your
             library folder is untouched; deleting the index never loses
             annotations.
+
+      # the closing assertion: the release this workflow just published is
+      # actually a working update feed — version, assets, and sha512 verified
+      # against the downloaded bits. a green run here means every installed
+      # build can see and install this update.
+      - name: verify the update feed end-to-end
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: node scripts/verify-update-feed.mjs "${{ github.ref_name }}"

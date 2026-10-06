@@ -98,3 +98,18 @@
 
 - **I-33 budgets hold at 10k books** (see docs/QUALITY-BAR.md numbers);
   regression beyond budget fails the benchmark gate. — *benchmarks/REPORT.md*
+
+## release / delivery
+
+- **I-34 updates never break the app.** the update check is packaged-only,
+  error-swallowed, and kill-switchable; offline is a silent no-op; the
+  recheck timer never keeps the process alive. — *updates.test.ts*
+- **I-35 a release is a working feed.** every tag release ships
+  `latest.yml` + blockmap, is verified end-to-end by the release workflow
+  itself (version, assets, sha512 of the downloaded bits) — a green
+  release run proves installed builds can update. — *release.yml final
+  step, scripts/verify-update-feed.mjs*
+- **I-36 the reader fetch chain is regression-gated.** the renderer's
+  `arivo://` fetch (the "FAILED TO FETCH" failure mode) is asserted in
+  every smoke run — status, CORS header, and byte count. — *smoke probe
+  (smoke-fetch.json), commit 2ea230c*

@@ -57,8 +57,10 @@ zero loss. **data is a right, not a feature.**
 
 ## install
 
-windows: download `Arivo-<version>-setup.exe` from releases. mac/linux:
-build from source.
+windows: download `Arivo-<version>-setup.exe` from releases. installs
+from 0.2.1 on update themselves — launch the app and it picks up new
+releases automatically (offline is a no-op; `ARIVO_NO_UPDATE=1` opts out).
+mac/linux: build from source.
 
 ## develop
 
@@ -67,11 +69,13 @@ pnpm install
 pnpm dev          # the app, with hot reload
 pnpm dev:web      # the renderer in a browser (mock backend)
 pnpm check        # typecheck + lint + tests
-pnpm smoke        # headless boot + screenshot
+pnpm smoke        # headless boot + screenshot + fetch regression probe
 pnpm dist:win     # the windows installer
 ```
 
-see [AGENTS.md](./AGENTS.md) for the full agent protocol, and
+see [AGENTS.md](./AGENTS.md) for the full agent protocol,
+[docs/RELEASE-AND-UPDATES.md](./docs/RELEASE-AND-UPDATES.md) for the
+push → release → auto-update loop, and
 [docs/CONSTITUTION.md](./docs/CONSTITUTION.md) for the laws.
 
 ## the stack

@@ -8,6 +8,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { createServices, type Services } from './services/index.ts';
 import { registerIpc } from './ipc.ts';
+import { startUpdateChecks } from './updates.ts';
 
 let mainWindow: BrowserWindow | null = null;
 let services: Services | null = null;
@@ -108,8 +109,15 @@ async function createWindow(): Promise<BrowserWindow> {
   // wire the smoke capture BEFORE loading — did-finish-load fires during
   // the await below, and a late listener never sees it
   if (isSmoke) {
+    let exited = false;
+    const exitWith = (code: number): void => {
+      if (exited) return;
+      exited = true;
+      app.exit(code);
+    };
     win.webContents.once('did-finish-load', () => {
       setTimeout(async () => {
+        let fetchOk = false;
         try {
           const image = await win.webContents.capturePage();
           const out = path.resolve(process.cwd(), 'smoke.png');
@@ -117,19 +125,46 @@ async function createWindow(): Promise<BrowserWindow> {
           console.warn(`[arivo] smoke screenshot → ${out}`);
         } catch {
           console.warn('[arivo] smoke capture failed');
-        } finally {
-          app.exit(0);
         }
+        // the fetch regression probe: the renderer page (origin app://arivo)
+        // must be able to fetch book bytes over arivo:// — the exact chain
+        // that failed as "FAILED TO FETCH" in the wild (commit 2ea230c).
+        // CORS header + status + byte count are all asserted; failure fails
+        // the smoke run, so the bug can never silently return.
+        try {
+          const first = services?.store.listBooks()[0];
+          if (first) {
+            const probe = (await win.webContents.executeJavaScript(
+              `fetch('arivo://book/${first.id}').then(async (r) => ({
+                status: r.status,
+                acao: r.headers.get('access-control-allow-origin'),
+                bytes: (await r.arrayBuffer()).byteLength,
+              })).catch((e) => ({ error: String(e) }))`,
+            )) as { status?: number; acao?: string | null; bytes?: number; error?: string };
+            fs.writeFileSync(
+              path.resolve(process.cwd(), 'smoke-fetch.json'),
+              JSON.stringify(probe, null, 2),
+            );
+            fetchOk =
+              probe.status === 200 &&
+              probe.acao === 'app://arivo' &&
+              typeof probe.bytes === 'number' &&
+              probe.bytes > 0;
+            console.warn(`[arivo] smoke fetch probe → ${fetchOk ? 'ok' : 'FAILED'}`);
+          } else {
+            console.warn('[arivo] smoke fetch probe skipped — no book in library');
+          }
+        } catch (err) {
+          console.warn('[arivo] smoke fetch probe crashed', err);
+        }
+        exitWith(fetchOk ? 0 : 1);
       }, 3500);
     });
-    // hard fallback: never hang the smoke run
+    // hard fallback: never hang the smoke run (failure — a hung run proves
+    // nothing)
     setTimeout(
       () => {
-        void win.webContents.capturePage().then((image) => {
-          const out = path.resolve(process.cwd(), 'smoke.png');
-          fs.writeFileSync(out, image.toPNG());
-          app.exit(0);
-        });
+        exitWith(1);
       },
       20000,
     );
@@ -233,6 +268,9 @@ app.whenReady().then(async () => {
   services = createServices();
   registerIpc(() => services!);
   services.autoSeed(seedDir());
+
+  // release delivery: packaged builds check the feed on launch (I-34)
+  startUpdateChecks();
 
   console.warn('[arivo] window created, loading…');
   mainWindow = await createWindow();
