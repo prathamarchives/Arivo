@@ -81,6 +81,15 @@ jobs:
       - name: boot the packaged app (smoke)
         run: |
           chmod +x release/linux-unpacked/@arivodesktop
+          # ubuntu 24.04+ runners restrict unprivileged user namespaces
+          # (apparmor), so chromium falls back to the setuid sandbox helper —
+          # which electron-builder extracts as the runner user, not root:4755.
+          # without this the boot dies: "The SUID sandbox helper binary was
+          # found, but is not configured correctly" → SIGTRAP (exit 133).
+          # we fix the helper instead of passing --no-sandbox: this gate must
+          # boot the app exactly as a user's machine would (sandbox on).
+          sudo chown root:root release/linux-unpacked/chrome-sandbox
+          sudo chmod 4755 release/linux-unpacked/chrome-sandbox
           xvfb-run -a ./release/linux-unpacked/@arivodesktop --smoke
         working-directory: apps/desktop
 
