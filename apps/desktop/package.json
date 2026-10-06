@@ -2,7 +2,7 @@
   "name": "@arivo/desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "arivo — a reading environment",
+  "description": "arivo \u2014 a reading environment",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -29,7 +29,8 @@
     "jszip": "^3.10.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "zustand": "^5.0.15"
+    "zustand": "^5.0.15",
+    "@arivo/persistence": "workspace:*"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.0",

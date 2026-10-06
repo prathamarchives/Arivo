@@ -1,10 +1,21 @@
-/** the services — where the store meets the app lifecycle. */
+/**
+ * the composition root — every domain service owned in one place.
+ * UI → ipc (validated) → these services → store/persistence. nothing else
+ * in main touches the store directly.
+ */
 import { app, dialog } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
-import { ArivoStore, openDb, readSettings, writeSettings } from '@arivo/database';
-import { inspectFile, writeBookFolder, ImportError } from '@arivo/documents';
-import { uuidv7, ArivoError, DEFAULT_SETTINGS, type AppSettings, type ImportResult } from '@arivo/core';
+import { ArivoStore, readSettings, writeSettings } from '@arivo/database';
+import {
+  DEFAULT_SETTINGS,
+  type AppSettings,
+  type ImportResult,
+  type ReconciliationReport,
+} from '@arivo/core';
+import { validateLibraryRoot, ensureInside } from './paths.ts';
+import { recoverAtStartup } from './recovery.ts';
+import { createImportService } from './import.ts';
 
 export interface Services {
   store: ArivoStore;
@@ -17,6 +28,8 @@ export interface Services {
   getSettings(): AppSettings;
   setSettings(s: AppSettings): void;
   rebuildIndex(): { books: number; highlights: number; bookmarks: number };
+  reconcile(): ReconciliationReport | null;
+  startupNote(): string | null;
   autoSeed(seedDir: string): Promise<void>;
 }
 
@@ -25,72 +38,25 @@ export function createServices(): Services {
   fs.mkdirSync(homeArivo, { recursive: true });
 
   const settingsDir = path.join(homeArivo, 'config');
-  let settings = readSettings(settingsDir, {
-    ...DEFAULT_SETTINGS,
-  }) as unknown as AppSettings;
+  let settings = readSettings(settingsDir, { ...DEFAULT_SETTINGS }) as unknown as AppSettings;
 
   let root = settings.booksDir ?? homeArivo;
   fs.mkdirSync(path.join(root, 'library'), { recursive: true });
 
-  // the index lives in app data — never inside the synced library folder
-  const dbPath = path.join(app.getPath('userData'), 'index.db');
+  // the index lives in app data — never inside the synced library folder.
+  // startup = open (corruption-recovering) + reconcile to a fixed point.
+  const startup = recoverAtStartup(app.getPath('userData'), root);
+  const store = startup.store;
 
-  /** corruption at open is recovered, never fatal: backup → fresh → rebuild */
-  function openStoreWithRecovery(): { store: ArivoStore; recovered: boolean; note?: string } {
-    try {
-      return { store: new ArivoStore(openDb(dbPath), root), recovered: false };
-    } catch (err) {
-      if (!(err instanceof ArivoError) || err.code !== 'DATABASE_CORRUPT') throw err;
-      // move the damaged index aside (forensics, never silent loss)
-      const backup = `${dbPath}.corrupt-${Date.now()}`;
-      try {
-        fs.renameSync(dbPath, backup);
-        for (const side of ['-wal', '-shm']) {
-          if (fs.existsSync(`${dbPath}${side}`)) fs.renameSync(`${dbPath}${side}`, `${backup}${side}`);
-        }
-      } catch {
-        /* the fresh db below will replace whatever remains */
-      }
-      const store = new ArivoStore(openDb(dbPath), root);
-      const rebuilt = store.rebuildIndex();
-      return {
-        store,
-        recovered: true,
-        note: `index was damaged — rebuilt from your library: ${rebuilt.books} books, ${rebuilt.highlights} highlights, ${rebuilt.bookmarks} bookmarks, 0 truth records lost`,
-      };
-    }
-  }
-
-  const opened = openStoreWithRecovery();
-  const store = opened.store;
-
-  async function importOne(p: string): Promise<ImportResult> {
-    try {
-      const inspected = await inspectFile(p);
-      if (store.findByHash(inspected.hash)) {
-        return { ok: false, bookId: null, title: inspected.title, reason: 'already in library' };
-      }
-      const bookId = uuidv7();
-      const bookDir = path.join(root, 'library', bookId);
-      const record = await writeBookFolder(bookDir, p, inspected, bookId);
-      store.indexBook(record);
-      return { ok: true, bookId, title: inspected.title, reason: null };
-    } catch (err) {
-      return {
-        ok: false,
-        bookId: null,
-        title: path.basename(p),
-        reason: err instanceof ImportError ? err.message : 'import failed',
-      };
-    }
-  }
+  const imports = createImportService({ store, libraryRoot: () => root });
 
   return {
     store,
     libraryRoot: () => root,
     libraryFile(id, cover) {
       try {
-        const dir = path.join(root, 'library', id);
+        const libDir = path.join(root, 'library');
+        const dir = ensureInside(libDir, path.join(libDir, id), 'book folder');
         if (cover) {
           const coverPath = path.join(dir, 'cover.jpg');
           return fs.existsSync(coverPath) ? coverPath : null;
@@ -98,19 +64,13 @@ export function createServices(): Services {
         const meta = path.join(dir, 'metadata.json');
         if (!fs.existsSync(meta)) return null;
         const rec = JSON.parse(fs.readFileSync(meta, 'utf-8')) as { fileName: string };
-        const file = path.join(dir, rec.fileName);
+        const file = ensureInside(dir, path.join(dir, rec.fileName), 'book file');
         return fs.existsSync(file) ? file : null;
       } catch {
         return null;
       }
     },
-    async importPaths(paths) {
-      const results: ImportResult[] = [];
-      for (const p of paths) {
-        results.push(await importOne(p));
-      }
-      return results;
-    },
+    importPaths: (paths) => imports.importPaths(paths),
     pickFiles() {
       const picked = dialog.showOpenDialogSync({
         title: 'Import books',
@@ -127,6 +87,7 @@ export function createServices(): Services {
       if (!md) return null;
       const book = store.getBook(bookId);
       const safe = (book?.title ?? 'reading notes').replace(/[\\/:*?"<>|]/g, '_');
+      // the destination is main-side (dialog), never renderer-supplied
       const target = dialog.showSaveDialogSync({
         title: 'Export reading notes',
         defaultPath: `${safe} — reading notes.md`,
@@ -138,14 +99,20 @@ export function createServices(): Services {
     },
     getSettings: () => settings,
     setSettings(s) {
+      // the library root is guarded: absolute, real, not a filesystem root
+      if (s.booksDir !== null && s.booksDir !== root) {
+        validateLibraryRoot(s.booksDir);
+        fs.mkdirSync(path.join(s.booksDir, 'library'), { recursive: true });
+      }
       settings = s;
       writeSettings(settingsDir, s as unknown as Record<string, unknown>);
       if (s.booksDir && s.booksDir !== root) {
         root = s.booksDir;
-        fs.mkdirSync(path.join(root, 'library'), { recursive: true });
       }
     },
     rebuildIndex: () => store.rebuildIndex(),
+    reconcile: () => startup.reconciliation,
+    startupNote: () => startup.dbRecovered,
     async autoSeed(seedDir) {
       try {
         const books = store.listBooks();
@@ -156,7 +123,7 @@ export function createServices(): Services {
           .filter((f) => f.toLowerCase().endsWith('.epub') || f.toLowerCase().endsWith('.pdf'))
           .map((f) => path.join(seedDir, f));
         for (const file of files) {
-          await importOne(file);
+          await imports.importOne(file);
         }
       } catch {
         /* seeding is best-effort, never fatal */

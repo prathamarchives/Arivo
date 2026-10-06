@@ -6,7 +6,7 @@ import { app, BrowserWindow, protocol, Menu } from 'electron';
 
 import path from 'node:path';
 import fs from 'node:fs';
-import { createServices, type Services } from './services.ts';
+import { createServices, type Services } from './services/index.ts';
 import { registerIpc } from './ipc.ts';
 
 let mainWindow: BrowserWindow | null = null;

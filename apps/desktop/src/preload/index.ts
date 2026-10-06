@@ -1,12 +1,14 @@
 /**
  * the preload — the ONLY bridge. contextIsolation on, nodeIntegration off.
- * the renderer gets a typed api and nothing else.
+ * the renderer gets a typed api and nothing else. main resolves with typed
+ * error envelopes; unwrap here so codes survive into the renderer.
  */
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-import type { ArivoApi, AppSettings, Bookmark, Highlight, ImportResult, SearchHit } from '@arivo/core';
+import { unwrapEnvelope, type ArivoApi, type AppSettings, type Bookmark, type Highlight, type ImportResult, type SearchHit, type ReconciliationReport } from '@arivo/core';
 import type { BookWithProgress, Collection } from '@arivo/core';
 
-const invoke = <T>(name: string, arg?: unknown): Promise<T> => ipcRenderer.invoke(`arivo:${name}`, arg);
+const invoke = async <T>(name: string, arg?: unknown): Promise<T> =>
+  unwrapEnvelope<T>(await ipcRenderer.invoke(`arivo:${name}`, arg));
 
 const api: ArivoApi = {
   platform: 'electron',
@@ -56,6 +58,10 @@ const api: ArivoApi = {
   },
   dev: {
     rebuildIndex: () => invoke<{ books: number; highlights: number; bookmarks: number }>('dev:rebuild-index'),
+    reconcile: () => invoke<ReconciliationReport | null>('dev:reconcile'),
+  },
+  recovery: {
+    note: () => invoke<string | null>('recovery:note'),
   },
 };
 

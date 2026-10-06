@@ -211,6 +211,9 @@ importers:
       '@arivo/documents':
         specifier: workspace:*
         version: link:../../packages/documents
+      '@arivo/persistence':
+        specifier: workspace:*
+        version: link:../../packages/persistence
       '@arivo/reader':
         specifier: workspace:*
         version: link:../../packages/reader

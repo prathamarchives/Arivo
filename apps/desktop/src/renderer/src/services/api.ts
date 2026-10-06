@@ -228,6 +228,10 @@ export function createMockApi(): ArivoApi {
         highlights: state.highlights.length,
         bookmarks: 0,
       }),
+      reconcile: async () => null,
+    },
+    recovery: {
+      note: async () => null,
     },
   };
   return mock;
