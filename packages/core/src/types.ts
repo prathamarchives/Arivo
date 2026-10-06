@@ -96,7 +96,7 @@ export interface AnchorPosition {
   chapter?: string;
 }
 
-export type ResolutionStatus = 'resolved' | 'drifted' | 'orphaned';
+export type ResolutionStatus = 'resolved' | 'drifted' | 'ambiguous' | 'orphaned';
 
 export type HighlightColor = 'yellow' | 'blue' | 'green' | 'pink' | 'gray';
 

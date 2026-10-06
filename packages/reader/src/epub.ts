@@ -20,8 +20,17 @@ import type {
   SelectionInfo,
   HighlightColor,
 } from '@arivo/core';
-import { buildTextRange, findTextRangeMatch } from '@arivo/core';
+import { buildTextRange, resolveTextRange, type ResolutionStatus } from '@arivo/core';
 import { READ_CSS, readThemeVars } from '@arivo/ui';
+
+/** the honest repair outcome — the reader ui shows what the engine knows */
+export interface RepairOutcome {
+  anchor: Anchor | null;
+  status: ResolutionStatus;
+  confidence: number;
+  strategy: string;
+  candidateCount: number;
+}
 
 
 
@@ -394,37 +403,54 @@ export class EpubAdapter implements FormatReader {
 
   // ---------- drift resolution: the crown jewel's runtime ----------
 
-  /** try to re-anchor a highlight whose CFI died: text match → mint a new CFI */
-  async repairAnchor(anchor: Anchor): Promise<Anchor | null> {
+  /** the honest repair outcome — confidence + strategy ride along */
+  async repairAnchorRich(anchor: Anchor): Promise<RepairOutcome> {
     const book = this.book;
-    if (!book || !anchor.textRange) return null;
+    if (!book || !anchor.textRange) {
+      return { anchor: null, status: 'orphaned', confidence: 0, strategy: 'none', candidateCount: 0 };
+    }
     const spineIdx = anchor.position?.spineIndex ?? 0;
     const spine = (book as Book & { spine?: { get?: (i: number) => LooseSection | undefined } }).spine;
     const section = spine?.get?.(spineIdx);
-    if (!section) return null;
+    if (!section) {
+      return { anchor: null, status: 'orphaned', confidence: 0, strategy: 'none', candidateCount: 0 };
+    }
     try {
       const loaded = (await section.load(
         (book as unknown as { load: (...args: unknown[]) => unknown }).load,
       )) as Document | null;
       const doc = loaded;
       const fullText = doc?.body?.textContent ?? '';
-      const match = findTextRangeMatch(fullText, anchor.textRange);
-      if (!match) return null;
-      const domRange = this.rangeFromOffsets(doc!, match.index, match.end);
-      if (!domRange) return null;
+      const resolution = resolveTextRange(fullText, anchor.textRange);
+      const outcome: RepairOutcome = {
+        anchor: null,
+        status: resolution.status,
+        confidence: resolution.confidence,
+        strategy: resolution.strategy,
+        candidateCount: resolution.candidateCount,
+      };
+      if (!resolution.match || resolution.status === 'ambiguous') return outcome;
+      const domRange = this.rangeFromOffsets(doc!, resolution.match.index, resolution.match.end);
+      if (!domRange) return outcome;
       const base = this.cfiBaseByIndex.get(spineIdx) ?? section.cfiBase;
-      if (!base) return null;
+      if (!base) return outcome;
       const gen = new EpubCFI();
       const minted = (
         gen as unknown as { generateFromRange?: (r: Range, base: string) => string }
       ).generateFromRange?.(domRange, base);
       if (typeof minted === 'string' && minted.includes('epubcfi')) {
-        return { ...anchor, primary: minted };
+        return { ...outcome, anchor: { ...anchor, primary: minted } };
       }
-      return null;
+      return outcome;
     } catch {
-      return null;
+      return { anchor: null, status: 'orphaned', confidence: 0, strategy: 'none', candidateCount: 0 };
     }
+  }
+
+  /** legacy surface: the repaired anchor, or null when unrepairable/ambiguous */
+  async repairAnchor(anchor: Anchor): Promise<Anchor | null> {
+    const outcome = await this.repairAnchorRich(anchor);
+    return outcome.anchor;
   }
 
   private rangeFromOffsets(doc: Document, start: number, end: number): Range | null {

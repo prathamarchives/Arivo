@@ -693,6 +693,17 @@
   opacity: 0.75;
 }
 
+/* ambiguous repair: visible, honest, asking for a human */
+.note-ambiguous {
+  border-style: dashed;
+  border-color: var(--amber, #d4a24e);
+}
+
+.note-flag-review {
+  color: var(--amber, #b8860b);
+  font-style: italic;
+}
+
 .note-card-head {
   display: flex;
   align-items: center;

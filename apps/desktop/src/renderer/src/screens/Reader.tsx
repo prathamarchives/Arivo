@@ -177,13 +177,14 @@ function Notebook({
             key={h.id}
             ref={focusId === h.id ? focusRef : undefined}
             data-note-id={h.id}
-            className={`note-card${h.status === 'orphaned' ? ' note-orphaned' : ''}`}
+            className={`note-card${h.status === 'orphaned' ? ' note-orphaned' : ''}${h.status === 'ambiguous' ? ' note-ambiguous' : ''}`}
             onClick={() => onJump(h)}
           >
             <div className="note-card-head">
               <span className={`sel-dot sel-dot-${h.color}`} aria-hidden="true" />
               <span className="meta-label note-chapter">
                 {h.status === 'drifted' && <em className="note-flag">re-anchored · </em>}
+                {h.status === 'ambiguous' && <em className="note-flag note-flag-review">review required · </em>}
                 {h.status === 'orphaned' && <em className="note-flag">orphaned · </em>}
                 {h.chapter ?? ''}
               </span>
@@ -476,10 +477,17 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
             const epub = adapter as EpubAdapter;
             const valid = await epub.cfiValid(h.anchor.primary).catch(() => false);
             if (!valid) {
-              const repaired = await epub.repairAnchor(h.anchor);
-              if (repaired) {
-                current = { ...h, anchor: repaired, status: 'drifted' };
+              // the rich repair: ambiguous is surfaced as review required,
+              // never silently guessed onto the wrong text
+              const outcome = await epub.repairAnchorRich(h.anchor);
+              if (outcome.anchor) {
+                current = { ...h, anchor: outcome.anchor, status: 'drifted' };
                 void api.annotations.updateHighlight(bookId, current);
+              } else if (outcome.status === 'ambiguous') {
+                if (h.status !== 'ambiguous') {
+                  current = { ...h, status: 'ambiguous' };
+                  void api.annotations.updateHighlight(bookId, current);
+                }
               } else if (h.status !== 'orphaned') {
                 current = { ...h, status: 'orphaned' };
                 void api.annotations.updateHighlight(bookId, current);

@@ -29,6 +29,8 @@ export function exportReadingNotes(
         lines.push(`  - note: ${h.note.replace(/\n+/g, ' ')}`);
       }
       if (h.status === 'drifted') lines.push('  - *drifted — re-anchored on last open*');
+      if (h.status === 'ambiguous')
+        lines.push('  - *needs review — the text moved and arivo could not place it with confidence*');
       if (h.status === 'orphaned') lines.push('  - *orphaned — text not found in current edition*');
       lines.push('');
     }
