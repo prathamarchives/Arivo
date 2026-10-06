@@ -45,34 +45,23 @@ interface NormalizedText {
 }
 
 /**
- * normalize for matching: NFC-normalize each code point (so re-exports with
- * different unicode composition still match), collapse whitespace (so
- * reflow / font changes can't break matching).
- * code-point clusters (base + combining marks) normalize as a unit, so
- * NFD-encoded books match NFC-encoded anchors.
+ * normalize for matching: NFC-normalize each GRAPHEME CLUSTER (so re-exports
+ * with different unicode composition still match — combining marks AND
+ * multi-code-point compositions like Hangul jamo runs), collapse whitespace
+ * (so reflow / font changes can't break matching).
+ * raw offsets snap to cluster boundaries via the starts/ends maps.
  */
+const segmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
+
 function normalizeWithMap(s: string): NormalizedText {
   let out = '';
   const starts: number[] = [];
   const ends: number[] = [];
   let prevWasSpace = true; // leading whitespace is dropped
-  let cursor = 0;
-  const isMark = (cp: string): boolean => /\p{M}/u.test(cp);
-  while (cursor < s.length) {
-    const cp = s.codePointAt(cursor)!;
-    const char = String.fromCodePoint(cp);
-    const rawStart = cursor;
-    cursor += char.length;
-    // cluster: base code point + trailing combining marks
-    let cluster = char;
-    while (cursor < s.length) {
-      const nextCp = String.fromCodePoint(s.codePointAt(cursor)!);
-      if (!isMark(nextCp)) break;
-      cluster += nextCp;
-      cursor += nextCp.length;
-    }
-    const rawEnd = cursor;
-    const normalized = cluster.normalize('NFC');
+  for (const { segment } of segmenter.segment(s)) {
+    const rawStart = s.indexOf(segment, starts.length > 0 ? ends[ends.length - 1]! : 0);
+    const rawEnd = rawStart + segment.length;
+    const normalized = segment.normalize('NFC');
     if (/^\s+$/.test(normalized)) {
       if (!prevWasSpace) {
         out += ' ';

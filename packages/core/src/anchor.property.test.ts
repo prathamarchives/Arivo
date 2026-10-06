@@ -22,14 +22,18 @@ const textArb = fc
   .map((parts) => parts.join(''))
   .filter((s) => s.trim().length >= 40);
 
-/** unique occurrence check — the property's precondition */
+/** unique occurrence check — in the NORMALIZED domain, exactly where the
+ * engine matches (raw-uniqueness can hide visually-identical duplicates) */
 function countOccurrences(hay: string, needle: string): number {
-  if (needle.length === 0) return 0;
+  const normAll = (s: string): string => s.normalize('NFC').replace(/\s+/g, ' ').trim();
+  const h = normAll(hay);
+  const n = normAll(needle);
+  if (n.length === 0) return 0;
   let count = 0;
-  let at = hay.indexOf(needle);
+  let at = h.indexOf(n);
   while (at !== -1) {
     count += 1;
-    at = hay.indexOf(needle, at + 1);
+    at = h.indexOf(n, at + 1);
   }
   return count;
 }
