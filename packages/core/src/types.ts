@@ -2,6 +2,41 @@
 
 export type BookFormat = 'epub' | 'pdf';
 
+/**
+ * THE FOLDER CONTRACT (the portability law's on-disk shape): metadata.json.
+ * a book folder is {id}/book.epub|pdf + cover.jpg + metadata.json +
+ * annotations.json. this type is the single source of truth for that file —
+ * the documents layer writes it, the database layer reads it.
+ */
+export interface BookFolderMeta {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  authors: string[];
+  description: string | null;
+  language: string | null;
+  publisher: string | null;
+  publishedYear: string | null;
+  coverPath: string | null;
+  format: BookFormat;
+  /** sha256 of the book file — content identity, not path identity */
+  hash: string;
+  fileName: string;
+  fileSize: number;
+  tags: string[];
+  addedAt?: number;
+  updatedAt?: number;
+  /**
+   * fingerprint fast path: mtime of the book file at last agreement.
+   * absent in v0.1 folders — first scan hashes once and backfills it.
+   */
+  fileMtime?: number;
+  /** set by reconciliation when this folder was suppressed as a duplicate */
+  duplicateOf?: string | null;
+  /** set by reconciliation when the book file is gone but truth remains */
+  fileMissing?: boolean;
+}
+
 export type ReadingTheme = 'paper' | 'sepia' | 'night';
 
 export type ReadingFlow = 'paginated' | 'scrolled';

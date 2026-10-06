@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import {
   readFileSync,
   writeFileSync,
+  renameSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -14,6 +15,7 @@ import {
 } from 'node:fs';
 import type {
   Book,
+  BookFolderMeta,
   Highlight,
   Bookmark,
   ReadingProgress,
@@ -25,26 +27,10 @@ import type {
 } from '@arivo/core';
 import { uuidv7, exportReadingNotes } from '@arivo/core';
 import { openDb, openMemoryDb, type Db } from './db.ts';
-import { readTruth, writeTruth, type BookTruth } from './truth.ts';
+import { readTruth, writeTruth } from './truth.ts';
 
-export interface BookRecord {
-  id: string;
-  title: string;
-  subtitle: string | null;
-  authors: string[];
-  description: string | null;
-  language: string | null;
-  publisher: string | null;
-  publishedYear: string | null;
-  coverPath: string | null;
-  format: 'epub' | 'pdf';
-  hash: string;
-  fileName: string;
-  fileSize: number;
-  tags: string[];
-  addedAt?: number;
-  updatedAt?: number;
-}
+/** the folder contract (metadata.json) is the domain shape — see @arivo/core */
+export type BookRecord = BookFolderMeta;
 
 export interface BookWithProgress extends Book {
   progress: ReadingProgress | null;
@@ -282,8 +268,8 @@ export class ArivoStore {
   }
 
   removeBook(id: string, deleteFiles: boolean): void {
-    const row = this.db.raw.prepare('SELECT fts_row, hash FROM books WHERE id = ?').get(id) as
-      | { fts_row: number; hash: string }
+    const row = this.db.raw.prepare('SELECT fts_row FROM books WHERE id = ?').get(id) as
+      | { fts_row: number }
       | undefined;
     if (!row) return;
     this.db.raw.prepare('DELETE FROM books_fts WHERE rowid = ?').run(row.fts_row);
@@ -305,6 +291,51 @@ export class ArivoStore {
     }
   }
 
+  /** index-only removal — reconciliation drops rows without touching files */
+  removeIndexRow(id: string): void {
+    this.removeBook(id, false);
+  }
+
+  /** row-level fingerprint update (metadata.json was already written first) */
+  updateBookRow(id: string, patch: { hash: string; fileSize: number; fileName: string }): void {
+    this.db.raw
+      .prepare(
+        'UPDATE books SET hash = @hash, file_name = @fileName, file_size = @fileSize, updated_at = @now WHERE id = @id',
+      )
+      .run({ ...patch, now: Date.now(), id });
+  }
+
+  /**
+   * register a book folder that already exists on disk (truth complete):
+   * index the metadata + the truth contents WITHOUT rewriting truth files.
+   * live duplicate guard: same content under another id → not registered.
+   */
+  registerFromTruth(bookDir: string): {
+    registered: boolean;
+    duplicateOf?: string;
+    highlights: number;
+    bookmarks: number;
+  } {
+    let meta: BookRecord;
+    try {
+      meta = JSON.parse(readFileSync(join(bookDir, 'metadata.json'), 'utf-8')) as BookRecord;
+    } catch {
+      return { registered: false, highlights: 0, bookmarks: 0 };
+    }
+    const existing = this.findByHash(meta.hash);
+    if (existing && existing !== meta.id) {
+      return { registered: false, duplicateOf: existing, highlights: 0, bookmarks: 0 };
+    }
+    this.indexBook(meta);
+    const truth = readTruth(bookDir, meta.id);
+    // the folder contract: truth inside {id}/ belongs to {id} — normalize any
+    // stale embedded ids (e.g. a folder copied externally under a new name)
+    if (truth.progress) this.insertProgressRow({ ...truth.progress, bookId: meta.id });
+    for (const h of truth.highlights) this.insertHighlightRow({ ...h, bookId: meta.id });
+    for (const b of truth.bookmarks) this.insertBookmarkRow({ ...b, bookId: meta.id });
+    return { registered: true, highlights: truth.highlights.length, bookmarks: truth.bookmarks.length };
+  }
+
   // ---------- progress + sessions ----------
 
   saveProgress(bookId: string, progress: ReadingProgress): void {
@@ -312,6 +343,10 @@ export class ArivoStore {
     const truth = readTruth(this.bookDir(bookId), bookId);
     truth.progress = progress;
     writeTruth(this.bookDir(bookId), truth);
+    this.insertProgressRow(progress);
+  }
+
+  private insertProgressRow(progress: ReadingProgress): void {
     this.db.raw
       .prepare(
         `INSERT INTO progress (book_id, locator, percent, chapter, started_at, last_read_at, completed)
@@ -373,6 +408,10 @@ export class ArivoStore {
     const truth = readTruth(this.bookDir(bookId), bookId);
     truth.highlights.push(h);
     writeTruth(this.bookDir(bookId), truth); // truth first
+    this.insertHighlightRow(h);
+  }
+
+  private insertHighlightRow(h: Highlight): void {
     const fts = this.nextSeq('highlight');
     const cols = anchorCols(h.anchor);
     this.db.raw
@@ -439,6 +478,10 @@ export class ArivoStore {
     const truth = readTruth(this.bookDir(bookId), bookId);
     truth.bookmarks.push(b);
     writeTruth(this.bookDir(bookId), truth);
+    this.insertBookmarkRow(b);
+  }
+
+  private insertBookmarkRow(b: Bookmark): void {
     const cols = anchorCols(b.anchor);
     this.db.raw
       .prepare(
@@ -611,8 +654,13 @@ export class ArivoStore {
 
   // ---------- the portability law ----------
 
-  /** delete the index → rescan the truth → zero loss. */
-  rebuildIndex(): { books: number; highlights: number; bookmarks: number } {
+  /**
+   * delete the index → rescan the truth → zero loss.
+   * duplicate-safe: folders with the same content hash register oldest-first;
+   * the loser is suppressed (marker in metadata.json), never a crash, never
+   * data loss — the annotations of a suppressed folder stay in its folder.
+   */
+  rebuildIndex(): { books: number; highlights: number; bookmarks: number; suppressed: number } {
     this.db.raw.exec('DELETE FROM books');
     this.db.raw.exec('DELETE FROM tags');
     this.db.raw.exec('DELETE FROM progress');
@@ -631,30 +679,47 @@ export class ArivoStore {
     let books = 0;
     let highlights = 0;
     let bookmarks = 0;
+    let suppressed = 0;
     const libDir = this.booksDir();
-    for (const entry of readdirSync(libDir)) {
-      const dir = join(libDir, entry);
-      if (!statSync(dir).isDirectory()) continue;
-      const metaFile = join(dir, 'metadata.json');
-      if (!existsSync(metaFile)) continue;
-      const meta = JSON.parse(readFileSync(metaFile, 'utf-8')) as BookRecord & {
-        addedAt?: number;
-      };
-      const truth: BookTruth = readTruth(dir, meta.id);
-      this.indexBook(meta);
-      books += 1;
-      if (truth.progress) this.saveProgress(meta.id, truth.progress);
-      for (const h of truth.highlights) {
-        this.db.raw.prepare('SELECT 1').get();
-        highlights += 1;
-        this.createHighlight(meta.id, h);
+    if (existsSync(libDir)) {
+      // deterministic order: oldest addedAt first, ties by id
+      const metas: BookRecord[] = [];
+      for (const entry of readdirSync(libDir)) {
+        const dir = join(libDir, entry);
+        try {
+          if (!statSync(dir).isDirectory()) continue;
+          const metaFile = join(dir, 'metadata.json');
+          if (!existsSync(metaFile)) continue;
+          metas.push(JSON.parse(readFileSync(metaFile, 'utf-8')) as BookRecord);
+        } catch {
+          continue; // unreadable folder: reconciliation reports it as CORRUPT
+        }
       }
-      for (const b of truth.bookmarks) {
-        bookmarks += 1;
-        this.createBookmark(meta.id, b);
+      metas.sort(
+        (a, b) => (a.addedAt ?? Infinity) - (b.addedAt ?? Infinity) || (a.id < b.id ? -1 : 1),
+      );
+      for (const meta of metas) {
+        const result = this.registerFromTruth(this.bookDir(meta.id));
+        if (result.registered) {
+          books += 1;
+          highlights += result.highlights;
+          bookmarks += result.bookmarks;
+        } else if (result.duplicateOf) {
+          suppressed += 1;
+          const truthFile = join(this.bookDir(meta.id), 'metadata.json');
+          try {
+            const fresh = JSON.parse(readFileSync(truthFile, 'utf-8')) as BookRecord;
+            fresh.duplicateOf = result.duplicateOf;
+            const tmp = `${truthFile}.tmp`;
+            writeFileSync(tmp, JSON.stringify(fresh, null, 2), 'utf-8');
+            renameSync(tmp, truthFile);
+          } catch {
+            /* marker is best-effort; rebuild stays deterministic either way */
+          }
+        }
       }
     }
-    return { books, highlights, bookmarks };
+    return { books, highlights, bookmarks, suppressed };
   }
 
   close(): void {
