@@ -1,0 +1,263 @@
+/* base — the reset, the materials, the primitives. one object, coherent. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+}
+
+::selection {
+  background: var(--sel);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* focus: ink ring, always visible on keyboard */
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: var(--r1);
+}
+
+/* ---------- typography helpers ---------- */
+.meta-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* ---------- surfaces ---------- */
+.surface {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r3);
+}
+
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r3);
+  box-shadow: var(--shadow-3);
+}
+
+/* ---------- primitives: button ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  height: var(--control-h);
+  padding: 0 var(--s4);
+  border-radius: var(--r2);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  background: var(--bg-raised);
+  transition:
+    background var(--t-hover) var(--ease),
+    transform var(--t-press) var(--ease),
+    border-color var(--t-hover) var(--ease);
+}
+
+.btn:hover {
+  border-color: var(--ink-3);
+}
+
+.btn:active {
+  transform: scale(0.985);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-solid {
+  background: var(--ink);
+  color: var(--bg-raised);
+  border-color: var(--ink);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.btn-ghost:hover {
+  background: var(--bg-sunken);
+  border-color: transparent;
+}
+
+.btn-lg {
+  height: var(--control-h-lg);
+  font-size: var(--text-base);
+}
+
+/* ---------- primitive: icon button ---------- */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hit);
+  height: var(--hit);
+  border-radius: var(--r2);
+  color: var(--ink-2);
+  transition:
+    color var(--t-hover) var(--ease),
+    background var(--t-hover) var(--ease),
+    transform var(--t-press) var(--ease);
+}
+
+.icon-btn:hover {
+  color: var(--ink);
+  background: var(--bg-sunken);
+}
+
+.icon-btn:active {
+  transform: scale(0.96);
+}
+
+/* ---------- primitive: input ---------- */
+.input {
+  width: 100%;
+  height: var(--control-h);
+  padding: 0 var(--s3);
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r2);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  transition: border-color var(--t-hover) var(--ease);
+}
+
+.input::placeholder {
+  color: var(--ink-3);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--ink-2);
+}
+
+.input:focus-visible {
+  outline: none;
+  border-color: var(--ink-2);
+  box-shadow: 0 0 0 2px var(--sel);
+}
+
+/* ---------- primitive: kbd ---------- */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  background: var(--bg-sunken);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: var(--r1);
+}
+
+/* ---------- scrollbars: quiet, themed ---------- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 5px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- utilities ---------- */
+.row {
+  display: flex;
+  align-items: center;
+}
+
+.grow {
+  flex: 1;
+}
+
+@keyframes arivo-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes arivo-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: arivo-fade-in var(--t-material) var(--ease-out) both;
+}
+
+.rise {
+  animation: arivo-rise var(--t-drawer) var(--ease-out) both;
+}

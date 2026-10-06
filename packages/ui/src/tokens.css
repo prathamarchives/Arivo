@@ -1,0 +1,145 @@
+/* arivo tokens — the closed vocabulary. no component invents a value. */
+
+/* ---------- type: the catalyst family ---------- */
+:root {
+  --font-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-read: 'Literata', Georgia, 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+  --text-meta: 11px;   /* mono, uppercase, tracked */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 22px;
+  --text-2xl: 28px;
+  --text-hero: 40px;
+
+  --tracking-meta: 0.08em;
+  --tracking-wide: 0.02em;
+}
+
+/* ---------- spacing: the 4px ladder ---------- */
+:root {
+  --s-2: 2px;
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s8: 32px;
+  --s10: 40px;
+  --s12: 48px;
+  --s16: 64px;
+  --s24: 96px;
+}
+
+/* ---------- geometry ---------- */
+:root {
+  --r1: 2px;
+  --r2: 4px;
+  --r3: 8px;
+  --cover-w: 200px;        /* 2:3, medium density */
+  --control-h: 32px;
+  --control-h-lg: 40px;
+  --hit: 32px;             /* minimum target */
+}
+
+/* ---------- motion ---------- */
+:root {
+  --t-press: 100ms;
+  --t-hover: 150ms;
+  --t-turn: 250ms;
+  --t-drawer: 400ms;
+  --t-material: 700ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---------- themes: monochrome base, annotation colors are the only hue ---------- */
+:root,
+[data-theme='paper'] {
+  --bg: #f6f3ec;
+  --bg-raised: #fdfbf6;
+  --bg-sunken: #efebe1;
+  --ink: #23201b;
+  --ink-2: #6e675e;
+  --ink-3: #a39b90;
+  --line: #e4dfd3;
+  --line-strong: #cfc8ba;
+  --shadow-1: 0 1px 2px rgba(35, 32, 27, 0.06);
+  --shadow-2: 0 2px 10px rgba(35, 32, 27, 0.09);
+  --shadow-3: 0 10px 32px rgba(35, 32, 27, 0.14);
+  --glass: rgba(253, 251, 246, 0.86);
+  --glass-line: rgba(35, 32, 27, 0.08);
+
+  --hl-yellow: #eccf8f;
+  --hl-blue: #b7c9e6;
+  --hl-green: #bdd4b2;
+  --hl-pink: #e8c2cd;
+  --hl-gray: #d4cfc4;
+
+  --sel: rgba(35, 32, 27, 0.12);
+}
+
+[data-theme='sepia'] {
+  --bg: #f1e7d4;
+  --bg-raised: #f9f1e1;
+  --bg-sunken: #e9dcc4;
+  --ink: #3a2f22;
+  --ink-2: #77664e;
+  --ink-3: #ab9a7d;
+  --line: #e0d2b6;
+  --line-strong: #cdbb98;
+  --shadow-1: 0 1px 2px rgba(58, 47, 34, 0.07);
+  --shadow-2: 0 2px 10px rgba(58, 47, 34, 0.10);
+  --shadow-3: 0 10px 32px rgba(58, 47, 34, 0.16);
+  --glass: rgba(249, 241, 225, 0.88);
+  --glass-line: rgba(58, 47, 34, 0.10);
+
+  --hl-yellow: #e2c483;
+  --hl-blue: #b3c0d6;
+  --hl-green: #b5c9a4;
+  --hl-pink: #e0b7c2;
+  --hl-gray: #cbc2ac;
+
+  --sel: rgba(58, 47, 34, 0.14);
+}
+
+[data-theme='night'] {
+  --bg: #141311;
+  --bg-raised: #1d1b18;
+  --bg-sunken: #0e0d0b;
+  --ink: #e9e4da;
+  --ink-2: #978f83;
+  --ink-3: #5c564d;
+  --line: #2a2723;
+  --line-strong: #3a362f;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 2px 10px rgba(0, 0, 0, 0.45);
+  --shadow-3: 0 10px 32px rgba(0, 0, 0, 0.55);
+  --glass: rgba(29, 27, 24, 0.86);
+  --glass-line: rgba(233, 228, 218, 0.09);
+
+  --hl-yellow: #7a6428;
+  --hl-blue: #384a63;
+  --hl-green: #3c5038;
+  --hl-pink: #5f3e48;
+  --hl-gray: #3c3831;
+
+  --sel: rgba(233, 228, 218, 0.18);
+}
+
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-press: 0ms;
+    --t-hover: 0ms;
+    --t-turn: 0ms;
+    --t-drawer: 0ms;
+    --t-material: 0ms;
+  }
+}

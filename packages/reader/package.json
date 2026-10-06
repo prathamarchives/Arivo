@@ -1,0 +1,17 @@
+{
+  "name": "@arivo/reader",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@arivo/core": "workspace:*",
+    "@arivo/ui": "workspace:*",
+    "epubjs": "^0.3.93",
+    "pdfjs-dist": "^6.4.299"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}

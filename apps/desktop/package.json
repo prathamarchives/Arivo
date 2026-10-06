@@ -1,0 +1,44 @@
+{
+  "name": "@arivo/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "arivo — a reading environment",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "dev:web": "vite --config vite.web.config.ts",
+    "build": "electron-vite build",
+    "start": "electron .",
+    "smoke": "electron-vite build && xvfb-run -a electron . --smoke",
+    "dist:win": "electron-vite build && electron-builder --win nsis",
+    "dist:dir": "electron-vite build && electron-builder --dir",
+    "rebuild:native": "electron-rebuild -f -w better-sqlite3",
+    "rebuild-index": "electron-vite build && electron . --rebuild-index"
+  },
+  "dependencies": {
+    "@arivo/core": "workspace:*",
+    "@arivo/database": "workspace:*",
+    "@arivo/documents": "workspace:*",
+    "@arivo/reader": "workspace:*",
+    "@arivo/ui": "workspace:*",
+    "@fontsource-variable/inter": "^5.2.0",
+    "@fontsource/instrument-serif": "^5.1.0",
+    "@fontsource/jetbrains-mono": "^5.1.0",
+    "@fontsource/literata": "^5.1.0",
+    "better-sqlite3": "^13.0.3",
+    "jszip": "^3.10.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^4.0.0",
+    "vite": "^7.0.0"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "@arivo/documents",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@arivo/core": "workspace:*",
+    "jszip": "^3.10.1"
+  }
+}

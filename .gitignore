@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+
+# build output
+out/
+dist/
+*.tsbuildinfo
+
+# the library is the user's, never the repo's
+apps/desktop/public/seed/*.epub
+apps/desktop/public/seed/*.pdf
+
+# os noise
+.DS_Store
+Thumbs.db
+
+# env
+.env
+.env.*
+
+# tooling
+.tool-results/
+
+# smoke artifacts
+apps/desktop/smoke.png
+apps/desktop/release/

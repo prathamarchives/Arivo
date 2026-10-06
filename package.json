@@ -1,0 +1,46 @@
+{
+  "name": "arivo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "a reading environment. local-first, your library is yours.",
+  "license": "MIT",
+  "packageManager": "pnpm@12.9.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @arivo/desktop dev",
+    "dev:web": "pnpm --filter @arivo/desktop dev:web",
+    "build": "pnpm --filter @arivo/desktop build",
+    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/database && tsc --noEmit -p packages/documents && tsc --noEmit -p packages/ui && tsc --noEmit -p packages/reader && tsc --noEmit -p apps/desktop",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "smoke": "pnpm --filter @arivo/desktop smoke",
+    "dist:win": "pnpm --filter @arivo/desktop dist:win",
+    "rebuild-index": "node scripts/rebuild-index.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "eslint-import-resolver-typescript": "^4.0.0",
+    "eslint-plugin-import": "^2.31.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^3.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "electron-winstaller",
+      "core-js",
+      "es5-ext",
+      "unrs-resolver",
+      "better-sqlite3",
+      "electron"
+    ]
+  }
+}

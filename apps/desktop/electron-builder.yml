@@ -1,0 +1,19 @@
+appId: com.prathamarchives.arivo
+productName: Arivo
+directories:
+  output: release
+files:
+  - out/**
+  - package.json
+asarUnpack:
+  - node_modules/better-sqlite3/**
+win:
+  target:
+    - nsis
+  artifactName: Arivo-${version}-setup.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: Arivo-${version}-setup.${ext}
+electronDownload:
+  cache: true
