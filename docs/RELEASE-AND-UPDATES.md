@@ -21,6 +21,12 @@ actual bits) — a green release run is proof the feed works, not hope.
 
 ## how installed copies update
 
+> **the feed requires the repo to be public** (or at least anonymously
+> readable releases). electron-updater fetches the atom feed + latest.yml +
+> assets without credentials; a private repo 404s the entire chain. this
+> bit us once — the feed verification step in release.yml exists precisely
+> to catch it. never ship a token inside the app to work around it.
+
 from 0.2.1 on, every packaged build checks the release feed at launch (and
 every 4 hours after):
 

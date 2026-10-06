@@ -262,8 +262,12 @@ describe('destroy: the annotation storm + library swell', () => {
       'foreign_key_check',
     );
     expect(fk).toHaveLength(0);
-    // bounded: the portability law at storm scale
-    expect(rebuildMs).toBeLessThan(30_000); // CI runners have slow fs — the doc budget is 60s
+    // bounded: the portability law at storm scale — aligned with the doc
+    // budget (60s, docs/QUALITY-BAR.md). the speed authority is the
+    // benchmark gate; this bound only catches pathological regressions.
+    // a loaded shared CI runner measured 36.7s once — 30s was an invented
+    // tighter number that turned CI truth into a coin flip.
+    expect(rebuildMs).toBeLessThan(60_000);
     store.close();
   });
 
