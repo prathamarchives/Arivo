@@ -1,19 +1,19 @@
 {
   "name": "@arivo/desktop",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "arivo — a reading environment",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
     "dev:web": "vite --config vite.web.config.ts",
-    "build": "electron-vite build",
+    "build": "electron-vite build && node scripts/verify-bundle.mjs",
     "start": "electron .",
-    "smoke": "electron-vite build && xvfb-run -a electron . --smoke",
-    "dist:win": "electron-vite build && electron-builder --win nsis --publish never",
-    "dist:dir": "electron-vite build && electron-builder --dir",
+    "smoke": "pnpm build && xvfb-run -a electron . --smoke",
+    "dist:win": "pnpm build && electron-builder --win nsis --publish never",
+    "dist:dir": "pnpm build && electron-builder --dir",
     "rebuild:native": "electron-rebuild -f -w better-sqlite3",
-    "rebuild-index": "electron-vite build && electron . --rebuild-index"
+    "rebuild-index": "pnpm build && electron . --rebuild-index"
   },
   "dependencies": {
     "@arivo/core": "workspace:*",

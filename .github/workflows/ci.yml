@@ -40,3 +40,54 @@ jobs:
         run: pnpm build
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+  # THE PACKAGED-LAUNCH GATE — v0.2.1 shipped an installer that crashed at
+  # first launch (ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPING: the main
+  # bundle require()d @arivo/persistence, which resolves to src/index.ts
+  # under the asar's real node_modules paths — node 22.18+ refuses to
+  # type-strip there). dev and unit tests CANNOT see this: pnpm symlinks
+  # mask it in dev. only booting a real package sees the truth, so CI does
+  # exactly that: package the app (dir target), boot it headless, and let
+  # the smoke harness assert window creation + renderer load + service
+  # init (sqlite included) + a rendered screenshot. verify-bundle.mjs (run
+  # inside `pnpm build`) is the fast static gate; this is the end-to-end.
+  packaged-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: install (dev electron binary skipped — packaging downloads its own)
+        run: pnpm install --frozen-lockfile
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+      - name: xvfb (headless display for the real window)
+        run: sudo apt-get update -q && sudo apt-get install -y -q xvfb
+
+      - name: build (with the verify-bundle gate)
+        run: pnpm build
+
+      - name: package (dir — asar with real node_modules paths)
+        run: npx electron-builder --dir -c.npmRebuild=false
+        working-directory: apps/desktop
+
+      - name: boot the packaged app (smoke)
+        run: |
+          chmod +x release/linux-unpacked/@arivodesktop
+          xvfb-run -a ./release/linux-unpacked/@arivodesktop --smoke
+        working-directory: apps/desktop
+
+      - name: smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-screenshot
+          path: apps/desktop/smoke.png
+          if-no-files-found: error

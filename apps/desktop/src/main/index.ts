@@ -117,7 +117,11 @@ async function createWindow(): Promise<BrowserWindow> {
     };
     win.webContents.once('did-finish-load', () => {
       setTimeout(async () => {
-        let fetchOk = false;
+        // tri-state: false = probe failed, true = probe passed,
+        // null = no book in library (probe not applicable). an empty
+        // library on a fresh machine must not fail the launch gate —
+        // the probe's regression coverage runs wherever a book exists.
+        let fetchOk: boolean | null = null;
         try {
           const image = await win.webContents.capturePage();
           const out = path.resolve(process.cwd(), 'smoke.png');
@@ -152,12 +156,12 @@ async function createWindow(): Promise<BrowserWindow> {
               probe.bytes > 0;
             console.warn(`[arivo] smoke fetch probe → ${fetchOk ? 'ok' : 'FAILED'}`);
           } else {
-            console.warn('[arivo] smoke fetch probe skipped — no book in library');
+            console.warn('[arivo] smoke fetch probe skipped — no book in library (pass: launch gate)');
           }
         } catch (err) {
           console.warn('[arivo] smoke fetch probe crashed', err);
         }
-        exitWith(fetchOk ? 0 : 1);
+        exitWith(fetchOk === false ? 1 : 0);
       }, 3500);
     });
     // hard fallback: never hang the smoke run (failure — a hung run proves

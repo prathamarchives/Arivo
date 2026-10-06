@@ -1,7 +1,7 @@
 {
   "name": "arivo",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "a reading environment. local-first, your library is yours.",
   "license": "MIT",
   "packageManager": "pnpm@12.9.1",
