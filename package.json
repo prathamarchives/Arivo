@@ -19,7 +19,8 @@
     "smoke": "pnpm --filter @arivo/desktop smoke",
     "dist:win": "pnpm --filter @arivo/desktop dist:win",
     "rebuild:native": "pnpm --filter @arivo/desktop rebuild:native",
-    "rebuild-index": "node scripts/rebuild-index.mjs"
+    "rebuild-index": "node scripts/rebuild-index.mjs",
+    "bench": "node packages/database/bench/run.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
