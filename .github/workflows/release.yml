@@ -5,6 +5,11 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
+# the job must create the GitHub Release object and attach the installer —
+# default workflow tokens are read-only, which 403s at exactly that step
+permissions:
+  contents: write
+
 jobs:
   windows:
     runs-on: windows-latest
