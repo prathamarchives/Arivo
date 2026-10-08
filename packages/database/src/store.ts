@@ -15,6 +15,7 @@ import type {
   Book,
   BookFolderMeta,
   DeskDoc,
+  SourceRef,
   Highlight,
   Bookmark,
   Note,
@@ -701,6 +702,11 @@ export class ArivoStore {
       note: r.note,
       color: r.color as HighlightColor,
       chapter: r.chapter,
+      question: false,
+      deskKind: null,
+      deskTitle: null,
+      deskBody: null,
+      sourceRefs: [],
       anchor: {
         format: (r.book_format === 'pdf' ? 'pdf' : 'epub') as 'pdf' | 'epub',
         primary: r.primary_locator,
@@ -736,6 +742,11 @@ export class ArivoStore {
         note: null,
         color: null,
         chapter: r.chapter,
+        question: false,
+        deskKind: null,
+        deskTitle: null,
+        deskBody: null,
+        sourceRefs: [],
         anchor: {
           format: (r.book_format === 'pdf' ? 'pdf' : 'epub') as 'pdf' | 'epub',
           primary: r.primary_locator,
@@ -750,6 +761,95 @@ export class ArivoStore {
         updatedAt: r.created_at,
       });
     }
+
+    /* L11 — margin notes: the archive's own thoughts, questions flagged.
+     * a note without a chapter still knows where it was made (its anchor). */
+    const noteRows = this.db.raw
+      .prepare(
+        `SELECT n.id, n.book_id, n.primary_locator, n.pos_spine, n.pos_page, n.pos_percent,
+                n.chapter, n.body, n.question, n.created_at, n.updated_at,
+                b.title AS book_title, b.authors AS book_authors, b.format AS book_format
+         FROM notes n JOIN books b ON b.id = n.book_id
+         WHERE b.file_missing = 0 OR b.file_missing IS NULL
+         ORDER BY n.updated_at DESC`,
+      )
+      .all() as Array<NoteRow & { book_title: string; book_authors: string; book_format: string }>;
+    for (const r of noteRows) {
+      marks.push({
+        id: r.id,
+        kind: 'note',
+        bookId: r.book_id,
+        bookTitle: r.book_title,
+        bookAuthors: JSON.parse(r.book_authors || '[]') as string[],
+        bookFormat: (r.book_format === 'pdf' ? 'pdf' : 'epub') as 'pdf' | 'epub',
+        text: r.body,
+        note: null,
+        color: null,
+        chapter: r.chapter,
+        question: r.question === 1,
+        deskKind: null,
+        deskTitle: null,
+        deskBody: null,
+        sourceRefs: [],
+        anchor: {
+          format: (r.book_format === 'pdf' ? 'pdf' : 'epub') as 'pdf' | 'epub',
+          primary: r.primary_locator,
+          textRange: null,
+          position: {
+            spineIndex: r.pos_spine ?? undefined,
+            page: r.pos_page ?? undefined,
+            percent: r.pos_percent ?? undefined,
+          },
+        },
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      });
+    }
+
+    /* L11 — desk documents: the workbench's papers with their provenance
+     * chain riding along (each ref: quote + locator + origin). the entry's
+     * anchor is its freshest ref — the newest place the work touched. */
+    const docRows = this.db.raw
+      .prepare(
+        `SELECT d.id, d.book_id, d.kind, d.title, d.body, d.source_refs,
+                d.created_at, d.updated_at,
+                b.title AS book_title, b.authors AS book_authors, b.format AS book_format
+         FROM desk_docs d JOIN books b ON b.id = d.book_id
+         WHERE b.file_missing = 0 OR b.file_missing IS NULL
+         ORDER BY d.updated_at DESC`,
+      )
+      .all() as Array<DeskDocRow & { book_title: string; book_authors: string; book_format: string }>;
+    for (const r of docRows) {
+      const refs = JSON.parse(r.source_refs || '[]') as SourceRef[];
+      const format = (r.book_format === 'pdf' ? 'pdf' : 'epub') as 'pdf' | 'epub';
+      const latestRef = refs.length > 0 ? refs[refs.length - 1] : null;
+      marks.push({
+        id: r.id,
+        kind: 'deskdoc',
+        bookId: r.book_id,
+        bookTitle: r.book_title,
+        bookAuthors: JSON.parse(r.book_authors || '[]') as string[],
+        bookFormat: format,
+        text: r.title || r.body.slice(0, 80) || 'untitled document',
+        note: null,
+        color: null,
+        chapter: latestRef?.chapter ?? null,
+        question: false,
+        deskKind: r.kind === 'research' || r.kind === 'make' || r.kind === 'reflect' ? r.kind : 'research',
+        deskTitle: r.title || null,
+        deskBody: r.body.slice(0, 400),
+        sourceRefs: refs,
+        anchor: {
+          format,
+          primary: latestRef?.locator ?? `deskdoc:${r.id}`,
+          textRange: null,
+          position: null,
+        },
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      });
+    }
+
     marks.sort((a, b) => b.updatedAt - a.updatedAt);
     return marks;
   }

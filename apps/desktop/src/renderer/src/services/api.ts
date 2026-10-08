@@ -265,6 +265,11 @@ export function createMockApi(): ArivoApi {
             note: h.note,
             color: h.color,
             chapter: h.chapter,
+            question: false,
+            deskKind: null,
+            deskTitle: null,
+            deskBody: null,
+            sourceRefs: [],
             anchor: h.anchor,
             createdAt: h.createdAt,
             updatedAt: h.updatedAt,
@@ -284,9 +289,69 @@ export function createMockApi(): ArivoApi {
             note: null,
             color: null,
             chapter: b.chapter,
+            question: false,
+            deskKind: null,
+            deskTitle: null,
+            deskBody: null,
+            sourceRefs: [],
             anchor: b.anchor,
             createdAt: b.createdAt,
             updatedAt: b.createdAt,
+          });
+        }
+        /* L11 — the mind's own work: margin notes (questions flagged) + documents */
+        for (const n of state.notes) {
+          const book = state.books.find((x) => x.id === n.bookId);
+          if (!book) continue;
+          entries.push({
+            id: n.id,
+            kind: 'note',
+            bookId: book.id,
+            bookTitle: book.title,
+            bookAuthors: book.authors,
+            bookFormat: book.format,
+            text: n.body,
+            note: null,
+            color: null,
+            chapter: n.chapter,
+            question: n.question ?? false,
+            deskKind: null,
+            deskTitle: null,
+            deskBody: null,
+            sourceRefs: [],
+            anchor: n.anchor,
+            createdAt: n.createdAt,
+            updatedAt: n.updatedAt,
+          });
+        }
+        for (const d of state.deskDocs) {
+          const book = state.books.find((x) => x.id === d.bookId);
+          if (!book) continue;
+          const latestRef = d.sourceRefs.length > 0 ? d.sourceRefs[d.sourceRefs.length - 1] : null;
+          entries.push({
+            id: d.id,
+            kind: 'deskdoc',
+            bookId: book.id,
+            bookTitle: book.title,
+            bookAuthors: book.authors,
+            bookFormat: book.format,
+            text: d.title || d.body.slice(0, 80) || 'untitled document',
+            note: null,
+            color: null,
+            chapter: latestRef?.chapter ?? null,
+            question: false,
+            deskKind: d.kind,
+            deskTitle: d.title || null,
+            deskBody: d.body.slice(0, 400),
+            sourceRefs: d.sourceRefs,
+            anchor: {
+              format: book.format,
+              primary: latestRef?.locator ?? `deskdoc:${d.id}`,
+              textRange: null,
+              position: null,
+            },
+            createdAt: d.createdAt,
+            updatedAt: d.updatedAt,
           });
         }
         entries.sort((a, b) => b.updatedAt - a.updatedAt);

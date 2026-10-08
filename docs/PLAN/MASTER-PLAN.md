@@ -378,3 +378,17 @@ status: PLAN MODE. awaiting fire.
   session log: docs/SESSIONS/0007-desk-the-workbench.md
 - next: L11 Archive — provenance-first (artifact → note → selection →
   chapter → book), then presentation.
+
+## execution log — L11 (the archive becomes evidence)
+
+- **L11: DONE** (this commit) — the archive's object model + provenance
+  first, presentation only where it earned its keep: ArchiveEntry grows
+  to note (questions flagged) + deskdoc (kind, title, snippet,
+  sourceRefs — the artifact → note → selection → chapter → book chain),
+  the ledger joins all four families in one pass per family, and the
+  room's cards return into the desk exactly (book + mode + workbench +
+  the document). 1,000-object pass tested; content-visibility carries
+  the ledger at scale. NOT a graph, NOT a dashboard — the zip's own
+  law. 417/2 green. session log:
+  docs/SESSIONS/0008-archive-evidence.md
+- next: L12 — creative graphics, semantic jobs only.

@@ -200,6 +200,99 @@ describe('desk documents (L10 — the workbench storage law)', () => {
   });
 });
 
+describe('the archive ledger (L11 — evidence of a mind at work)', () => {
+  it('notes and desk documents join the ledger with provenance intact', () => {
+    const store = new ArivoStore(openDb(dbPath), root);
+    const id = seedBook(store, uuidv7(), 'Ledger Book');
+    store.createNote(id, {
+      id: 'an-1',
+      bookId: id,
+      anchor: { format: 'epub', primary: 'epubcfi(/6/4!/x-a)', textRange: null, position: { percent: 0.3 } },
+      body: 'a thought worth keeping',
+      chapter: 'One',
+      question: true,
+      createdAt: 100,
+      updatedAt: 200,
+    });
+    store.createDeskDoc(id, { ...mkDoc('ad-1', 'research', 'the collection', 'the body'), bookId: id });
+    store.createHighlight(id, {
+      id: 'ah-1',
+      bookId: id,
+      anchor: { format: 'epub', primary: 'epubcfi(/6/4!/x-h)', textRange: null, position: { percent: 0.5 } },
+      color: 'yellow',
+      text: 'the highlighted passage',
+      chapter: 'Two',
+      note: null,
+      status: 'resolved',
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    const ledger = store.listArchiveMarks();
+    const note = ledger.find((e) => e.id === 'an-1');
+    const doc = ledger.find((e) => e.id === 'ad-1');
+    expect(note?.kind).toBe('note');
+    expect(note?.question).toBe(true);
+    expect(note?.anchor.primary).toBe('epubcfi(/6/4!/x-a)');
+    expect(note?.bookTitle).toBe('Ledger Book');
+    expect(doc?.kind).toBe('deskdoc');
+    expect(doc?.deskKind).toBe('research');
+    expect(doc?.sourceRefs[0]?.locator).toBe('epubcfi(/6/4!/x-quotes)');
+    // the document's anchor is its freshest passage — the door back
+    expect(doc?.anchor.primary).toBe('epubcfi(/6/4!/x-quotes)');
+    // plain marks carry the L11 fields without pretending to be work
+    const hl = ledger.find((e) => e.id === 'ah-1');
+    expect(hl?.question).toBe(false);
+    expect(hl?.sourceRefs).toEqual([]);
+  });
+
+  it('the ledger survives index death (the portability law, whole)', () => {
+    const db = openDb(dbPath);
+    const store = new ArivoStore(db, root);
+    const id = seedBook(store, uuidv7(), 'Immortal Ledger');
+    store.createNote(id, {
+      id: 'an-2',
+      bookId: id,
+      anchor: { format: 'epub', primary: 'epubcfi(/6/2)', textRange: null, position: null },
+      body: 'survives the index death',
+      chapter: null,
+      createdAt: 1,
+      updatedAt: 2,
+    });
+    store.createDeskDoc(id, { ...mkDoc('ad-2', 'reflect', 'the reflection', 'kept'), bookId: id });
+    db.raw.exec('DELETE FROM notes');
+    db.raw.exec('DELETE FROM desk_docs');
+    db.raw.exec('DELETE FROM books');
+    db.raw.exec('DELETE FROM books_fts');
+    db.raw.exec("UPDATE fts_seq SET next = 1 WHERE name = 'book'");
+    store.rebuildIndex();
+    const ledger = store.listArchiveMarks();
+    expect(ledger.some((e) => e.id === 'an-2' && e.text === 'survives the index death')).toBe(true);
+    expect(ledger.some((e) => e.id === 'ad-2' && e.deskKind === 'reflect')).toBe(true);
+  });
+
+  it('a large ledger reads in one pass — 1,000 objects stay honest', () => {
+    const store = new ArivoStore(openDb(dbPath), root);
+    const id = seedBook(store, uuidv7(), 'Thousand Object Book');
+    for (let i = 0; i < 1000; i++) {
+      store.createNote(id, {
+        id: `n1k-${i}`,
+        bookId: id,
+        anchor: { format: 'epub', primary: `epubcfi(/6/4!/x-${i})`, textRange: null, position: { percent: i / 1000 } },
+        body: `thought number ${i}`,
+        chapter: null,
+        createdAt: i,
+        updatedAt: i,
+      });
+    }
+    const t0 = performance.now();
+    const ledger = store.listArchiveMarks();
+    const ms = performance.now() - t0;
+    expect(ledger.filter((e) => e.bookId === id)).toHaveLength(1000);
+    // one joined pass, no n+1: generous budget for a shared runner
+    expect(ms).toBeLessThan(2000);
+  });
+});
+
 describe('migration 004 (v3 → v4, the desk)', () => {
   it('a real v3 database upgrades in place and takes desk writes + question notes', () => {
     const v3Path = join(root, 'v3-index.db');
