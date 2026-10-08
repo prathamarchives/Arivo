@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import { createServices, type Services } from './services/index.ts';
 import { registerIpc } from './ipc.ts';
 import { startUpdateChecks } from './updates.ts';
+import { captureWithWake, asCaptureSurface } from './smoke-capture.ts';
 
 let mainWindow: BrowserWindow | null = null;
 let services: Services | null = null;
@@ -163,10 +164,19 @@ async function createWindow(): Promise<BrowserWindow> {
               console.warn(`[arivo] lab section capture → ${out}`);
             }
           } else {
-            const image = await win.webContents.capturePage();
-            const out = path.resolve(process.cwd(), 'smoke.png');
-            fs.writeFileSync(out, image.toPNG());
-            console.warn(`[arivo] smoke screenshot → ${out}`);
+            // the plain capture rides captureWithWake: under headless xvfb
+            // a window composites on demand, and CI runners (software GL +
+            // setuid sandbox) can miss the first BeginFrame — the wake +
+            // retry loop is the difference between smoke.png and a red job
+            // (five red CIs, diagnosed in the final campaign)
+            const res = await captureWithWake(asCaptureSurface(win.webContents));
+            if (res.ok && res.image) {
+              const out = path.resolve(process.cwd(), 'smoke.png');
+              fs.writeFileSync(out, res.image.toPNG());
+              console.warn(`[arivo] smoke screenshot → ${out} (${res.attempts} attempt${res.attempts === 1 ? '' : 's'})`);
+            } else {
+              console.warn(`[arivo] smoke capture failed after ${res.attempts} attempts — ${res.lastError}`);
+            }
           }
         } catch {
           console.warn('[arivo] smoke capture failed');

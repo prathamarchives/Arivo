@@ -34,16 +34,5 @@
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.0.0",
     "vitest": "^3.0.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "electron-winstaller",
-      "core-js",
-      "es5-ext",
-      "unrs-resolver",
-      "better-sqlite3",
-      "electron"
-    ]
   }
 }

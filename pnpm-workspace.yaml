@@ -22,3 +22,7 @@ onlyBuiltDependencies:
 
 patchedDependencies:
   vitest@3.2.7: patches/vitest@3.2.7.patch
+
+overrides:
+  '@xmldom/xmldom': 0.8.15
+  tinypool: 2.1.2
