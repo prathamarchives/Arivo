@@ -6,20 +6,26 @@
 | scale | metric | measured | budget | status |
 |-------|--------|----------|--------|--------|
 | 100 | startup (ms) | 0.6ms | 800 @10k | n/a |
-| 100 | rebuild (ms) | 73.3ms | 60000 @10k | n/a |
-| 100 | search p95 (ms) | 2.3ms | 100 @10k | n/a |
-| 100 | reconcile-unchanged (ms) | 22.1ms | 5000 @10k | n/a |
-| 100 | annotation write (ms) | 0.5ms | 10 | n/a |
-| 100 | import (ms/book) | 15.5ms | 2,000 | n/a |
-| 1,000 | startup (ms) | 2.3ms | 800 @10k | n/a |
-| 1,000 | rebuild (ms) | 698.4ms | 60000 @10k | n/a |
-| 1,000 | search p95 (ms) | 6.0ms | 100 @10k | n/a |
-| 1,000 | reconcile-unchanged (ms) | 433.9ms | 5000 @10k | n/a |
-| 1,000 | annotation write (ms) | 0.8ms | 10 | n/a |
-| 10,000 | startup (ms) | 21.1ms | 800 @10k | ok |
-| 10,000 | rebuild (ms) | 7.62s | 60000 @10k | ok |
-| 10,000 | search p95 (ms) | 47.1ms | 100 @10k | ok |
-| 10,000 | reconcile-unchanged (ms) | 2.22s | 5000 @10k | ok |
-| 10,000 | annotation write (ms) | 0.6ms | 10 | ok |
+| 100 | rebuild (ms) | 74.2ms | 60000 @10k | n/a |
+| 100 | search p95 (ms) | 2.5ms | 100 @10k | n/a |
+| 100 | reconcile-unchanged (ms) | 34.4ms | 5000 @10k | n/a |
+| 100 | annotation write (ms) | 0.7ms | 10 | n/a |
+| 100 | desk doc write (ms) | 0.8ms | 10 | n/a |
+| 100 | archive ledger (ms) | 3.5ms | 2000 @10k | n/a |
+| 100 | import (ms/book) | 15.9ms | 2,000 | n/a |
+| 1,000 | startup (ms) | 2.4ms | 800 @10k | n/a |
+| 1,000 | rebuild (ms) | 711.0ms | 60000 @10k | n/a |
+| 1,000 | search p95 (ms) | 6.1ms | 100 @10k | n/a |
+| 1,000 | reconcile-unchanged (ms) | 240.2ms | 5000 @10k | n/a |
+| 1,000 | annotation write (ms) | 0.5ms | 10 | n/a |
+| 1,000 | desk doc write (ms) | 0.7ms | 10 | n/a |
+| 1,000 | archive ledger (ms) | 13.3ms | 2000 @10k | n/a |
+| 10,000 | startup (ms) | 20.5ms | 800 @10k | ok |
+| 10,000 | rebuild (ms) | 8.06s | 60000 @10k | ok |
+| 10,000 | search p95 (ms) | 47.5ms | 100 @10k | ok |
+| 10,000 | reconcile-unchanged (ms) | 2.38s | 5000 @10k | ok |
+| 10,000 | annotation write (ms) | 0.5ms | 10 | ok |
+| 10,000 | desk doc write (ms) | 0.6ms | 10 | ok |
+| 10,000 | archive ledger (ms) | 312.1ms | 2000 @10k | ok |
 
-_environment: node v24.21.0, linux-x64, 2026-10-06T06:50:11.547Z_
+_environment: node v24.21.0, linux-x64, 2026-10-08T13:31:55.470Z_

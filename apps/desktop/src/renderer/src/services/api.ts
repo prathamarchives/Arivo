@@ -32,10 +32,19 @@ export const api: ArivoApi = window.arivo ?? createMockApi();
 
 // ---------- the browser mock (dev:web) ----------
 
+/** blob urls live for the session; removal revokes — no stale handles */
 const mockBlobs = new Map<string, string>();
 
 export function registerMockBlob(id: string, url: string): void {
   mockBlobs.set(id, url);
+}
+
+function revokeMockBlob(id: string): void {
+  const url = mockBlobs.get(id);
+  if (url) {
+    URL.revokeObjectURL(url);
+    mockBlobs.delete(id);
+  }
 }
 
 export function createMockApi(): ArivoApi {
@@ -143,6 +152,7 @@ export function createMockApi(): ArivoApi {
       remove: async (id) => {
         state = { ...state, books: state.books.filter((b) => b.id !== id) };
         save();
+        revokeMockBlob(id); // no stale object urls
       },
     },
     book: {

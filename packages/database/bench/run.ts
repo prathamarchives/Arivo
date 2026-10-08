@@ -34,6 +34,8 @@ const BUDGETS: Record<string, number> = {
   'rebuild (ms)': 60_000,
   'reconcile-unchanged (ms)': 5_000,
   'annotation write (ms)': 10,
+  'desk doc write (ms)': 10,
+  'archive ledger (ms)': 2_000,
 };
 
 function fmt(ms: number): string {
@@ -147,6 +149,45 @@ async function runScale(scale: number, rows: Row[]): Promise<void> {
   const medWrite = writeSamples.slice().sort((a, b) => a - b)[Math.floor(writeSamples.length / 2)]!;
   rows.push({ scale, metric: 'annotation write (ms)', value: fmt(medWrite), budget: `${BUDGETS['annotation write (ms)']}`, status: 'n/a' });
   process.stdout.write(`annotation write (median of 50):     ${fmt(medWrite)}\n`);
+
+  // 6b. desk doc write (L10's workbench persistence, dual-write)
+  const docSamples: number[] = [];
+  for (let i = 0; i < 50; i++) {
+    const d = {
+      id: uuidv7(),
+      bookId: target,
+      kind: (i % 3 === 0 ? 'research' : i % 3 === 1 ? 'make' : 'reflect') as
+        | 'research'
+        | 'make'
+        | 'reflect',
+      title: `bench doc ${i}`,
+      body: 'the thought measured',
+      sourceRefs: [
+        { quote: 'a measured passage', locator: `epubcfi(/6/4,/1:${i})`, chapter: null, highlightId: null, noteId: null },
+      ],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    const s2 = performance.now();
+    warm.createDeskDoc(target, d);
+    docSamples.push(performance.now() - s2);
+  }
+  const medDoc = docSamples.slice().sort((a, b) => a - b)[Math.floor(docSamples.length / 2)]!;
+  rows.push({ scale, metric: 'desk doc write (ms)', value: fmt(medDoc), budget: `${BUDGETS['desk doc write (ms)']}`, status: 'n/a' });
+  process.stdout.write(`desk doc write (median of 50):       ${fmt(medDoc)}\n`);
+
+  // 6c. the archive ledger: the four-way joined read (the archive's whole payload)
+  const ledgerStart = performance.now();
+  const ledger = warm.listArchiveMarks();
+  const ledgerMs = performance.now() - ledgerStart;
+  rows.push({
+    scale,
+    metric: 'archive ledger (ms)',
+    value: fmt(ledgerMs),
+    budget: `${BUDGETS['archive ledger (ms)']} @10k`,
+    status: 'n/a',
+  });
+  process.stdout.write(`archive ledger (${ledger.length.toLocaleString()} objects):   ${fmt(ledgerMs)}\n`);
 
   // 7. import throughput: real inspection + folder write + index
   const fixture = join(ROOT, 'test-fixtures/fixture.epub');
