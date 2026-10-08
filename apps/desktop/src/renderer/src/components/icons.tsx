@@ -27,4 +27,6 @@ export {
   IconZoomOut,
   IconFitWidth,
   IconFitPage,
+  IconShelf,
+  IconArchive,
 } from '@arivo/ui';

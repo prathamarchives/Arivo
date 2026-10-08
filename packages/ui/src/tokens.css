@@ -109,6 +109,8 @@
   --r-instrument: 999px; /* pills, floating instruments */
 
   --cover-w: 200px;      /* 2:3 book object */
+  --rail-w: 224px;       /* the shell's orientation rail (L8 furniture) */
+  --rail-w-slim: 64px;   /* the rail's icon form below the measured 1044 boundary */
   --control-h: 32px;
   --control-h-lg: 40px;
   --hit: 32px;           /* minimum touch target */

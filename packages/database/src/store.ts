@@ -19,6 +19,7 @@ import type {
   ReadingProgress,
   Collection,
   SearchHit,
+  ArchiveEntry,
   Anchor,
   HighlightColor,
   ResolutionStatus,
@@ -509,6 +510,86 @@ export class ArivoStore {
     truth.bookmarks = truth.bookmarks.filter((b) => b.id !== id);
     writeTruth(this.bookDir(bookId), truth);
     this.db.raw.prepare('DELETE FROM bookmarks WHERE id = ?').run(id);
+  }
+
+  // ---------- the archive ledger (L8's first camera, L11 deepens it) ----------
+
+  /** every mark across every book, joined to its source, newest first.
+   *  one query — the archive never pays n+1 for provenance. */
+  listArchiveMarks(): ArchiveEntry[] {
+    const rows = this.db.raw
+      .prepare(
+        `SELECT h.id, h.book_id, h.primary_locator, h.text_exact, h.text_prefix, h.text_suffix,
+                h.pos_spine, h.pos_page, h.pos_percent, h.chapter, h.color, h.note, h.text,
+                h.created_at, h.updated_at,
+                b.title AS book_title, b.authors AS book_authors, b.format AS book_format
+         FROM highlights h JOIN books b ON b.id = h.book_id
+         WHERE b.file_missing = 0 OR b.file_missing IS NULL
+         ORDER BY h.updated_at DESC`,
+      )
+      .all() as Array<HighlightRow & { book_title: string; book_authors: string; book_format: string }>;
+    const marks: ArchiveEntry[] = rows.map((r) => ({
+      id: r.id,
+      kind: 'highlight',
+      bookId: r.book_id,
+      bookTitle: r.book_title,
+      bookAuthors: JSON.parse(r.book_authors || '[]') as string[],
+      bookFormat: (r.book_format === 'pdf' ? 'pdf' : 'epub') as 'pdf' | 'epub',
+      text: r.text,
+      note: r.note,
+      color: r.color as HighlightColor,
+      chapter: r.chapter,
+      anchor: {
+        format: (r.book_format === 'pdf' ? 'pdf' : 'epub') as 'pdf' | 'epub',
+        primary: r.primary_locator,
+        textRange: { exact: r.text_exact, prefix: r.text_prefix, suffix: r.text_suffix },
+        position: {
+          spineIndex: r.pos_spine ?? undefined,
+          page: r.pos_page ?? undefined,
+          percent: r.pos_percent ?? undefined,
+        },
+      },
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    }));
+    const bookmarkRows = this.db.raw
+      .prepare(
+        `SELECT k.id, k.book_id, k.primary_locator, k.pos_spine, k.pos_page, k.pos_percent,
+                k.label, k.chapter, k.created_at,
+                b.title AS book_title, b.authors AS book_authors, b.format AS book_format
+         FROM bookmarks k JOIN books b ON b.id = k.book_id
+         WHERE b.file_missing = 0 OR b.file_missing IS NULL
+         ORDER BY k.created_at DESC`,
+      )
+      .all() as Array<BookmarkRow & { book_title: string; book_authors: string; book_format: string }>;
+    for (const r of bookmarkRows) {
+      marks.push({
+        id: r.id,
+        kind: 'bookmark',
+        bookId: r.book_id,
+        bookTitle: r.book_title,
+        bookAuthors: JSON.parse(r.book_authors || '[]') as string[],
+        bookFormat: (r.book_format === 'pdf' ? 'pdf' : 'epub') as 'pdf' | 'epub',
+        text: r.label ?? r.chapter ?? 'bookmark',
+        note: null,
+        color: null,
+        chapter: r.chapter,
+        anchor: {
+          format: (r.book_format === 'pdf' ? 'pdf' : 'epub') as 'pdf' | 'epub',
+          primary: r.primary_locator,
+          textRange: null,
+          position: {
+            spineIndex: r.pos_spine ?? undefined,
+            page: r.pos_page ?? undefined,
+            percent: r.pos_percent ?? undefined,
+          },
+        },
+        createdAt: r.created_at,
+        updatedAt: r.created_at,
+      });
+    }
+    marks.sort((a, b) => b.updatedAt - a.updatedAt);
+    return marks;
   }
 
   // ---------- collections ----------

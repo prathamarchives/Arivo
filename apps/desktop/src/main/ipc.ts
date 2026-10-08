@@ -75,6 +75,7 @@ export function registerIpc(getServices: () => Services): void {
     highlights: s().store.listHighlights(bookId),
     bookmarks: s().store.listBookmarks(bookId),
   }));
+  handle('archive:marks', () => s().store.listArchiveMarks());
   handleArg('highlight:create', schemas.highlightCreate, ({ bookId, h }) =>
     s().store.createHighlight(bookId, h as import('@arivo/core').Highlight),
   );

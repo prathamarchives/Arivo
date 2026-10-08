@@ -18,7 +18,7 @@ import { IconButton, Button, Kbd } from '@arivo/ui';
 import { api } from '../services/api.ts';
 import { BOOK_FONT_FACE_CSS } from '../lib/book-fonts.ts';
 import { useSettings } from '../stores/settings.ts';
-import { useUi } from '../stores/ui.ts';
+import { useRoom } from '../stores/room.ts';
 import { useLibrary } from '../stores/library.ts';
 import {
   IconBack,
@@ -126,7 +126,7 @@ function Notebook({
   onClose: () => void;
   focusId: string | null;
 }): ReactNode {
-  const toast = useUi((s) => s.toast);
+  const toast = useRoom((s) => s.toast);
   const [noteDraft, setNoteDraft] = useState<{ id: string; body: string } | null>(null);
   const focusRef = useRef<HTMLDivElement | null>(null);
 
@@ -352,8 +352,11 @@ function TypographyPanel({
 // ---------------- the reader screen ----------------
 
 export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
-  const backToLibrary = useUi((s) => s.backToLibrary);
-  const toast = useUi((s) => s.toast);
+  const goShelf = useRoom((s) => s.goShelf);
+  const toast = useRoom((s) => s.toast);
+  const attention = useRoom((s) => s.attention);
+  const setEngaged = useRoom((s) => s.setEngaged);
+  const clearDeskPending = useRoom((s) => s.clearDeskPending);
   const refresh = useLibrary((s) => s.refresh);
   const { settings, set: setSettings } = useSettings();
 
@@ -369,15 +372,17 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
   const [focusId, setFocusId] = useState<string | null>(null);
   const [percent, setPercent] = useState(0);
   const [chapter, setChapter] = useState('');
-  const [chromeShown, setChromeShown] = useState(true);
   const [chapters, setChapters] = useState<{ label: string; target: string }[]>([]);
+
+  /* chrome visibility is the shell's attention model — the reader reports
+   * engagement (selection, drawers), the room decides quiet/absent */
+  const chromeShown = attention === 'active';
 
   const hostRef = useRef<HTMLDivElement | null>(null);
   const adapterRef = useRef<FormatReader | null>(null);
   const sessionRef = useRef<string | null>(null);
   const progressRef = useRef<RelocatedEvent | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readerSettingsRef = useRef<ReaderSettings>(settings);
 
   const isPdf = book?.format === 'pdf';
@@ -446,7 +451,6 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
           },
           onSelection: (s) => {
             setSelection(s);
-            if (s) setChromeShown(true);
           },
           onAnnotationClick: (id) => {
             setNotebookOpen(true);
@@ -508,7 +512,18 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
         const session = await api.sessions.begin(bookId, startPercent);
         sessionRef.current = session;
 
-        await adapter.display(book.progress?.locator ?? undefined);
+        /* exact source return: a one-shot locator from the desk context
+         * (archive jump, palette jump) takes precedence over progress;
+         * once consumed it is cleared — progress is the standing truth */
+        const desk = useRoom.getState().desk;
+        const pendingLocator = desk?.bookId === bookId ? desk.pendingLocator : null;
+        const pendingFocusId = desk?.bookId === bookId ? desk.pendingFocusId : null;
+        await adapter.display(pendingLocator ?? book.progress?.locator ?? undefined);
+        if (pendingFocusId) {
+          setNotebookOpen(true);
+          setFocusId(pendingFocusId);
+        }
+        clearDeskPending();
       } catch (err) {
         if (!disposed) {
           console.error(err);
@@ -537,26 +552,13 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
     adapterRef.current?.applySettings(settings);
   }, [settings]);
 
-  // ---- chrome fade: the text is the interface ----
+  /* engagement: while the reader holds work in hand (selection,
+   * drawers, panels) the shell stays present — quiet/absent is for
+   * unencumbered reading only */
   useEffect(() => {
-    const onMove = (e: MouseEvent): void => {
-      const nearTop = e.clientY < 72;
-      const nearBottom = e.clientY > window.innerHeight - 84;
-      const engaged = selection || notebookOpen || tocOpen || typeOpen;
-      if (nearTop || nearBottom || engaged) {
-        setChromeShown(true);
-        if (idleTimer.current) clearTimeout(idleTimer.current);
-        if (!engaged) {
-          idleTimer.current = setTimeout(() => setChromeShown(false), 2800);
-        }
-      }
-    };
-    window.addEventListener('mousemove', onMove);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      if (idleTimer.current) clearTimeout(idleTimer.current);
-    };
-  }, [selection, notebookOpen, tocOpen, typeOpen]);
+    setEngaged(Boolean(selection || notebookOpen || tocOpen || typeOpen));
+    return () => setEngaged(false);
+  }, [selection, notebookOpen, tocOpen, typeOpen, setEngaged]);
 
   // ---- keyboard ----
   useEffect(() => {
@@ -696,9 +698,9 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
       <div className="reader-error fade-in">
         <div className="type-title">this book won't open</div>
         <p className="meta-label">{error}</p>
-        <Button onClick={backToLibrary}>
+        <Button onClick={goShelf}>
           <IconBack />
-          back to library
+          back to the shelf
         </Button>
       </div>
     );
@@ -707,7 +709,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
   return (
     <div className="reader" data-format={book?.format ?? 'epub'}>
       <div className={`reader-chrome reader-chrome-top${chromeShown ? '' : ' chrome-faded'}`}>
-        <IconButton label="back to library" onClick={backToLibrary}>
+        <IconButton label="back to the shelf" onClick={goShelf}>
           <IconBack />
         </IconButton>
         <div className="reader-title">

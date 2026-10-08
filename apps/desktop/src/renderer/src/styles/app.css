@@ -1,9 +1,11 @@
-/* arivo — the app. paper and ink, covers as the color, text is the interface. */
+/* arivo — the app. paper and ink, covers as the color, text is the interface.
+   the screens below render inside the shell's work region — they fill
+   the region (100%), never the viewport (the rail is furniture). */
 
 /* ============ library ============ */
 
 .library {
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -540,7 +542,7 @@
 
 .reader {
   position: relative;
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;

@@ -4,6 +4,7 @@
  */
 import type {
   AppSettings,
+  ArchiveEntry,
   Book,
   Bookmark,
   Collection,
@@ -83,6 +84,11 @@ export interface ArivoApi {
     deleteHighlight(bookId: string, id: string): Promise<void>;
     createBookmark(bookId: string, b: Bookmark): Promise<void>;
     deleteBookmark(bookId: string, id: string): Promise<void>;
+  };
+  archive: {
+    /** every mark across every book, newest first — the archive's ledger.
+     *  one call, joined provenance; never n+1 from the renderer. */
+    marks(): Promise<ArchiveEntry[]>;
   };
   collections: {
     list(): Promise<{ collection: Collection; count: number }[]>;

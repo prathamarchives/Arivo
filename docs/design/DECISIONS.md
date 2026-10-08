@@ -184,3 +184,58 @@ the interruption probe), it follows the pointer with no transition.
 direct manipulation with a transitioned follower feels like pulling
 taffy. causality: the hand is the cause, the follower is the effect,
 with zero invented easing.
+
+## D-022 · the app is a room, not a router (L8)
+
+**decision:** the ui store's view model (`library | reader`) is replaced
+by the room model (`stores/room.ts`): `place` (shelf / desk / archive)
+is a camera position over one continuous room; the desk context
+(book + one-shot return locator) survives navigation; the shelf and
+archive keep their scroll. the orientation rail is persistent furniture
+— it never remounts on place change. screens render inside the work
+region and fill it (100%), never the viewport.
+**reason:** the thesis (L0) — "the product should feel like one physical
+place, never a page router." routing would make every transition a
+reset and every return a re-navigation; spatial memory requires state
+that outlives the camera move.
+**risk recorded:** the camera positions currently render as full
+screen swaps inside the work region; true shared-element continuity
+(book pull-forward) lands with L9/L10 — the room model is its
+prerequisite, not its completion.
+
+## D-023 · the archive's first camera is the marks ledger
+
+**decision:** L8 ships a real archive surface: `archive:marks()` joins
+highlights and bookmarks to their books in one query (never n+1), and
+every entry returns to the exact passage via the anchor it carries
+(golden 5). the full view vocabulary (threads, clusters, walls) is L11.
+**reason:** "do not invent an archive before its objects are real" —
+the marks are real objects with real provenance; the ledger proves the
+compounding loop without inventing views. marks of missing-file books
+are excluded: an archive entry that cannot return to its source is a
+broken promise.
+
+## D-024 · the shell's absence is perceptual, never structural
+
+**decision:** when attention deepens into reading, the rail fades
+(opacity → 0, pointer-events off) and does not leave the layout. the
+reading column does not re-center; nothing reflows.
+**reason:** the physical truth — when you focus at a desk, the walls do
+not move; your attention withdraws from them. a layout-animated rail
+would reflow the sovereign column mid-read (law 33: motion never delays
+reading; law 56: layout animates only with a measured reason — and
+optical re-centering is not one). text-position stability on the eye
+beats window-centered symmetry.
+
+## D-025 · chrome quietness is one truth, owned by the shell
+
+**decision:** the pre-shell reader kept its own chrome-fade state
+(mousemove + idle timer inside ReaderScreen). L8 lifts the whole state
+machine into the room store (`attention: active | reading`): the shell
+listens for edge proximity, the reader reports engagement (selection,
+drawers), and every chrome surface — rail, reader bars — derives from
+the same attention value. arriving at the desk starts the withdrawal
+clock even without pointer movement.
+**reason:** two independent chrome-fade systems would disagree; the
+room must have one quietness. engagement re-checks at fire time, so an
+open selection can never have its chrome stolen.

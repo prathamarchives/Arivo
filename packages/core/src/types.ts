@@ -45,6 +45,9 @@ export type LibraryView = 'grid' | 'list';
 
 export type LibrarySize = 's' | 'm' | 'l';
 
+/** the room's temperament — the two authored modes, never a third (L0) */
+export type Temperament = 'den' | 'lab';
+
 /** fonts come from the catalyst family: instrument serif (display), literata (reading), inter (ui) */
 export interface ReaderSettings {
   theme: ReadingTheme;
@@ -58,6 +61,9 @@ export interface AppSettings extends ReaderSettings {
   librarySize: LibrarySize;
   /** null = default ~/Arivo */
   booksDir: string | null;
+  /** the room's temperament — persisted since L8 (gate 13). den is the
+   *  living default; lab is the opt-in serious room (D-003). */
+  temperament: Temperament;
 }
 
 export const FONT_STEPS = [16, 18, 20, 22, 24] as const;
@@ -69,6 +75,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   libraryView: 'grid',
   librarySize: 'm',
   booksDir: null,
+  temperament: 'den',
 };
 
 /** THE ANCHOR — every annotation's immortality contract. */
@@ -208,6 +215,30 @@ export interface ImportResult {
   bookId: string | null;
   title: string | null;
   reason: string | null;
+}
+
+/**
+ * an archive entry — one piece of the user's work, joined to its source.
+ * the archive is downstream of the desk: these are real objects with real
+ * provenance, never invented. every entry carries what source return
+ * needs: bookId + the anchor of the passage it came from (golden 5).
+ */
+export interface ArchiveEntry {
+  id: string;
+  kind: 'highlight' | 'bookmark';
+  bookId: string;
+  bookTitle: string;
+  bookAuthors: string[];
+  bookFormat: BookFormat;
+  /** the passage — the quote for highlights, the label for bookmarks */
+  text: string;
+  note: string | null;
+  color: HighlightColor | null;
+  chapter: string | null;
+  /** provenance: the anchor to return to the exact passage */
+  anchor: Anchor;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface ImportProgress {

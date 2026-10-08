@@ -78,6 +78,7 @@ const settings: Validator<AppSettings> = v.object({
   flow: v.enum('paginated', 'scrolled'),
   libraryView: v.enum('grid', 'list'),
   librarySize: v.enum('s', 'm', 'l'),
+  temperament: v.enum('den', 'lab'),
   booksDir: v.nullable(v.string({ min: 1, max: 1024 })),
 });
 

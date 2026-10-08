@@ -535,6 +535,17 @@
   font-weight: 700;
 }
 
+/* disabled: the state contract (law 39) — readable, present, unusable */
+.nav-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.nav-item:disabled:hover {
+  color: var(--ink-2);
+  background: transparent;
+}
+
 /* ------------------------- tooltip ------------------------- */
 
 .tooltip-host {

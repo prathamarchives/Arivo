@@ -42,6 +42,11 @@ const book = existsSync(REAL_EPUB)
 
 let root: string;
 let dbPath: string;
+/* module scope: the portability law's artifacts feed the archive ledger
+ * test below — the same store, the same marks, one continuity */
+let ledgerBookId: string;
+let ledgerHighlight: Highlight;
+let ledgerBookmark: Bookmark;
 
 beforeAll(() => {
   root = mkdtempSync(join(tmpdir(), 'arivo-store-'));
@@ -112,15 +117,12 @@ describe('the golden path data layer', () => {
 });
 
 describe('THE PORTABILITY LAW — dual-write, kill the index, rebuild, zero loss', () => {
-  let bookId: string;
-  let highlight: Highlight;
-  let bookmark: Bookmark;
-
   it('step 1: write a highlight + note + bookmark + progress', async () => {
     const store = new ArivoStore(openDb(dbPath), root);
-    bookId = store.listBooks()[0]!.id;
+    ledgerBookId = store.listBooks()[0]!.id;
+    const bookId = ledgerBookId;
 
-    highlight = {
+    ledgerHighlight = {
       id: uuidv7(),
       bookId,
       anchor: {
@@ -141,7 +143,7 @@ describe('THE PORTABILITY LAW — dual-write, kill the index, rebuild, zero loss
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
-    bookmark = {
+    ledgerBookmark = {
       id: uuidv7(),
       bookId,
       anchor: { format: 'epub', primary: 'epubcfi(/6/10)', textRange: null, position: { percent: 0.55 } },
@@ -150,8 +152,8 @@ describe('THE PORTABILITY LAW — dual-write, kill the index, rebuild, zero loss
       createdAt: Date.now(),
     };
 
-    store.createHighlight(bookId, highlight);
-    store.createBookmark(bookId, bookmark);
+    store.createHighlight(bookId, ledgerHighlight);
+    store.createBookmark(bookId, ledgerBookmark);
     store.saveProgress(bookId, {
       bookId,
       locator: 'epubcfi(/6/8!/4/22,/1:100,/1:180)',
@@ -163,8 +165,8 @@ describe('THE PORTABILITY LAW — dual-write, kill the index, rebuild, zero loss
     });
 
     // both stores have it
-    expect(store.listHighlights(bookId).length).toBe(1);
-    const truth = readTruth(join(root, 'library', bookId), bookId);
+    expect(store.listHighlights(ledgerBookId).length).toBe(1);
+    const truth = readTruth(join(root, 'library', ledgerBookId), ledgerBookId);
     expect(truth.highlights.length).toBe(1);
     expect(truth.highlights[0]!.note).toBe('this is where he flips the optimism on multitasking');
     expect(truth.bookmarks.length).toBe(1);
@@ -177,7 +179,7 @@ describe('THE PORTABILITY LAW — dual-write, kill the index, rebuild, zero loss
     rmSync(`${dbPath}-wal`, { force: true });
     rmSync(`${dbPath}-shm`, { force: true });
     expect(existsSync(dbPath)).toBe(false);
-    expect(existsSync(join(root, 'library', bookId, 'annotations.json'))).toBe(true);
+    expect(existsSync(join(root, 'library', ledgerBookId, 'annotations.json'))).toBe(true);
   });
 
   it('step 3: rebuild from truth → EVERYTHING returns, zero loss', () => {
@@ -187,18 +189,18 @@ describe('THE PORTABILITY LAW — dual-write, kill the index, rebuild, zero loss
     expect(result.highlights).toBe(1);
     expect(result.bookmarks).toBe(1);
 
-    const hl = store.listHighlights(bookId);
+    const hl = store.listHighlights(ledgerBookId);
     expect(hl.length).toBe(1);
-    expect(hl[0]!.id).toBe(highlight.id);
-    expect(hl[0]!.note).toBe(highlight.note);
+    expect(hl[0]!.id).toBe(ledgerHighlight.id);
+    expect(hl[0]!.note).toBe(ledgerHighlight.note);
     expect(hl[0]!.anchor.textRange?.exact).toContain('multitasking');
     expect(hl[0]!.color).toBe('yellow');
 
-    const bm = store.listBookmarks(bookId);
+    const bm = store.listBookmarks(ledgerBookId);
     expect(bm.length).toBe(1);
     expect(bm[0]!.label).toBe('Vita Activa');
 
-    const progress = store.getProgress(bookId);
+    const progress = store.getProgress(ledgerBookId);
     expect(progress?.percent).toBe(0.31);
     expect(progress?.chapter).toBe('Profound Boredom');
     store.close();
@@ -211,17 +213,61 @@ describe('THE PORTABILITY LAW — dual-write, kill the index, rebuild, zero loss
     const byHighlight = store.search('multitasking');
     expect(byHighlight.some((h) => h.kind === 'highlight')).toBe(true);
     const byNote = store.search('optimism');
-    expect(byNote.some((h) => h.kind === 'highlight' && h.id === highlight.id)).toBe(true);
+    expect(byNote.some((h) => h.kind === 'highlight' && h.id === ledgerHighlight.id)).toBe(true);
     store.close();
   });
 
   it('step 5: reading notes export from the rebuilt store', () => {
     const store = new ArivoStore(openDb(dbPath), root);
-    const md = store.exportNotes(bookId);
+    const md = store.exportNotes(ledgerBookId);
     expect(md).toContain('multitasking');
     expect(md).toContain('this is where he flips the optimism on multitasking');
     expect(md).toContain('Vita Activa');
     expect(md).toContain('31%');
+    store.close();
+  });
+});
+
+describe('the archive ledger (L8) — provenance joined, one query', () => {
+  it('lists marks with their sources, newest first, exact anchors for return', () => {
+    const store = new ArivoStore(openDb(dbPath), root);
+    const marks = store.listArchiveMarks();
+    /* one highlight + one bookmark from the portability law above */
+    expect(marks.length).toBe(2);
+
+    const hl = marks.find((m) => m.kind === 'highlight');
+    expect(hl).toBeDefined();
+    expect(hl!.bookTitle).toBe(book.title);
+    expect(hl!.bookAuthors.join(' ')).toContain(book.authors[0]!);
+    expect(hl!.bookFormat).toBe('epub');
+    expect(hl!.color).toBe('yellow');
+    expect(hl!.note).toContain('multitasking');
+    expect(hl!.anchor.primary).toBe(ledgerHighlight.anchor.primary);
+    expect(hl!.anchor.textRange?.exact).toContain('multitasking');
+
+    const bm = marks.find((m) => m.kind === 'bookmark');
+    expect(bm).toBeDefined();
+    expect(bm!.text).toBe('Vita Activa');
+    expect(bm!.anchor.primary).toBe('epubcfi(/6/10)');
+
+    /* newest first — a ledger, not a dump */
+    for (let i = 1; i < marks.length; i += 1) {
+      expect(marks[i]!.updatedAt).toBeLessThanOrEqual(marks[i - 1]!.updatedAt);
+    }
+    store.close();
+  });
+
+  it('a mark updated later rises to the top — the ledger tracks the mind', async () => {
+    const store = new ArivoStore(openDb(dbPath), root);
+    const updated = {
+      ...ledgerHighlight,
+      note: 'revisited — this is the whole chapter thesis',
+      updatedAt: Date.now() + 1000,
+    };
+    store.updateHighlight(ledgerBookId, updated);
+    const marks = store.listArchiveMarks();
+    expect(marks[0]!.kind).toBe('highlight');
+    expect(marks[0]!.note).toContain('revisited');
     store.close();
   });
 });

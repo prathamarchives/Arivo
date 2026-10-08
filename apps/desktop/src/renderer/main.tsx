@@ -11,6 +11,7 @@ import '@arivo/ui/components.css';
 import '@arivo/ui/objects.css';
 import '@arivo/ui/lab.css';
 import './src/styles/app.css';
+import './src/shell/shell.css';
 import { App } from './src/app.tsx';
 
 const root = document.getElementById('root');

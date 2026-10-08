@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DragEvent, ReactNode } from 'react';
 import type { BookWithProgress } from '@arivo/core';
 import { platform, api } from '../services/api.ts';
 import { useLibrary, type SortMode } from '../stores/library.ts';
 import { useSettings } from '../stores/settings.ts';
-import { useUi } from '../stores/ui.ts';
+import { useRoom } from '../stores/room.ts';
 import { IconButton, Button, Input, Kbd } from '@arivo/ui';
 import {
   IconSearch,
@@ -64,7 +64,7 @@ function BookCard({
   size: number;
   onMenu: (book: BookWithProgress, x: number, y: number) => void;
 }): ReactNode {
-  const openReader = useUi((s) => s.openReader);
+  const goDesk = useRoom((s) => s.goDesk);
   const pct = book.progress ? Math.round(book.progress.percent * 100) : 0;
   return (
     <div
@@ -73,11 +73,11 @@ function BookCard({
       role="button"
       tabIndex={0}
       aria-label={`${book.title} by ${book.authors.join(', ')}`}
-      onClick={() => openReader(book.id)}
+      onClick={() => goDesk(book.id)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          openReader(book.id);
+          goDesk(book.id);
         }
       }}
     >
@@ -119,16 +119,16 @@ function BookRow({
   book: BookWithProgress;
   onMenu: (book: BookWithProgress, x: number, y: number) => void;
 }): ReactNode {
-  const openReader = useUi((s) => s.openReader);
+  const goDesk = useRoom((s) => s.goDesk);
   const pct = book.progress ? Math.round(book.progress.percent * 100) : 0;
   return (
     <div
       className="book-row"
       role="button"
       tabIndex={0}
-      onClick={() => openReader(book.id)}
+      onClick={() => goDesk(book.id)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') openReader(book.id);
+        if (e.key === 'Enter') goDesk(book.id);
       }}
     >
       <Cover book={book} size={32} />
@@ -163,7 +163,7 @@ function BookMenu({
   onClose: () => void;
 }): ReactNode {
   const { collections, assign, removeBook } = useLibrary();
-  const toast = useUi((s) => s.toast);
+  const toast = useRoom((s) => s.toast);
   const [confirm, setConfirm] = useState(false);
   const style = {
     left: Math.min(x, window.innerWidth - 260),
@@ -237,7 +237,7 @@ function BookMenu({
 
 function EmptyState(): ReactNode {
   const importDialog = useLibrary((s) => s.importDialog);
-  const toast = useUi((s) => s.toast);
+  const toast = useRoom((s) => s.toast);
   return (
     <div className="empty-state fade-in">
       <div className="empty-glyph">
@@ -269,7 +269,7 @@ function Toolbar(): ReactNode {
   const { query, setQuery, sort, setSort } = useLibrary();
   const { settings, set } = useSettings();
   const importDialog = useLibrary((s) => s.importDialog);
-  const toast = useUi((s) => s.toast);
+  const toast = useRoom((s) => s.toast);
   const themes = [
     { key: 'paper', icon: <IconSun />, label: 'paper' },
     { key: 'sepia', icon: <IconLamp />, label: 'sepia' },
@@ -279,7 +279,8 @@ function Toolbar(): ReactNode {
 
   return (
     <header className="library-toolbar">
-      <div className="brand">arivo.</div>
+      {/* the room's mark lives in the orientation rail — the toolbar is
+          the shelf's working surface, not the brand bar */}
       <div className="toolbar-search">
         <IconSearch />
         <input
@@ -404,7 +405,7 @@ function CollectionsBar(): ReactNode {
 }
 
 function ContinueReading({ books }: { books: BookWithProgress[] }): ReactNode {
-  const openReader = useUi((s) => s.openReader);
+  const goDesk = useRoom((s) => s.goDesk);
   if (books.length === 0) return null;
   return (
     <section className="continue-reading" aria-label="continue reading">
@@ -416,7 +417,7 @@ function ContinueReading({ books }: { books: BookWithProgress[] }): ReactNode {
             <button
               key={b.id}
               className="continue-card"
-              onClick={() => openReader(b.id)}
+              onClick={() => goDesk(b.id)}
               aria-label={`continue ${b.title}`}
             >
               <Cover book={b} size={110} />
@@ -449,13 +450,23 @@ export function LibraryScreen(): ReactNode {
     importDropped,
   } = useLibrary();
   const { settings } = useSettings();
-  const toast = useUi((s) => s.toast);
+  const toast = useRoom((s) => s.toast);
+  const shelfScroll = useRoom((s) => s.shelfScroll);
+  const setShelfScroll = useRoom((s) => s.setShelfScroll);
+  const bodyRef = useRef<HTMLElement | null>(null);
   const [dragging, setDragging] = useState(false);
   const [menu, setMenu] = useState<{ book: BookWithProgress; x: number; y: number } | null>(null);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  /* spatial memory: the shelf restores its exact scroll — leaving and
+   * returning is one continuous place, never a reset (golden 6) */
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (body && shelfScroll > 0) body.scrollTop = shelfScroll;
+  }, [shelfScroll]);
 
   const [collectionIds, setCollectionIds] = useState<string[] | null>(null);
   useEffect(() => {
@@ -555,7 +566,14 @@ export function LibraryScreen(): ReactNode {
           </div>
         </div>
       )}
-      <main className="library-body">
+      <main
+        className="library-body"
+        ref={bodyRef}
+        onScroll={() => {
+          const body = bodyRef.current;
+          if (body) setShelfScroll(body.scrollTop);
+        }}
+      >
         {loading && books.length === 0 ? (
           <div className="library-loading meta-label">opening the library…</div>
         ) : books.length === 0 ? (
