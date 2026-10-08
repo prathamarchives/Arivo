@@ -15,6 +15,7 @@ import {
   EASINGS,
   ANNOTATION,
 } from './lab-data.ts';
+import { MotionRuntimeLab } from './MotionLab.tsx';
 
 type Temperament = 'den' | 'lab';
 type Lighting = 'paper' | 'sepia' | 'night';
@@ -289,6 +290,9 @@ export function DesignLab(): ReactNode {
             ))}
           </div>
         </section>
+
+        {/* ---------------- motion runtime (L3 — the engine) ---------------- */}
+        <MotionRuntimeLab />
 
         <footer className="lab-header" style={{ borderBottom: 'none', borderTop: '1px solid var(--line)', paddingTop: 'var(--s6)' }}>
           <span className="meta-label">

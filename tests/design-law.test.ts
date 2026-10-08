@@ -124,6 +124,15 @@ export function rawHexViolations(css: string): string[] {
   return bad;
 }
 
+/** durations only through the ladder — no raw non-zero ms in css (L3 law) */
+export function rawDurationViolations(css: string): string[] {
+  const bad: string[] = [];
+  for (const m of css.matchAll(/(?:transition|animation)[^;{}]*?(\d+)ms/g)) {
+    if (m[1]! !== '0') bad.push(`${m[1]}ms — ${m[0]!.slice(0, 50)}`);
+  }
+  return bad;
+}
+
 /* ------------------- the law: the real files -------------------- */
 
 describe('the design law — tokens are the closed vocabulary', () => {
@@ -204,6 +213,12 @@ describe('the design law — components speak only tokens', () => {
     expect(weightViolations(BASE, LAB_CSS, APP_CSS)).toEqual([]);
   });
 
+  it('no raw durations — transitions speak only the ladder (L3)', () => {
+    expect(rawDurationViolations(BASE)).toEqual([]);
+    expect(rawDurationViolations(LAB_CSS)).toEqual([]);
+    expect(rawDurationViolations(APP_CSS)).toEqual([]);
+  });
+
   it('retired tokens never return', () => {
     expect(retiredTokenViolations(BASE, LAB_CSS, APP_CSS, READER_THEMES)).toEqual([]);
   });
@@ -248,6 +263,14 @@ describe('the checkers work — seeded violations are caught', () => {
 
   it('raw hex checker catches a stray color', () => {
     expect(rawHexViolations('.btn { background: #3B82F6; }')).toHaveLength(1);
+  });
+
+  it('raw duration checker catches an invented 340ms transition', () => {
+    expect(
+      rawDurationViolations('.btn { transition: transform 340ms var(--ease-glide); }'),
+    ).toHaveLength(1);
+    // zero is the twin, not a violation
+    expect(rawDurationViolations('.btn { transition-duration: 0ms; }')).toHaveLength(0);
   });
 });
 

@@ -323,3 +323,206 @@
     transition-duration: 0ms;
   }
 }
+
+/* ---------- 11 · the motion engine ---------- */
+
+.lab-engine-map {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--s3);
+}
+
+.lab-engine-map .lab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s4);
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+
+.lab-mass-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--s3);
+}
+
+.lab-mass-stage {
+  flex: 1;
+  min-width: 0;
+  height: var(--s24);
+  background: var(--bg-sunken);
+  border-radius: var(--r-surface);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--s2);
+  overflow: hidden;
+}
+
+.lab-mass-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--s24);
+  height: var(--s16);
+  background: var(--bg-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-interactive);
+  box-shadow: var(--elevation-1);
+}
+
+.lab-mass-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.lab-mass-controls .meta-label {
+  width: 160px;
+}
+
+.lab-twin-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+
+/* ---------- 12 · the interruption probe ---------- */
+
+.lab-retarget {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.lab-retarget-track {
+  height: var(--s24);
+  background: var(--bg-sunken);
+  border-radius: var(--r-surface);
+  position: relative;
+  padding: var(--s2);
+  touch-action: none; /* the probe owns its gesture — the list below still scrolls natively */
+}
+
+.lab-retarget-knob {
+  width: var(--s24);
+  height: var(--s16);
+  background: var(--glass-tint);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  border: 1px solid var(--glass-rim);
+  border-radius: var(--r-instrument);
+  box-shadow: inset 0 1px 0 var(--glass-light), var(--shadow-contact);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  will-change: transform; /* the one element in the room with a standing reason */
+}
+
+.lab-retarget-knob.is-grabbed {
+  cursor: grabbing;
+  box-shadow: inset 0 1px 0 var(--glass-light), var(--elevation-2);
+}
+
+.lab-retarget-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+
+/* ---------- 13 · the scroll runtime ---------- */
+
+.lab-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.lab-scroll-readout {
+  display: flex;
+  gap: var(--s6);
+  flex-wrap: wrap;
+}
+
+.lab-scroll-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.lab-scroll-stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.lab-scroll-scrolls {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: var(--r-surface);
+  overflow: hidden;
+}
+
+.lab-scroll-list {
+  height: 280px;
+  overflow-y: auto; /* native. always. law 43 */
+}
+
+.lab-scroll-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  padding: var(--s2) var(--s4);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+
+.lab-scroll-dissolve {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--s12);
+  pointer-events: none;
+  z-index: var(--z-sticky);
+  background: linear-gradient(var(--bg), transparent);
+  opacity: 0;
+  transition: opacity var(--dur-state) var(--ease-settle);
+}
+
+.lab-scroll-chip {
+  position: absolute;
+  top: var(--s4);
+  left: 0;
+  width: var(--s16);
+  height: var(--s6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-tint);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  border: 1px solid var(--glass-rim);
+  border-radius: var(--r-instrument);
+  box-shadow: inset 0 1px 0 var(--glass-light), var(--shadow-contact);
+  z-index: var(--z-floating);
+  will-change: transform;
+}
+
+.lab-scroll-controls {
+  display: flex;
+  gap: var(--s2);
+  align-items: center;
+}
+
+/* the lab's forced reduced-motion inspection — zeroes css twins within the
+   lab root regardless of os setting. production never sets this attribute. */
+[data-lab-reduced='1'] .lab-mass-tile,
+[data-lab-reduced='1'] .lab-retarget-knob,
+[data-lab-reduced='1'] .lab-scroll-chip {
+  transition-duration: 0ms !important;
+}
+
