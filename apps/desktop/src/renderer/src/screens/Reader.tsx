@@ -26,6 +26,7 @@ import { useLibrary } from '../stores/library.ts';
 import { Workbench, type WorkbenchHandle } from '../features/desk/Workbench.tsx';
 import { draftStatusText } from '../lib/drafts.ts';
 import { useDraft } from '../lib/useDraft.ts';
+import { plainError } from '../lib/voice.ts';
 import {
   IconBack,
   IconToc,
@@ -802,7 +803,8 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
       } catch (err) {
         if (!disposed) {
           console.error(err);
-          setError(err instanceof Error ? err.message : 'the book failed to open');
+          // the voice law: only our coded errors speak; parser internals never do
+          setError(plainError(err, 'the book failed to open'));
         }
       }
     };
