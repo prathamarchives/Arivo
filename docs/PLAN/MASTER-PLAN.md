@@ -440,3 +440,15 @@ status: PLAN MODE. awaiting fire.
   libraries justify it). 436/2 green; REPORT.md regenerated.
   session log: docs/SESSIONS/0012-measured-not-vibes.md
 - next: L16 — design QA.
+
+## execution log — L16 (attack the system)
+
+- **L16: DONE** (this commit) — the seeded-violation proof extended to
+  every new law family (voice, a11y, effects — each checker proven to
+  catch); the state audit's honest assertion lawed (focus is a
+  foundation, not a per-class patch; each family owns its hover — one
+  real gap found + fixed on the archive card button); authored
+  empty/error/loading states verified across every surface; the
+  capture matrix (den×3 lights + lab×2) VLM-read clean. 446/2 green.
+  session log: docs/SESSIONS/0013-attack-the-system.md
+- next: L17 — optical correction.
