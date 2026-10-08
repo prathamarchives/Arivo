@@ -236,12 +236,27 @@ export class EpubAdapter implements FormatReader {
 
   next(): void {
     if (!this.paged) return;
+    this.turnBeat(1);
     this.rendition?.next();
   }
 
   prev(): void {
     if (!this.paged) return;
+    this.turnBeat(-1);
     this.rendition?.prev();
+  }
+
+  /** THE PAGE-TURN BEAT (W2.5): the incoming page settles from an 8px
+   *  drift + a 3px blur, exactly one turn long. the ladder's twin
+   *  collapses --dur-turn to nothing under reduced motion — the beat
+   *  is felt, never waited for. */
+  private turnBeat(direction: 1 | -1): void {
+    const view = this.container?.querySelector('.epub-view') as HTMLElement | null;
+    if (!view) return;
+    view.classList.remove('page-turn-next', 'page-turn-prev');
+    // a forced reflow lets back-to-back turns restart the beat
+    void view.offsetWidth;
+    view.classList.add(direction > 0 ? 'page-turn-next' : 'page-turn-prev');
   }
 
   async jumpTo(locator: string): Promise<void> {

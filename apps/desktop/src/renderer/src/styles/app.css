@@ -1057,6 +1057,39 @@
   max-width: calc(var(--ar-measure, 680px) * 2 + var(--s6));
 }
 
+/* THE PAGE-TURN BEAT (W2.5): the incoming page settles from an 8px drift
+ * + 3px blur, one turn of the ladder long. reduced motion collapses the
+ * duration — the twin, not a second rule. */
+@keyframes page-turn-in-next {
+  from {
+    transform: translateX(var(--s2));
+    filter: blur(3px);
+  }
+  to {
+    transform: translateX(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes page-turn-in-prev {
+  from {
+    transform: translateX(calc(-1 * var(--s2)));
+    filter: blur(3px);
+  }
+  to {
+    transform: translateX(0);
+    filter: blur(0);
+  }
+}
+
+.epub-view.page-turn-next {
+  animation: page-turn-in-next var(--dur-turn) var(--ease-settle);
+}
+
+.epub-view.page-turn-prev {
+  animation: page-turn-in-prev var(--dur-turn) var(--ease-settle);
+}
+
 .pdf-scroll {
   overflow-y: auto;
   display: flex;

@@ -347,3 +347,13 @@ status: PLAN MODE. awaiting fire.
   tests). one false alarm honestly spent (wrong-document mark queries —
   the 0003 lesson, re-learned with receipts). session log:
   docs/SESSIONS/0005-profiles-measure-dual-page.md
+- **W2.5 + W2.6: DONE** (this commit) — the page-turn beat (8px drift +
+  3px blur, one --dur-turn long, twin-collapsed under reduced motion;
+  live-proven in both directions) closes motion's true gap — the L3
+  runtime already owned the rest of the vocabulary. the campaign's four
+  named bugs became permanent regression laws (menu z-layer, single-
+  token annotation classes, the complete repaginates trigger, the
+  gitignored seed path). 385/2 green. session log:
+  docs/SESSIONS/0006-motion-and-regression-laws.md
+- **WAVE 2 CLOSED**: the reader substrate is first-class on both
+  formats. next: L10 Desk.
