@@ -209,6 +209,9 @@
 :root {
   --glass-blur: 16px;
   --glass-saturation: 1.12;
+  /* the scrim wash — a resolved decision, named: full-page overlays
+     wash at a gentler radius than instruments; never a raw literal */
+  --scrim-blur: 6px;
 }
 
 /* ==================== annotation identity colors ==================== */

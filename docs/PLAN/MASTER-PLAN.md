@@ -392,3 +392,16 @@ status: PLAN MODE. awaiting fire.
   law. 417/2 green. session log:
   docs/SESSIONS/0008-archive-evidence.md
 - next: L12 — creative graphics, semantic jobs only.
+
+## execution log — L12 (the effect registry)
+
+- **L12: DONE** (this commit) — the gatekeeper's ledger shipped: every
+  live effect carries a written contract (purpose/budget/twin/fallback/
+  failure) in docs/EFFECTS.md, enforced by 8 executable laws. the real
+  holes fixed: glass's missing @supports failure path (readable solid
+  instrument without backdrop-filter), the scrim's raw blur(6px) →
+  --scrim-blur token. the design-law gates caught the fixes' side
+  effects and were sharpened (laws intact). nothing new was added —
+  the first shipped act of the effect gatekeeper is a documented NO.
+  425/2 green. session log: docs/SESSIONS/0009-effect-registry.md
+- next: L13 — content/voice audit.
