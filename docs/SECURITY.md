@@ -3,9 +3,29 @@
 > the reader is local, but the documents are untrusted input and the
 > renderer is untrusted code. every layer below is enforced by a test.
 
-## the renderer cannot touch the machine
+## the process boundary (electron hardening)
 
 - `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`
+- **window-open is denied at the process level**
+  (`setWindowOpenHandler` → deny) — book content can never earn a new
+  window, even through a regression
+- **will-navigate denies every off-origin navigation** (devtools
+  excepted) — a link or a script in a book cannot move the window
+- single instance lock before window creation (architecture test)
+
+## the production CSP
+
+the dev index.html carries the dev CSP (ws + localhost for HMR); a
+build-only plugin (`electron.vite.config.ts`) rewrites it to the
+production policy: same rules minus dev allowances, plus the app
+origin — `default-src 'self' app://arivo; script-src 'self'`, blob
+and data only where the book pipeline needs them, `worker-src` for
+pdf.js. one source of truth; no dev allowance can ship (the built
+index.html is verified). the built renderer loads over `app://arivo/`
+— file:// blocks module scripts.
+
+## the renderer cannot touch the machine
+
 - the preload is the only bridge; it imports electron + `@arivo/core`
   and nothing else — `tests/architecture.test.ts` proves it by scanning
   source

@@ -20,3 +20,25 @@ metadata so every later scan is stat-only.
 50k/100k libraries: the engine's per-book costs are linear and
 benchmarks extrapolate within budget; measured numbers for those scales
 belong on the owner's real hardware.
+
+## the renderer at volume (live, L15)
+
+- the archive ledger with **5,000 objects** injected: **61fps**
+  scrolling (rAF probe over a full second), 709k-px scroll height,
+  jump-anywhere 0.1ms
+- the containment law at its extreme: scrolled to the very bottom,
+  **8 cards render** (the viewport's worth) — content-visibility +
+  honest intrinsic sizes
+- the 5,000-card mount costs ~1–2s on the runner: under the ledger's
+  budget, measured, virtualization deferred (not built speculatively)
+- the pdf render window bounds canvases to current±2: no accumulation
+  path exists (W2.1's cliff-killer)
+
+## the leak sweep (L15)
+
+- the reader's teardown is complete: adapter.destroy, saveTimer
+  cleared, session ended, keydown/beforeunload removed — verified in
+  the boot effect's cleanup
+- mock blob urls revoked on book removal (the one real leak found)
+- DraftEngine timers dispose with their surfaces; the persist queue is
+  per-mount

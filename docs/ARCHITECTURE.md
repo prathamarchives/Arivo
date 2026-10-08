@@ -34,10 +34,10 @@ and failure behavior — the reverse-engineering rule.
 
 | store        | role                              | loss tolerance |
 | ------------ | --------------------------------- | -------------- |
-| `~/Arivo/library/{id}/annotations.json` | durable truth   | zero           |
+| `~/Arivo/library/{id}/annotations.json` | durable truth: marks, notes, desk documents | zero |
 | `~/Arivo/library/{id}/metadata.json`   | book truth      | zero           |
 | `~/Arivo/library/collections.json`     | collections     | zero           |
-| `%APPDATA%/Arivo/index.db`             | query index + fts + sessions | rebuildable |
+| `%APPDATA%/Arivo/index.db`             | query index + fts + sessions + desk_docs + archive | rebuildable |
 | `~/Arivo/config/settings.json`         | settings        | trivial        |
 
 the index lives in os app-data, never inside `~/Arivo/` — users sync that
@@ -74,9 +74,24 @@ and persists the repair — drift is visible in the notebook.
 
 ## verification
 
-- `pnpm check` — typecheck (6 projects) + eslint + vitest
+- `pnpm check` — typecheck (7 projects) + eslint + vitest
 - the portability suite: write a highlight → delete the index → rebuild →
   zero loss (session 5's ship check, automated)
-- `pnpm smoke` — headless electron boots the real app and screenshots it
+- `pnpm smoke` — headless electron boots the real app, screenshots it,
+  and gates the fonts (all four families must load from the bundled
+  assets — a dead @font-face fails the run)
 - `pnpm dev:web` — the full renderer in a browser with a mock api for the
   ui dev loop
+- `pnpm bench` — the store at 100/1k/10k books (budgets in
+  docs/QUALITY-BAR.md, report in benchmarks/REPORT.md)
+
+## the experience surfaces (above the command surface)
+
+the room (`stores/room.ts`) owns the place: shelf ↔ reader ↔ desk with
+spatial memory (surface, book, locator, desk mode, workbench document).
+the desk's five modes (read/mark/research/make/reflect) and the archive's
+ledger are renderer surfaces over the same command surface — desk
+documents are `DeskDoc` rows (sqlite) mirrored from per-book
+annotations.json (truth-first, migration 004), questions are margin notes
+with `question: true`, and the archive's `listArchiveMarks` joins four
+object families in one pass per family.
