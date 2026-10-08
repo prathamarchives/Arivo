@@ -259,8 +259,15 @@ export class EpubAdapter implements FormatReader {
   applySettings(settings: ReaderSettings): void {
     const flowChanged =
       this.rendition !== null && this.epubFlow(settings.flow) !== this.flow;
+    /* a font change re-paginates the whole book: epub.js reflows the text
+     * but never re-draws its own svg marks, so their geometry goes stale
+     * (found-not-fixed, session 0002). the honest treatment is the same
+     * one the flow switch proved: re-render the view at the current
+     * locator — anchors are cfi-stable, only the pixels were wrong. */
+    const fontChanged =
+      this.rendition !== null && settings.fontStep !== this.settings?.fontStep;
     this.settings = settings;
-    if (flowChanged) {
+    if (flowChanged || fontChanged) {
       void this.recreateRendition();
       return;
     }

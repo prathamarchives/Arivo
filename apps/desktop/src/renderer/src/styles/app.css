@@ -756,7 +756,11 @@
 .selection-menu {
   position: fixed;
   transform: translateX(-50%);
-  z-index: var(--z-floating);
+  /* above its own scrim (menu-scrim is --z-overlay; DOM order wins) —
+     the L2 migration left this at --z-floating, one layer UNDER the
+     scrim, so every click landed on the scrim and no mark could ever
+     be made. found live, post-merge. */
+  z-index: var(--z-overlay);
   display: flex;
   align-items: center;
   gap: var(--s1);
