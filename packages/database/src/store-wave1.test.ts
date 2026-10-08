@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ArivoStore } from './store.ts';
 import { openDb, openMemoryDb } from './db.ts';
-import { uuidv7 } from '@arivo/core';
+import { uuidv7, type Note } from '@arivo/core';
 
 let root: string;
 let dbPath: string;
@@ -135,6 +135,97 @@ describe('collections can be renamed (management is whole)', () => {
     const a = store.createCollection('first-' + uuidv7(), null);
     store.createCollection('taken', null);
     expect(() => store.renameCollection(a.id, 'taken')).toThrow();
+  });
+});
+
+describe('margin notes (thinking attached to a place, D17)', () => {
+  const mkNote = (id: string, body: string): Note => ({
+    id,
+    bookId: 'shared',
+    anchor: {
+      format: 'epub',
+      primary: `epubcfi(/6/4!/x-${id})`,
+      textRange: null,
+      position: { spineIndex: 2, percent: 0.4 },
+    },
+    body,
+    chapter: 'Chapter Two',
+    createdAt: 100,
+    updatedAt: 100,
+  });
+
+  it('create → listNotes reads it back; annotations.json carries it (truth first)', () => {
+    const store = new ArivoStore(openDb(dbPath), root);
+    const id = seedBook(store, uuidv7(), 'Noted Book');
+    const n = { ...mkNote('n-1', 'the achievement subject turns itself into itself'), bookId: id };
+    store.createNote(id, n);
+    expect(store.listNotes(id)).toHaveLength(1);
+    expect(store.listNotes(id)[0]?.body).toBe(n.body);
+    const truth = JSON.parse(readFileSync(join(root, 'library', id, 'annotations.json'), 'utf-8')) as {
+      notes: { id: string }[];
+    };
+    expect(truth.notes.map((x) => x.id)).toContain('n-1');
+  });
+
+  it('update + delete flow through both stores', () => {
+    const store = new ArivoStore(openDb(dbPath), root);
+    const id = seedBook(store, uuidv7(), 'Edited Notes');
+    const n = { ...mkNote('n-2', 'first thought'), bookId: id };
+    store.createNote(id, n);
+    store.updateNote(id, { ...n, body: 'second thought', updatedAt: 200 });
+    expect(store.listNotes(id)[0]?.body).toBe('second thought');
+    store.deleteNote(id, 'n-2');
+    expect(store.listNotes(id)).toHaveLength(0);
+    const truth = JSON.parse(readFileSync(join(root, 'library', id, 'annotations.json'), 'utf-8')) as {
+      notes: unknown[];
+    };
+    expect(truth.notes).toHaveLength(0);
+  });
+
+  it('notes survive index death and are found by search (the full law)', () => {
+    const db = openDb(dbPath);
+    const store = new ArivoStore(db, root);
+    const id = seedBook(store, uuidv7(), 'Immortal Notes');
+    store.createNote(id, { ...mkNote('n-3', 'a very specific searchable thought'), bookId: id });
+    // search finds it while the index lives
+    const live = store.search('specific');
+    expect(live.some((h) => h.kind === 'note' && h.id === 'n-3')).toBe(true);
+    // kill everything, rebuild from truth
+    db.raw.exec('DELETE FROM notes');
+    db.raw.exec('DELETE FROM books');
+    db.raw.exec('DELETE FROM books_fts');
+    db.raw.exec("UPDATE fts_seq SET next = 1 WHERE name = 'book'");
+    store.rebuildIndex();
+    const revived = store.listNotes(id);
+    expect(revived).toHaveLength(1);
+    expect(revived[0]?.body).toBe('a very specific searchable thought');
+    expect(store.search('specific').some((h) => h.kind === 'note' && h.id === 'n-3')).toBe(true);
+  });
+
+  it('old truth files without notes still parse (tolerant read)', () => {
+    const store = new ArivoStore(openDb(dbPath), root);
+    const id = seedBook(store, uuidv7(), 'Old Truth Shape');
+    // rewrite annotations.json in the pre-003 shape: no notes key
+    writeFileSync(
+      join(root, 'library', id, 'annotations.json'),
+      JSON.stringify({ version: 1, id, progress: null, highlights: [], bookmarks: [] }),
+    );
+    expect(store.listNotes(id)).toHaveLength(0);
+    // and a fresh write adds the key
+    store.createNote(id, { ...mkNote('n-4', 'backfill'), bookId: id });
+    const truth = JSON.parse(readFileSync(join(root, 'library', id, 'annotations.json'), 'utf-8')) as {
+      notes: unknown[];
+    };
+    expect(truth.notes).toHaveLength(1);
+  });
+
+  it('export includes the notes section', () => {
+    const store = new ArivoStore(openDb(dbPath), root);
+    const id = seedBook(store, uuidv7(), 'Exported Notes');
+    store.createNote(id, { ...mkNote('n-5', 'this thought exports'), bookId: id });
+    const md = store.exportNotes(id);
+    expect(md).toContain('## notes');
+    expect(md).toContain('this thought exports');
   });
 });
 

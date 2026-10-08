@@ -125,6 +125,20 @@ export interface Bookmark {
   createdAt: number;
 }
 
+/**
+ * a margin note — thinking attached to a place, no highlight required.
+ * where highlights keep what the author said, notes keep what YOU thought.
+ */
+export interface Note {
+  id: string;
+  bookId: string;
+  anchor: Anchor;
+  body: string;
+  chapter: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface Book {
   id: string;
   title: string;
@@ -211,7 +225,7 @@ export interface CollectionItem {
   bookId: string;
 }
 
-export type SearchHitKind = 'book' | 'highlight' | 'collection' | 'tag';
+export type SearchHitKind = 'book' | 'highlight' | 'note' | 'collection' | 'tag';
 
 export interface SearchHit {
   kind: SearchHitKind;

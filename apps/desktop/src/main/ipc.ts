@@ -78,6 +78,7 @@ export function registerIpc(getServices: () => Services): void {
   handleArg('annotations:list', schemas.annotationsList, (bookId) => ({
     highlights: s().store.listHighlights(bookId),
     bookmarks: s().store.listBookmarks(bookId),
+    notes: s().store.listNotes(bookId),
   }));
   handleArg('highlight:create', schemas.highlightCreate, ({ bookId, h }) =>
     s().store.createHighlight(bookId, h as import('@arivo/core').Highlight),
@@ -93,6 +94,15 @@ export function registerIpc(getServices: () => Services): void {
   );
   handleArg('bookmark:delete', schemas.bookmarkDelete, ({ bookId, id: bid }) =>
     s().store.deleteBookmark(bookId, bid),
+  );
+  handleArg('note:create', schemas.noteCreate, ({ bookId, n }) =>
+    s().store.createNote(bookId, n as import('@arivo/core').Note),
+  );
+  handleArg('note:update', schemas.noteUpdate, ({ bookId, n }) =>
+    s().store.updateNote(bookId, n as import('@arivo/core').Note),
+  );
+  handleArg('note:delete', schemas.noteDelete, ({ bookId, id: nid }) =>
+    s().store.deleteNote(bookId, nid),
   );
 
   handle('collections:list', () => s().store.listCollections());

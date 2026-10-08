@@ -16,6 +16,7 @@ import type {
   BookFolderMeta,
   Highlight,
   Bookmark,
+  Note,
   ReadingProgress,
   Collection,
   SearchHit,
@@ -110,6 +111,41 @@ interface BookmarkRow {
   chapter: string | null;
   created_at: number;
 }
+
+interface NoteRow {
+  id: string;
+  book_id: string;
+  primary_locator: string;
+  text_exact: string;
+  text_prefix: string;
+  text_suffix: string;
+  pos_spine: number | null;
+  pos_page: number | null;
+  pos_percent: number | null;
+  chapter: string | null;
+  body: string;
+  created_at: number;
+  updated_at: number;
+  fts_row: number;
+}
+
+const rowToNote = (r: NoteRow): Note => ({
+  id: r.id,
+  bookId: r.book_id,
+  anchor: {
+    format: 'epub',
+    primary: r.primary_locator,
+    textRange:
+      r.text_exact || r.text_prefix || r.text_suffix
+        ? { exact: r.text_exact, prefix: r.text_prefix, suffix: r.text_suffix }
+        : null,
+    position: { spineIndex: r.pos_spine ?? undefined, page: r.pos_page ?? undefined, percent: r.pos_percent ?? undefined },
+  },
+  body: r.body,
+  chapter: r.chapter,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
 
 const rowToHighlight = (r: HighlightRow): Highlight => ({
   id: r.id,
@@ -285,6 +321,12 @@ export class ArivoStore {
     }
     this.db.raw.prepare('DELETE FROM highlights WHERE book_id = ?').run(id);
     this.db.raw.prepare('DELETE FROM bookmarks WHERE book_id = ?').run(id);
+    for (const n of this.db.raw
+      .prepare('SELECT fts_row FROM notes WHERE book_id = ?')
+      .all(id) as { fts_row: number }[]) {
+      this.db.raw.prepare('DELETE FROM notes_fts WHERE rowid = ?').run(n.fts_row);
+    }
+    this.db.raw.prepare('DELETE FROM notes WHERE book_id = ?').run(id);
     this.db.raw.prepare('DELETE FROM progress WHERE book_id = ?').run(id);
     this.db.raw.prepare('DELETE FROM sessions WHERE book_id = ?').run(id);
     this.db.raw.prepare('DELETE FROM tags WHERE book_id = ?').run(id);
@@ -370,6 +412,7 @@ export class ArivoStore {
     if (truth.progress) this.insertProgressRow({ ...truth.progress, bookId: meta.id });
     for (const h of truth.highlights) this.insertHighlightRow({ ...h, bookId: meta.id });
     for (const b of truth.bookmarks) this.insertBookmarkRow({ ...b, bookId: meta.id });
+    for (const n of truth.notes) this.insertNoteRow({ ...n, bookId: meta.id });
     return { registered: true, highlights: truth.highlights.length, bookmarks: truth.bookmarks.length };
   }
 
@@ -597,6 +640,76 @@ export class ArivoStore {
     this.db.raw.prepare('DELETE FROM bookmarks WHERE id = ?').run(id);
   }
 
+  // ---------- margin notes (thinking attached to a place) ----------
+
+  listNotes(bookId: string): Note[] {
+    const rows = this.db.raw
+      .prepare('SELECT * FROM notes WHERE book_id = ? ORDER BY created_at DESC')
+      .all(bookId) as NoteRow[];
+    return rows.map(rowToNote);
+  }
+
+  createNote(bookId: string, n: Note): void {
+    const truth = readTruth(this.bookDir(bookId), bookId);
+    truth.notes.push(n);
+    writeTruth(this.bookDir(bookId), truth); // truth first
+    this.insertNoteRow(n);
+  }
+
+  private insertNoteRow(n: Note): void {
+    const fts = this.nextSeq('note');
+    const cols = anchorCols(n.anchor);
+    this.db.raw
+      .prepare(
+        `INSERT INTO notes (id, book_id, primary_locator, text_exact, text_prefix, text_suffix,
+          pos_spine, pos_page, pos_percent, chapter, body, created_at, updated_at, fts_row)
+         VALUES (@id, @bookId, @primary_locator, @text_exact, @text_prefix, @text_suffix,
+          @pos_spine, @pos_page, @pos_percent, @chapter, @body, @createdAt, @updatedAt, @fts)`,
+      )
+      .run({ ...n, ...cols, fts });
+    this.db.raw
+      .prepare('INSERT INTO notes_fts(rowid, body, chapter) VALUES (?, ?, ?)')
+      .run(fts, n.body, n.chapter ?? '');
+  }
+
+  updateNote(bookId: string, n: Note): void {
+    const truth = readTruth(this.bookDir(bookId), bookId);
+    const i = truth.notes.findIndex((x) => x.id === n.id);
+    if (i !== -1) truth.notes[i] = n;
+    writeTruth(this.bookDir(bookId), truth);
+    const existing = this.db.raw
+      .prepare('SELECT fts_row FROM notes WHERE id = ?')
+      .get(n.id) as { fts_row: number } | undefined;
+    const cols = anchorCols(n.anchor);
+    if (existing) {
+      this.db.raw.prepare('DELETE FROM notes_fts WHERE rowid = ?').run(existing.fts_row);
+      this.db.raw
+        .prepare(
+          `UPDATE notes SET primary_locator = @primary_locator, text_exact = @text_exact,
+            text_prefix = @text_prefix, text_suffix = @text_suffix, pos_spine = @pos_spine,
+            pos_page = @pos_page, pos_percent = @pos_percent, chapter = @chapter, body = @body,
+            updated_at = @updatedAt WHERE id = @id`,
+        )
+        .run({ ...n, ...cols });
+      this.db.raw
+        .prepare('INSERT INTO notes_fts(rowid, body, chapter) VALUES (?, ?, ?)')
+        .run(existing.fts_row, n.body, n.chapter ?? '');
+    } else {
+      this.insertNoteRow(n);
+    }
+  }
+
+  deleteNote(bookId: string, id: string): void {
+    const truth = readTruth(this.bookDir(bookId), bookId);
+    truth.notes = truth.notes.filter((n) => n.id !== id);
+    writeTruth(this.bookDir(bookId), truth);
+    const row = this.db.raw.prepare('SELECT fts_row FROM notes WHERE id = ?').get(id) as
+      | { fts_row: number }
+      | undefined;
+    if (row) this.db.raw.prepare('DELETE FROM notes_fts WHERE rowid = ?').run(row.fts_row);
+    this.db.raw.prepare('DELETE FROM notes WHERE id = ?').run(id);
+  }
+
   // ---------- collections ----------
 
   private collectionsFile(): string {
@@ -733,6 +846,26 @@ export class ArivoStore {
       }
     }
 
+    const noteRows = this.db.raw
+      .prepare(`SELECT rowid FROM notes_fts WHERE notes_fts MATCH ? ORDER BY rank LIMIT 50`)
+      .all(ftsQ) as { rowid: number }[];
+    for (const r of noteRows) {
+      const n = this.db.raw
+        .prepare('SELECT * FROM notes WHERE fts_row = ?')
+        .get(r.rowid) as NoteRow | undefined;
+      if (n) {
+        hits.push({
+          kind: 'note',
+          id: n.id,
+          title: n.body.slice(0, 80),
+          context: n.chapter,
+          bookId: n.book_id,
+          locator: n.primary_locator,
+          highlightId: null,
+        });
+      }
+    }
+
     for (const { collection } of this.listCollections()) {
       if (collection.name.toLowerCase().includes(query.trim().toLowerCase())) {
         hits.push({
@@ -756,7 +889,8 @@ export class ArivoStore {
     if (!book) return null;
     const highlights = this.listHighlights(bookId);
     const bookmarks = this.listBookmarks(bookId);
-    return exportReadingNotes(book, highlights, bookmarks, book.progress);
+    const notes = this.listNotes(bookId);
+    return exportReadingNotes(book, highlights, bookmarks, book.progress, notes);
   }
 
   // ---------- the portability law ----------
@@ -773,14 +907,16 @@ export class ArivoStore {
     this.db.raw.exec('DELETE FROM progress');
     this.db.raw.exec('DELETE FROM highlights');
     this.db.raw.exec('DELETE FROM bookmarks');
+    this.db.raw.exec('DELETE FROM notes');
     this.db.raw.exec('DELETE FROM sessions');
     this.db.raw.exec('DELETE FROM collections');
     this.db.raw.exec('DELETE FROM collection_items');
     this.db.raw.exec('DELETE FROM books_fts');
     this.db.raw.exec('DELETE FROM highlights_fts');
+    this.db.raw.exec('DELETE FROM notes_fts');
     this.db.raw.exec('DELETE FROM fts_seq');
     this.db.raw.exec(
-      "INSERT INTO fts_seq(name, next) VALUES ('book', 1), ('highlight', 1)",
+      "INSERT INTO fts_seq(name, next) VALUES ('book', 1), ('highlight', 1), ('note', 1)",
     );
 
     let books = 0;

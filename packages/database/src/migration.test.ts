@@ -73,7 +73,7 @@ describe('the upgrade path (I-17, I-19)', () => {
       .prepare("SELECT value FROM meta WHERE key = 'schema_version'")
       .get() as { value: string };
     expect(Number(version.value)).toBe(SCHEMA_VERSION);
-    expect(Number(version.value)).toBe(2);
+    expect(Number(version.value)).toBe(3); // migration 003 (margin notes) is current
 
     // data survived
     const books = db.raw.prepare('SELECT id FROM books ORDER BY id').all();
@@ -97,8 +97,16 @@ describe('the upgrade path (I-17, I-19)', () => {
     const dbPath = join(root, 'index.db');
     buildV01Db(dbPath);
     const db = openDb(dbPath);
+    // a note rides along post-003 — it must cascade too
+    db.raw
+      .prepare(
+        `INSERT INTO notes (id, book_id, primary_locator, body, created_at, updated_at)
+         VALUES ('n1', 'b1', 'cfi-n1', 'a thought', 50, 50)`,
+      )
+      .run();
     db.raw.prepare("DELETE FROM books WHERE id = 'b1'").run();
     expect(db.raw.prepare('SELECT id FROM highlights WHERE book_id = ?').all('b1')).toHaveLength(0);
+    expect(db.raw.prepare('SELECT id FROM notes WHERE book_id = ?').all('b1')).toHaveLength(0);
     expect(db.raw.prepare('SELECT * FROM progress WHERE book_id = ?').all('b1')).toHaveLength(0);
     expect(db.raw.prepare('SELECT * FROM tags WHERE book_id = ?').all('b1')).toHaveLength(0);
     expect(db.raw.prepare('SELECT * FROM collection_items WHERE book_id = ?').all('b1')).toHaveLength(
@@ -226,7 +234,7 @@ describe('the runner on a raw connection', () => {
   it('reports the applied chain', () => {
     const raw = new Database(':memory:');
     const outcome = runMigrations(raw);
-    expect(outcome.applied).toHaveLength(2);
+    expect(outcome.applied).toHaveLength(3);
     expect(outcome.from).toBe(0);
     expect(outcome.to).toBe(SCHEMA_VERSION);
     expect(existsSync(':memory:')).toBe(false); // sanity: no fs footprint

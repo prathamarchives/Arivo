@@ -1400,3 +1400,35 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ============ margin notes (thinking attached to a place) ============ */
+
+.note-new {
+  width: 100%;
+  justify-content: flex-start;
+  height: 30px;
+}
+
+.note-composer-card {
+  cursor: default;
+  border-style: dashed;
+}
+
+.note-composer-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.note-composer-actions .button, .note-composer-actions button {
+  margin-left: auto;
+}
+
+.note-margin .note-body-own {
+  font-family: var(--font-read);
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  color: var(--ink);
+  white-space: pre-wrap;
+  margin: 0;
+}

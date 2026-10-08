@@ -4,7 +4,7 @@
  * error envelopes; unwrap here so codes survive into the renderer.
  */
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-import { unwrapEnvelope, type ArivoApi, type AppSettings, type Bookmark, type Highlight, type ImportResult, type SearchHit, type ReconciliationReport, type DiagnosticsReport, type SessionStats } from '@arivo/core';
+import { unwrapEnvelope, type ArivoApi, type AppSettings, type Bookmark, type Highlight, type Note, type ImportResult, type SearchHit, type ReconciliationReport, type DiagnosticsReport, type SessionStats } from '@arivo/core';
 import type { BookWithProgress, Collection } from '@arivo/core';
 
 const invoke = async <T>(name: string, arg?: unknown): Promise<T> =>
@@ -33,12 +33,15 @@ const api: ArivoApi = {
     stats: () => invoke<SessionStats>('sessions:stats'),
   },
   annotations: {
-    list: (bookId) => invoke<{ highlights: Highlight[]; bookmarks: Bookmark[] }>('annotations:list', bookId),
+    list: (bookId) => invoke<{ highlights: Highlight[]; bookmarks: Bookmark[]; notes: Note[] }>('annotations:list', bookId),
     createHighlight: (bookId, h) => invoke<void>('highlight:create', { bookId, h }),
     updateHighlight: (bookId, h) => invoke<void>('highlight:update', { bookId, h }),
     deleteHighlight: (bookId, id) => invoke<void>('highlight:delete', { bookId, id }),
     createBookmark: (bookId, b) => invoke<void>('bookmark:create', { bookId, b }),
     deleteBookmark: (bookId, id) => invoke<void>('bookmark:delete', { bookId, id }),
+    createNote: (bookId, n) => invoke<void>('note:create', { bookId, n }),
+    updateNote: (bookId, n) => invoke<void>('note:update', { bookId, n }),
+    deleteNote: (bookId, id) => invoke<void>('note:delete', { bookId, id }),
   },
   collections: {
     list: () => invoke<{ collection: Collection; count: number }[]>('collections:list'),

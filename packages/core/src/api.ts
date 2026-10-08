@@ -9,6 +9,7 @@ import type {
   Collection,
   Highlight,
   ImportResult,
+  Note,
   ReadingProgress,
   SearchHit,
   SessionStats,
@@ -82,12 +83,16 @@ export interface ArivoApi {
     stats(): Promise<SessionStats>;
   };
   annotations: {
-    list(bookId: string): Promise<{ highlights: Highlight[]; bookmarks: Bookmark[] }>;
+    list(bookId: string): Promise<{ highlights: Highlight[]; bookmarks: Bookmark[]; notes: Note[] }>;
     createHighlight(bookId: string, h: Highlight): Promise<void>;
     updateHighlight(bookId: string, h: Highlight): Promise<void>;
     deleteHighlight(bookId: string, id: string): Promise<void>;
     createBookmark(bookId: string, b: Bookmark): Promise<void>;
     deleteBookmark(bookId: string, id: string): Promise<void>;
+    /** margin notes — thinking attached to a place */
+    createNote(bookId: string, n: Note): Promise<void>;
+    updateNote(bookId: string, n: Note): Promise<void>;
+    deleteNote(bookId: string, id: string): Promise<void>;
   };
   collections: {
     list(): Promise<{ collection: Collection; count: number }[]>;
