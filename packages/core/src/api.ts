@@ -8,6 +8,7 @@ import type {
   Book,
   Bookmark,
   Collection,
+  DeskDoc,
   Highlight,
   ImportResult,
   Note,
@@ -94,6 +95,13 @@ export interface ArivoApi {
     createNote(bookId: string, n: Note): Promise<void>;
     updateNote(bookId: string, n: Note): Promise<void>;
     deleteNote(bookId: string, id: string): Promise<void>;
+  };
+  desk: {
+    /** the workbench documents for a book, newest first */
+    listDocs(bookId: string): Promise<DeskDoc[]>;
+    createDoc(bookId: string, d: DeskDoc): Promise<void>;
+    updateDoc(bookId: string, d: DeskDoc): Promise<void>;
+    deleteDoc(bookId: string, id: string): Promise<void>;
   };
   archive: {
     /** every mark across every book, newest first — the archive's ledger.

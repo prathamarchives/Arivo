@@ -129,3 +129,76 @@ describe('the room model (L8)', () => {
     expect(useRoom.getState().shelfScroll).not.toBe(useRoom.getState().archiveScroll);
   });
 });
+
+describe('the desk modes (L10)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.clearAllTimers();
+    useRoom.setState({
+      place: 'shelf',
+      desk: null,
+      attention: 'active',
+      engaged: false,
+      shelfScroll: 0,
+      archiveScroll: 0,
+      paletteOpen: false,
+      toasts: [],
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('a fresh desk opens in READ — the resting, sacred state', () => {
+    useRoom.getState().goDesk('b1');
+    expect(useRoom.getState().desk?.mode).toBe('read');
+    expect(useRoom.getState().desk?.workbenchDocId).toBeNull();
+  });
+
+  it('modes preserve spatial memory: a shelf roundtrip returns to the same mode + document', () => {
+    useRoom.getState().goDesk('b1');
+    useRoom.getState().setDeskMode('reflect');
+    useRoom.getState().setWorkbenchDoc('doc-9');
+    /* the shelf roundtrip — the desk keeps its context (law 32) */
+    useRoom.getState().goShelf();
+    useRoom.getState().returnToDesk();
+    expect(useRoom.getState().desk?.mode).toBe('reflect');
+    expect(useRoom.getState().desk?.workbenchDocId).toBe('doc-9');
+    expect(useRoom.getState().desk?.bookId).toBe('b1');
+  });
+
+  it('mode switching never recreates the desk context — same object identity for book + pendings', () => {
+    useRoom.getState().goDesk('b1', 'cfi-loc', 'hl-1');
+    const before = useRoom.getState().desk!;
+    useRoom.getState().setDeskMode('research');
+    const after = useRoom.getState().desk!;
+    expect(after.bookId).toBe(before.bookId);
+    expect(after.pendingLocator).toBe(before.pendingLocator);
+    expect(after.pendingFocusId).toBe(before.pendingFocusId);
+  });
+
+  it('work modes are engagement — the chrome cannot withdraw mid-work', () => {
+    useRoom.getState().goDesk('b1');
+    useRoom.getState().setDeskMode('make');
+    expect(useRoom.getState().engaged).toBe(true);
+    vi.advanceTimersByTime(10_000);
+    expect(useRoom.getState().attention).toBe('active');
+  });
+
+  it('READ is sacred: mode read does not force engagement, the idle law still owns chrome', () => {
+    useRoom.getState().goDesk('b1');
+    useRoom.getState().setDeskMode('research');
+    useRoom.getState().setDeskMode('read');
+    expect(useRoom.getState().engaged).toBe(true); // still held by the earlier engagement
+    useRoom.getState().setEngaged(false);
+    vi.advanceTimersByTime(3000);
+    expect(useRoom.getState().attention).toBe('reading'); // withdrawn, as the law demands
+  });
+
+  it('mode switches with no desk are inert', () => {
+    useRoom.getState().setDeskMode('reflect');
+    expect(useRoom.getState().desk).toBeNull();
+    expect(useRoom.getState().place).toBe('shelf');
+  });
+});

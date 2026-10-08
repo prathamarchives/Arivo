@@ -61,3 +61,48 @@ describe('regression 4 — the seed fixture that faked a green test (session 000
     expect(GITIGNORE).toContain('apps/desktop/public/seed/*.pdf');
   });
 });
+
+/* L10 — the desk's persistence contract becomes law */
+
+const READER_TSX = readFileSync(
+  join(ROOT, 'apps/desktop/src/renderer/src/screens/Reader.tsx'),
+  'utf-8',
+);
+const ROOM_TS = readFileSync(join(ROOT, 'apps/desktop/src/renderer/src/stores/room.ts'), 'utf-8');
+
+describe('regression 5 — user text never disappears (L10, session 0007)', () => {
+  it('every writing surface rides the draft engine — the mirror is synchronous', () => {
+    // the composer and the workbench both route text through useDraft /
+    // DraftEngine; no raw useState holds user text
+    expect(READER_TSX).toContain('draft.edit(e.target.value)');
+    expect(READER_TSX).not.toMatch(/const \[body, setBody\] = useState/);
+  });
+
+  it('mode switching mid-compose cannot cost text — Alt+1..5 bypasses the typing guard', () => {
+    const block = READER_TSX.match(/if \(e\.altKey[^)]*\)[\s\S]*?return;/)?.[0] ?? '';
+    expect(block).not.toBe('');
+    expect(block).toContain('setDeskMode');
+  });
+
+  it('the notebook saves its edit drafts on unmount — blur never fires there', () => {
+    expect(READER_TSX).toContain('leaving the notebook mid-edit must never cost text');
+  });
+});
+
+describe('regression 6 — read mode stays sacred; modes preserve spatial memory (L10 exit predicate)', () => {
+  it('a fresh desk opens in read — the resting state', () => {
+    const block = ROOM_TS.match(/goDesk: \(bookId, locator[\s\S]*?scheduleIdle\(\);/)?.[0] ?? '';
+    expect(block).not.toBe('');
+    expect(block).toContain("mode: 'read'");
+    expect(block).toContain("workbenchDocId: null");
+  });
+
+  it('only the work modes engage the room — read and mark trust the attention law', () => {
+    const block = ROOM_TS.match(/setDeskMode: \(mode\)[\s\S]*?},\s*\n\s*setWorkbenchDoc/)?.[0] ?? '';
+    expect(block).not.toBe('');
+    expect(block).toContain("mode === 'research'");
+    expect(block).toContain("mode === 'make'");
+    expect(block).toContain("mode === 'reflect'");
+    expect(block).not.toContain("mode !== 'read'");
+  });
+});

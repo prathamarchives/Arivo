@@ -10,6 +10,7 @@ import type {
   Note,
   RelocatedEvent,
   SelectionInfo,
+  SourceRef,
   FormatReader,
   ReaderSettings,
 } from '@arivo/core';
@@ -20,8 +21,11 @@ import { IconButton, Button, Input, Kbd } from '@arivo/ui';
 import { api } from '../services/api.ts';
 import { BOOK_FONT_FACE_CSS } from '../lib/book-fonts.ts';
 import { useSettings } from '../stores/settings.ts';
-import { useRoom } from '../stores/room.ts';
+import { useRoom, DESK_MODES, type DeskMode } from '../stores/room.ts';
 import { useLibrary } from '../stores/library.ts';
+import { Workbench, type WorkbenchHandle } from '../features/desk/Workbench.tsx';
+import { draftStatusText } from '../lib/drafts.ts';
+import { useDraft } from '../lib/useDraft.ts';
 import {
   IconBack,
   IconToc,
@@ -38,6 +42,8 @@ import {
   IconFitWidth,
   IconFitPage,
   IconPencil,
+  IconSearch,
+  IconInfo,
 } from '../components/icons.tsx';
 
 const COLORS: HighlightColor[] = ['yellow', 'blue', 'green', 'pink', 'gray'];
@@ -57,13 +63,17 @@ function SelectionMenu({
   selection,
   onColor,
   onNote,
+  onQuestion,
   onBookmark,
+  onCollect,
   onClose,
 }: {
   selection: SelectionInfo;
   onColor: (color: HighlightColor) => void;
   onNote: () => void;
+  onQuestion: () => void;
   onBookmark: () => void;
+  onCollect: () => void;
   onClose: () => void;
 }): ReactNode {
   const x = selection.rect ? Math.min(Math.max(selection.rect.x + selection.rect.w / 2, 90), window.innerWidth - 90) : window.innerWidth / 2;
@@ -87,9 +97,17 @@ function SelectionMenu({
           <IconNote />
           note
         </button>
+        <button className="sel-action" onClick={onQuestion}>
+          <IconInfo />
+          question
+        </button>
         <button className="sel-action" onClick={onBookmark}>
           <IconBookmark />
           bookmark
+        </button>
+        <button className="sel-action" onClick={onCollect}>
+          <IconSearch />
+          collect
         </button>
         <button
           className="sel-action"
@@ -145,6 +163,29 @@ function Notebook({
   const [newNoteBody, setNewNoteBody] = useState('');
   const [noteEdit, setNoteEdit] = useState<{ id: string; body: string } | null>(null);
   const focusRef = useRef<HTMLDivElement | null>(null);
+
+  /* leaving the notebook mid-edit must never cost text: unmount saves
+   * whatever draft is in hand (the mode switch to a work surface closes
+   * this drawer — blur never fires on unmount) */
+  const liveRef = useRef({ noteDraft, noteEdit, highlights, notes, onUpdate, onUpdateNote });
+  liveRef.current = { noteDraft, noteEdit, highlights, notes, onUpdate, onUpdateNote };
+  useEffect(
+    () => () => {
+      const { noteDraft: nd, noteEdit: ne, highlights: hls, notes: ns, onUpdate: up, onUpdateNote: upn } =
+        liveRef.current;
+      if (nd) {
+        const h = hls.find((x) => x.id === nd.id);
+        if (h && (nd.body.trim() || h.note)) up({ ...h, note: nd.body.trim() || null });
+      }
+      if (ne) {
+        const n = ns.find((x) => x.id === ne.id);
+        if (n && ne.body.trim() && ne.body.trim() !== n.body) {
+          upn({ ...n, body: ne.body.trim(), updatedAt: Date.now() });
+        }
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (focusId) {
@@ -333,6 +374,7 @@ function Notebook({
             <div className="note-card-head">
               <IconNote />
               <span className="meta-label note-chapter">
+                {n.question && <em className="note-flag note-flag-question">question · </em>}
                 {n.chapter ?? `${Math.round((n.anchor.position?.percent ?? 0) * 100)}%`}
               </span>
             </div>
@@ -554,6 +596,12 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
   const attention = useRoom((s) => s.attention);
   const setEngaged = useRoom((s) => s.setEngaged);
   const clearDeskPending = useRoom((s) => s.clearDeskPending);
+  /* L10 — the desk's mode + open workbench doc live in the room: they
+   * survive a shelf roundtrip (spatial memory, the exit predicate) */
+  const deskMode = useRoom((s) => s.desk?.mode ?? 'read');
+  const workbenchDocId = useRoom((s) => s.desk?.workbenchDocId ?? null);
+  const setDeskMode = useRoom((s) => s.setDeskMode);
+  const setWorkbenchDoc = useRoom((s) => s.setWorkbenchDoc);
   const refresh = useLibrary((s) => s.refresh);
   const { settings, set: setSettings } = useSettings();
 
@@ -574,6 +622,17 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
   const [pdfZoom, setPdfZoom] = useState<ZoomMode>('fit-width');
   const [pdfPageCount, setPdfPageCount] = useState(0);
   const [pageQuery, setPageQuery] = useState('');
+  /* L10 — the mark menu's question instrument, and a quote collected
+   * while the workbench was closed (consumed when it mounts) */
+  const [questionMode, setQuestionMode] = useState(false);
+  const [pendingCollect, setPendingCollect] = useState<SourceRef | null>(null);
+  const wbRef = useRef<WorkbenchHandle | null>(null);
+
+  /* the workbench hosts the three writing modes; the notebook yields */
+  const workMode = deskMode === 'research' || deskMode === 'make' || deskMode === 'reflect';
+  useEffect(() => {
+    if (workMode) setNotebookOpen(false);
+  }, [workMode]);
 
   /* chrome visibility is the shell's attention model — the reader reports
    * engagement (selection, drawers), the room decides quiet/absent */
@@ -775,16 +834,27 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
   }, [pdfZoom, book?.format]);
 
   /* engagement: while the reader holds work in hand (selection,
-   * drawers, panels) the shell stays present — quiet/absent is for
-   * unencumbered reading only */
+   * drawers, panels, a work mode) the shell stays present — quiet/absent
+   * is for unencumbered reading only. READ and MARK trust the attention
+   * law; the writing modes pin the room. */
   useEffect(() => {
-    setEngaged(Boolean(selection || notebookOpen || tocOpen || typeOpen));
+    setEngaged(workMode || Boolean(selection || notebookOpen || tocOpen || typeOpen));
     return () => setEngaged(false);
-  }, [selection, notebookOpen, tocOpen, typeOpen, setEngaged]);
+  }, [workMode, selection, notebookOpen, tocOpen, typeOpen, setEngaged]);
 
   // ---- keyboard ----
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
+      /* the mode keys work everywhere — Alt+1..5 switches the desk's
+       * instruments; even mid-compose the mirror holds the text */
+      if (e.altKey && !e.ctrlKey && !e.metaKey && /^[1-5]$/.test(e.key)) {
+        const m = DESK_MODES[Number(e.key) - 1] as DeskMode | undefined;
+        if (m) {
+          e.preventDefault();
+          setDeskMode(m);
+        }
+        return;
+      }
       const target = e.target as HTMLElement | null;
       const typing =
         target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
@@ -827,6 +897,10 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
           } else if (selection) {
             setSelection(null);
             setNoteMode(false);
+            setQuestionMode(false);
+          } else if (workMode) {
+            /* the workbench closes to READ — the desk's resting state */
+            setDeskMode('read');
           }
           break;
         default:
@@ -835,7 +909,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isPdf, settings.fontStep, tocOpen, typeOpen, selection, percent, chapter]);
+  }, [isPdf, settings.fontStep, tocOpen, typeOpen, selection, percent, chapter, workMode, setDeskMode]);
 
   useEffect(() => {
     const onBeforeUnload = (): void => persistProgress(true);
@@ -944,6 +1018,55 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
     [book, toast],
   );
 
+  /* L10 — the question: a margin note that asks rather than asserts,
+   * anchored to the passage under the reader's hand */
+  const createQuestionNote = useCallback(
+    async (body: string): Promise<void> => {
+      const sel = selection;
+      if (!sel || !book) return;
+      const n: Note = {
+        id: uuidv7(),
+        bookId: book.id,
+        anchor: sel.anchor,
+        body,
+        chapter: sel.chapter,
+        question: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      await api.annotations.createNote(book.id, n);
+      setNotes((prev) => [n, ...prev]);
+      setQuestionMode(false);
+      setSelection(null);
+      adapterRef.current?.clearSelection();
+      toast('question kept');
+    },
+    [selection, book, toast],
+  );
+
+  /* L10 — collect: the passage enters the research workbench with its
+   * place kept. if the workbench is closed, the quote rides the mode
+   * switch and lands when it mounts. */
+  const collectSelection = useCallback((): void => {
+    const sel = selection;
+    if (!sel || !book) return;
+    const ref: SourceRef = {
+      quote: sel.text,
+      locator: sel.anchor.primary,
+      chapter: sel.chapter ?? null,
+      highlightId: null,
+      noteId: null,
+    };
+    setSelection(null);
+    adapterRef.current?.clearSelection();
+    if (deskMode === 'research' && wbRef.current) {
+      wbRef.current.collect(ref);
+    } else {
+      setPendingCollect(ref);
+      setDeskMode('research');
+    }
+  }, [selection, book, deskMode, setDeskMode]);
+
   const updateNote = useCallback(
     async (n: Note): Promise<void> => {
       if (!book) return;
@@ -1025,6 +1148,41 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
       </div>
 
       <div className="reader-host" ref={hostRef} />
+
+      {/* L10 — the mode rail: the desk's five instruments, quiet chips.
+       *  READ is the resting state; the rail fades with the chrome. */}
+      <div
+        className={`mode-rail${chromeShown ? '' : ' chrome-faded'}`}
+        role="toolbar"
+        aria-label="desk modes"
+      >
+        {DESK_MODES.map((m, i) => (
+          <button
+            key={m}
+            className={`mode-chip${deskMode === m ? ' mode-chip-active' : ''}`}
+            onClick={() => setDeskMode(m)}
+            aria-pressed={deskMode === m}
+            title={`${m} — Alt+${i + 1}`}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+
+      {book && workMode && (
+        <Workbench
+          ref={wbRef}
+          book={book}
+          kind={deskMode === 'research' || deskMode === 'make' || deskMode === 'reflect' ? deskMode : 'reflect'}
+          openDocId={workbenchDocId}
+          onOpenDoc={setWorkbenchDoc}
+          onJump={(loc) => void adapterRef.current?.jumpTo(loc)}
+          onClose={() => setDeskMode('read')}
+          toast={toast}
+          pendingCollect={pendingCollect}
+          onPendingConsumed={() => setPendingCollect(null)}
+        />
+      )}
 
       {book && notebookOpen && (
         <Notebook
@@ -1115,15 +1273,17 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
         />
       )}
 
-      {selection && !noteMode && (
+      {selection && !noteMode && !questionMode && (
         <SelectionMenu
           selection={selection}
           onColor={(c) => void createHighlight(c, null)}
           onNote={() => setNoteMode(true)}
+          onQuestion={() => setQuestionMode(true)}
           onBookmark={() => {
             void createBookmarkFromSelection();
             setSelection(null);
           }}
+          onCollect={() => collectSelection()}
           onClose={() => setSelection(null)}
         />
       )}
@@ -1131,9 +1291,28 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
       {selection && noteMode && (
         <NoteComposer
           selection={selection}
-          onSave={(note) => void createHighlight('yellow', note)}
+          draftKey={`arivo.draft.selnote.${book?.id ?? 'x'}.${selection.anchor.primary}`}
+          label="note on this passage"
+          placeholder="what did it make you think?"
+          saveLabel="save note"
+          onSave={(note) => createHighlight('yellow', note)}
           onClose={() => {
             setNoteMode(false);
+            setSelection(null);
+          }}
+        />
+      )}
+
+      {selection && questionMode && (
+        <NoteComposer
+          selection={selection}
+          draftKey={`arivo.draft.selq.${book?.id ?? 'x'}.${selection.anchor.primary}`}
+          label="question at this passage"
+          placeholder="what do you want to find out?"
+          saveLabel="keep question"
+          onSave={(note) => createQuestionNote(note)}
+          onClose={() => {
+            setQuestionMode(false);
             setSelection(null);
           }}
         />
@@ -1173,14 +1352,30 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
 
 function NoteComposer({
   selection,
+  draftKey,
+  label,
+  placeholder,
+  saveLabel,
   onSave,
   onClose,
 }: {
   selection: SelectionInfo;
-  onSave: (note: string) => void;
+  draftKey: string;
+  label: string;
+  placeholder: string;
+  saveLabel: string;
+  onSave: (note: string) => Promise<void>;
   onClose: () => void;
 }): ReactNode {
-  const [body, setBody] = useState('');
+  /* the composer's persistence contract: keystrokes mirror to this
+   * device, the store only sees a save the user asked for. a death
+   * mid-compose resurrects as recovered on this same passage. */
+  const draft = useDraft({
+    key: draftKey,
+    loadStore: async () => null,
+    save: (t) => onSave(t),
+    autoSave: false,
+  });
   const x = selection.rect
     ? Math.min(Math.max(selection.rect.x + selection.rect.w / 2, 160), window.innerWidth - 160)
     : window.innerWidth / 2;
@@ -1189,27 +1384,35 @@ function NoteComposer({
     <>
       <div className="menu-scrim" onMouseDown={onClose} />
       <div className="note-composer glass rise" style={{ left: x, top: y }}>
-        <div className="meta-label">note on this passage</div>
+        <div className="meta-label">{label}</div>
         <blockquote className="note-text note-text-draft">{selection.text.slice(0, 140)}</blockquote>
         <textarea
           className="note-input"
           autoFocus
-          value={body}
-          placeholder="what did it make you think?"
-          onChange={(e) => setBody(e.target.value)}
+          value={draft.text}
+          placeholder={placeholder}
+          onChange={(e) => draft.edit(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onSave(body.trim());
-            if (e.key === 'Escape') onClose();
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && draft.text.trim()) void draft.flush();
+            if (e.key === 'Escape') {
+              draft.discard();
+              onClose();
+            }
           }}
           rows={4}
         />
         <div className="note-composer-actions">
+          <span className="meta-label" data-status={draft.status}>
+            {draftStatusText(draft.status)}
+          </span>
           <span className="meta-label">
             <Kbd>Ctrl</Kbd>
             <Kbd>↵</Kbd> save
           </span>
-          <Button variant="solid" onClick={() => onSave(body.trim())}>
-            save note
+        </div>
+        <div className="note-composer-actions">
+          <Button variant="solid" onClick={() => void draft.flush()}>
+            {saveLabel}
           </Button>
         </div>
       </div>

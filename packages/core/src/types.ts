@@ -203,6 +203,43 @@ export interface Note {
   anchor: Anchor;
   body: string;
   chapter: string | null;
+  /** L10 — a note that asks rather than asserts (the mark menu's question) */
+  question?: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/**
+ * L10 — the desk document. the workbench's paper: research collections,
+ * made artifacts, written reflections. one entity, three kinds, because
+ * the persistence contract is the same for all of them — user text must
+ * never disappear — and the kinds differ in instruments, not in storage.
+ *
+ *   research   quotes collected from the source + citations + questions
+ *   make       artifacts composed from the source's material
+ *   reflect    synthesis, disagreement, observation — the journal side
+ */
+export type DeskDocKind = 'research' | 'make' | 'reflect';
+
+/** a passage pulled from the source into a desk document — provenance kept */
+export interface SourceRef {
+  /** the quoted passage, verbatim */
+  quote: string;
+  /** the durable locator back to the exact place (epub CFI / pdf marker) */
+  locator: string;
+  chapter: string | null;
+  /** where the quote came from, when it came from a mark */
+  highlightId: string | null;
+  noteId: string | null;
+}
+
+export interface DeskDoc {
+  id: string;
+  bookId: string;
+  kind: DeskDocKind;
+  title: string;
+  body: string;
+  sourceRefs: SourceRef[];
   createdAt: number;
   updatedAt: number;
 }
@@ -293,7 +330,7 @@ export interface CollectionItem {
   bookId: string;
 }
 
-export type SearchHitKind = 'book' | 'highlight' | 'note' | 'collection' | 'tag';
+export type SearchHitKind = 'book' | 'highlight' | 'note' | 'deskdoc' | 'collection' | 'tag';
 
 export interface SearchHit {
   kind: SearchHitKind;

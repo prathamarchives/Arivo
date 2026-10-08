@@ -69,6 +69,26 @@ const note: Validator<Note> = v.object({
   anchor,
   body: v.string({ min: 1, max: 20_000 }),
   chapter: chapterName,
+  question: v.optional(v.boolean()),
+  createdAt: v.number({ min: 0 }),
+  updatedAt: v.number({ min: 0 }),
+});
+
+const sourceRef: Validator<import('@arivo/core').SourceRef> = v.object({
+  quote: v.string({ max: 20_000 }),
+  locator: v.string({ min: 1, max: 4096 }),
+  chapter: chapterName,
+  highlightId: v.nullable(id),
+  noteId: v.nullable(id),
+});
+
+const deskDoc: Validator<import('@arivo/core').DeskDoc> = v.object({
+  id,
+  bookId: id,
+  kind: v.enum('research', 'make', 'reflect') as Validator<import('@arivo/core').DeskDocKind>,
+  title: v.string({ max: 500 }),
+  body: v.string({ max: 200_000 }),
+  sourceRefs: v.array(sourceRef, { max: 500 }),
   createdAt: v.number({ min: 0 }),
   updatedAt: v.number({ min: 0 }),
 });
@@ -117,6 +137,10 @@ export const schemas = {
   noteCreate: v.object({ bookId: id, n: note }),
   noteUpdate: v.object({ bookId: id, n: note }),
   noteDelete: v.object({ bookId: id, id: v.id() }),
+  deskDocList: v.object({ bookId: id }),
+  deskDocCreate: v.object({ bookId: id, d: deskDoc }),
+  deskDocUpdate: v.object({ bookId: id, d: deskDoc }),
+  deskDocDelete: v.object({ bookId: id, id: v.id() }),
   collectionsCreate: v.object({
     name: v.string({ min: 1, max: 200 }),
     description: v.nullable(v.string({ max: 2000 })),
