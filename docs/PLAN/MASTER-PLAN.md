@@ -479,3 +479,24 @@ status: PLAN MODE. awaiting fire.
 - **L0–L18 COMPLETE.** next: the final campaign set (deep debug,
   security, migrations, packaging, golden paths, visual matrix,
   permanent documentation, release verification).
+
+## execution log — the final closure (release campaign)
+
+- **CLOSED** (this commit) — from 5c4d8d0 with 18 unpushed commits
+  and uncommitted CSP/doc work: everything pushed and verified; the
+  shipped-behavior documentation set completed (12 documents + the 3
+  from the interrupted pass); the deep security audit (secrets clean,
+  prod audit 0 via the xmldom override, tinypool criticals killed,
+  17 hostile-input laws, SQL/innerHTML/CSP/navigation all verified);
+  the migration matrix (v1/v2/v3→v4 lawed, deterministic, restart
+  no-op); the storage integrity walk (cascade completeness, sibling
+  survival, no resurrection); the live golden path for both
+  substrates; the bench regenerated (all budgets green at 10k); the
+  capture matrix 7/7 VLM-clean; the design-law attack closed a REAL
+  gate gap (app.css joins the raw-hex law; swatches tokenized); the
+  stand-in guard (a seed can never arm the real-book suite); the
+  asar audited (dev files excluded, fresh install boots to schema 4);
+  CI green on three consecutive pushes after five reds were
+  diagnosed (the capturePage race — captureWithWake, 5 laws);
+  461/2 green. FINAL_VERIFICATION.md is the record. session log:
+  docs/SESSIONS/0016-the-final-closure.md
