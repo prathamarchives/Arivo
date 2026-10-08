@@ -894,7 +894,8 @@
 
 .mode-rail {
   position: absolute;
-  bottom: 34px;
+  /* 8px clear of the bottom chrome — never crowding its hairline */
+  bottom: 44px;
   left: 50%;
   transform: translateX(-50%);
   z-index: var(--z-floating);
@@ -1237,6 +1238,20 @@
   min-width: min(520px, 100vw);
 }
 
+/* L17 — the source yields to the workbench: the reading column slides
+ * half the drawer's width so the text is never half-covered while the
+ * work surface is open. a transform, never a reflow: the column keeps
+ * its exact width, the page keeps its exact pagination, the place is
+ * untouched. closing returns it on the shift easing. */
+.reader[data-workbench='open'][data-format='epub'] .epub-container {
+  transform: translateX(-200px);
+  transition: transform var(--dur-surface-out) var(--ease-shift);
+}
+
+.reader[data-format='epub'] .epub-container {
+  transition: transform var(--dur-surface-out) var(--ease-shift);
+}
+
 /* dual page (W2.3): two measures side by side, one gutter between — the
  * viewport still decides (epub.js spread + its small-screen fallback) */
 .reader[data-format='epub'][data-page-mode='auto'] .epub-container {
@@ -1283,6 +1298,9 @@
   align-items: center;
   gap: var(--s4);
   padding: var(--s6) var(--s4);
+  /* L17 — the pdf pages yield the same way: the scroll's centering
+     shifts, the canvases never resize */
+  transition: padding var(--dur-surface-out) var(--ease-shift);
 }
 
 .pdf-page {
@@ -1729,4 +1747,8 @@
 @keyframes ar-pdf-flash {
   0% { filter: brightness(1.4); }
   100% { filter: brightness(1); }
+}
+
+.reader[data-workbench='open'] .pdf-scroll {
+  padding-right: 420px;
 }
