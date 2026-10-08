@@ -49,7 +49,24 @@ export default defineConfig({
   },
   renderer: {
     root: resolve(__dirname, 'src/renderer'),
-    plugins: [react()],
+    plugins: [
+      react(),
+      /* SECURITY (final campaign): the shared index.html carries the dev
+       * CSP (ws: + localhost for HMR). production tightens it at build
+       * time — the same policy minus the dev allowances, plus the
+       * production origin. injected here so the source of truth stays
+       * one file and no dev allowance ever ships. */
+      {
+        name: 'arivo-prod-csp',
+        apply: 'build',
+        transformIndexHtml(html: string): string {
+          return html.replace(
+            /<meta[^>]+http-equiv="Content-Security-Policy"[^>]*>/,
+            `<meta http-equiv="Content-Security-Policy" content="default-src 'self' app://arivo; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' arivo: blob: data:; connect-src 'self' arivo: blob: data:; font-src 'self' data: blob:; frame-src blob: data:; worker-src 'self' blob:;">`,
+          );
+        },
+      },
+    ],
     resolve: {
       alias: { '@': resolve(__dirname, 'src/renderer/src') },
     },

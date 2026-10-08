@@ -108,6 +108,17 @@ async function createWindow(): Promise<BrowserWindow> {
   Menu.setApplicationMenu(null);
   win.removeMenu();
 
+  /* SECURITY (final campaign): defense in depth for navigation. the
+   * renderer has no external-link surface of its own, but a book's
+   * content or a future regression must never earn a new window or a
+   * navigation away from the app's own origin — both are denied at
+   * the process level, and external openings would go nowhere. */
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.webContents.on('will-navigate', (event, url) => {
+    const allowed = url.startsWith('devtools://');
+    if (!allowed) event.preventDefault();
+  });
+
   // wire the smoke capture BEFORE loading — did-finish-load fires during
   // the await below, and a late listener never sees it
   if (isSmoke) {
