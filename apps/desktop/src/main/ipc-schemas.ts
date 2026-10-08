@@ -86,7 +86,10 @@ const progress: Validator<ReadingProgress> = v.object({
 const settings: Validator<AppSettings> = v.object({
   theme: v.enum('paper', 'sepia', 'night'),
   fontStep: v.number({ int: true, min: 0, max: 4 }),
+  lineHeight: v.number({ min: 1.5, max: 1.8 }),
+  measure: v.number({ int: true, min: 520, max: 760 }),
   flow: v.enum('paginated', 'scrolled'),
+  pageMode: v.enum('single', 'auto'),
   libraryView: v.enum('grid', 'list'),
   librarySize: v.enum('s', 'm', 'l'),
   temperament: v.enum('den', 'lab'),

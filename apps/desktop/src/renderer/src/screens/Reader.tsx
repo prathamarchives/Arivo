@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactNode, CSSProperties } from 'react';
 import type {
   AnnotationView,
   Bookmark,
@@ -13,7 +13,7 @@ import type {
   FormatReader,
   ReaderSettings,
 } from '@arivo/core';
-import { uuidv7, FONT_STEPS } from '@arivo/core';
+import { uuidv7, FONT_STEPS, LINE_HEIGHTS, MEASURES, READING_PROFILES, activeProfile, type ReadingProfile } from '@arivo/core';
 import { EpubAdapter, PdfAdapter, type PdfAnchorData, type ZoomMode } from '@arivo/reader';
 import { zoomLabel, stepZoom, parsePageTarget } from '@arivo/reader';
 import { IconButton, Button, Input, Kbd } from '@arivo/ui';
@@ -427,6 +427,18 @@ function TypographyPanel({
       </div>
       {!isPdf && (
         <>
+          <div className="meta-label type-label">profile</div>
+          <div className="type-flow">
+            {(Object.keys(READING_PROFILES) as ReadingProfile[]).map((key) => (
+              <button
+                key={key}
+                className={`chip${activeProfile(settings) === key ? ' chip-active' : ''}`}
+                onClick={() => onSet(READING_PROFILES[key])}
+              >
+                {key}
+              </button>
+            ))}
+          </div>
           <div className="meta-label type-label">size</div>
           <div className="type-steps">
             {FONT_STEPS.map((px, i) => (
@@ -438,6 +450,31 @@ function TypographyPanel({
                 aria-label={`${px} pixels`}
               >
                 Aa
+              </button>
+            ))}
+          </div>
+          <div className="meta-label type-label">leading</div>
+          <div className="type-flow">
+            {LINE_HEIGHTS.map((lh, i) => (
+              <button
+                key={lh}
+                className={`chip${settings.lineHeight === i ? ' chip-active' : ''}`}
+                onClick={() => onSet({ lineHeight: i })}
+              >
+                {lh}
+              </button>
+            ))}
+          </div>
+          <div className="meta-label type-label">measure</div>
+          <div className="type-flow">
+            {MEASURES.map((m) => (
+              <button
+                key={m}
+                className={`chip${settings.measure === m ? ' chip-active' : ''}`}
+                onClick={() => onSet({ measure: m })}
+                aria-label={`${m} pixel column`}
+              >
+                {m}
               </button>
             ))}
           </div>
@@ -456,6 +493,25 @@ function TypographyPanel({
               scroll
             </button>
           </div>
+          {settings.flow === 'paginated' && (
+            <>
+              <div className="meta-label type-label">page</div>
+              <div className="type-flow">
+                <button
+                  className={`chip${settings.pageMode === 'single' ? ' chip-active' : ''}`}
+                  onClick={() => onSet({ pageMode: 'single' })}
+                >
+                  one page
+                </button>
+                <button
+                  className={`chip${settings.pageMode === 'auto' ? ' chip-active' : ''}`}
+                  onClick={() => onSet({ pageMode: 'auto' })}
+                >
+                  two pages
+                </button>
+              </div>
+            </>
+          )}
         </>
       )}
       {isPdf && (
@@ -920,7 +976,12 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
   }
 
   return (
-    <div className="reader" data-format={book?.format ?? 'epub'}>
+    <div
+      className="reader"
+      data-format={book?.format ?? 'epub'}
+      data-page-mode={settings.pageMode}
+      style={{ '--ar-measure': `${settings.measure}px` } as CSSProperties}
+    >
       <div className={`reader-chrome reader-chrome-top${chromeShown ? '' : ' chrome-faded'}`}>
         <IconButton label="back to the shelf" onClick={goShelf}>
           <IconBack />

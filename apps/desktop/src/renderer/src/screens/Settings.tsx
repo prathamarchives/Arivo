@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { DiagnosticsReport, SessionStats } from '@arivo/core';
+import type { DiagnosticsReport, SessionStats, ReadingProfile } from '@arivo/core';
+import { READING_PROFILES, activeProfile } from '@arivo/core';
 import { api, platform } from '../services/api.ts';
 import { useSettings } from '../stores/settings.ts';
 import { useRoom } from '../stores/room.ts';
@@ -181,6 +182,20 @@ export function SettingsScreen(): ReactNode {
         <div className="drawer-body settings-body">
           <section className="detail-section">
             <div className="meta-label section-label">reading</div>
+            <div className="settings-row">
+              <span className="settings-row-label">profile</span>
+              <div className="type-flow">
+                {(Object.keys(READING_PROFILES) as ReadingProfile[]).map((key) => (
+                  <button
+                    key={key}
+                    className={`chip${activeProfile(settings) === key ? ' chip-active' : ''}`}
+                    onClick={() => set(READING_PROFILES[key])}
+                  >
+                    {key}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="settings-row">
               <span className="settings-row-label">theme</span>
               <div className="type-themes">

@@ -155,11 +155,14 @@ describe('structured channels reject malformed structures', () => {
     expect(() => expectAccept(schemas.searchQuery, 'burnout')).not.toThrow();
   });
 
-  it('settings:set — enum fields + guarded booksDir + temperament', () => {
+  it('settings:set — enum fields + guarded booksDir + temperament + reading geometry', () => {
     const good = {
       theme: 'night',
       fontStep: 2,
+      lineHeight: 1.5,
+      measure: 760,
       flow: 'scrolled',
+      pageMode: 'auto',
       libraryView: 'list',
       librarySize: 'l',
       temperament: 'lab',
@@ -167,8 +170,12 @@ describe('structured channels reject malformed structures', () => {
     };
     expect(() => expectAccept(schemas.settingsSet, good)).not.toThrow();
     expect(() => expectAccept(schemas.settingsSet, { ...good, temperament: 'den' })).not.toThrow();
+    expect(() => expectAccept(schemas.settingsSet, { ...good, lineHeight: 1.65, measure: 680, pageMode: 'single' })).not.toThrow();
     expectReject(schemas.settingsSet, { ...good, theme: 'neon' });
     expectReject(schemas.settingsSet, { ...good, fontStep: 9 });
+    expectReject(schemas.settingsSet, { ...good, lineHeight: 1.2 });
+    expectReject(schemas.settingsSet, { ...good, measure: 800 });
+    expectReject(schemas.settingsSet, { ...good, pageMode: 'dual' });
     expectReject(schemas.settingsSet, { ...good, temperament: 'study' });
     expectReject(schemas.settingsSet, { ...good, temperament: undefined });
     expectReject(schemas.settingsSet, { ...good, booksDir: '' });

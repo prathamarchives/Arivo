@@ -20,7 +20,7 @@ import type {
   SelectionInfo,
   HighlightColor,
 } from '@arivo/core';
-import { buildTextRange, resolveTextRange, type ResolutionStatus } from '@arivo/core';
+import { buildTextRange, resolveTextRange, FONT_STEPS, type ResolutionStatus } from '@arivo/core';
 import { READ_CSS, readThemeVars } from '@arivo/ui';
 
 /** the honest repair outcome — the reader ui shows what the engine knows */
@@ -120,17 +120,21 @@ export class EpubAdapter implements FormatReader {
     window.addEventListener('resize', this.onResize);
   }
 
-  /** (re)build the rendition on the live container — the flow change recreates here */
+  /** (re)build the rendition on the live container — the flow change recreates here.
+   *  dual page: 'auto' hands the decision to the viewport (epub.js spread,
+   *  with its own small-screen fallback); 'single' is the explicit law. */
   private createRendition(): void {
     const book = this.book;
     const container = this.container;
     if (!book || !container) return;
     this.flow = this.epubFlow(this.settings?.flow ?? 'paginated');
+    const dual = this.settings?.pageMode === 'auto' && this.flow === 'paginated';
     const rendition = book.renderTo(container, {
       width: '100%',
       height: '100%',
       flow: this.flow,
-      spread: 'none',
+      spread: dual ? 'auto' : 'none',
+      minSpreadWidth: 800,
       manager: 'default',
     }) as LooseRendition;
     this.rendition = rendition;
@@ -196,7 +200,7 @@ export class EpubAdapter implements FormatReader {
     if (this.settings) {
       // font size + theme for the fresh view (flow already matches — no loop)
       try {
-        rendition.themes.fontSize?.(`${[16, 18, 20, 22, 24][this.settings.fontStep] ?? 20}px`);
+        rendition.themes.fontSize?.(`${FONT_STEPS[this.settings.fontStep] ?? 20}px`);
       } catch {
         /* size applies on the next render — honest */
       }
@@ -259,22 +263,27 @@ export class EpubAdapter implements FormatReader {
   applySettings(settings: ReaderSettings): void {
     const flowChanged =
       this.rendition !== null && this.epubFlow(settings.flow) !== this.flow;
-    /* a font change re-paginates the whole book: epub.js reflows the text
-     * but never re-draws its own svg marks, so their geometry goes stale
-     * (found-not-fixed, session 0002). the honest treatment is the same
-     * one the flow switch proved: re-render the view at the current
-     * locator — anchors are cfi-stable, only the pixels were wrong. */
-    const fontChanged =
-      this.rendition !== null && settings.fontStep !== this.settings?.fontStep;
+    /* any change that re-paginates the book takes the proven controlled
+     * path: destroy + recreate at the current locator, marks re-rendered.
+     * font size reflows (session 0002); leading reflows; a wider/narrower
+     * measure re-columns; dual-page changes the column count itself.
+     * anchors are cfi-stable — only the pixels move. (W2.3 invariant) */
+    const repaginates =
+      this.rendition !== null &&
+      (flowChanged ||
+        settings.fontStep !== this.settings?.fontStep ||
+        settings.lineHeight !== this.settings?.lineHeight ||
+        settings.measure !== this.settings?.measure ||
+        settings.pageMode !== this.settings?.pageMode);
     this.settings = settings;
-    if (flowChanged || fontChanged) {
+    if (repaginates) {
       void this.recreateRendition();
       return;
     }
     const r = this.rendition;
     if (!r) return;
     try {
-      r.themes.fontSize?.(`${[16, 18, 20, 22, 24][settings.fontStep] ?? 20}px`);
+      r.themes.fontSize?.(`${FONT_STEPS[settings.fontStep] ?? 20}px`);
     } catch {
       /* size applies on the next render — honest */
     }
@@ -301,7 +310,11 @@ export class EpubAdapter implements FormatReader {
     const style = doc.createElement('style');
     style.id = 'arivo-style';
     const vars = readThemeVars(this.settings?.theme ?? 'paper');
-    style.textContent = `${this.fontFaceCss}\n${vars}\n${READ_CSS}`;
+    const s = this.settings;
+    const geometry = s
+      ? `\n:root { --ar-leading: ${s.lineHeight}; }`
+      : '';
+    style.textContent = `${this.fontFaceCss}\n${vars}${geometry}\n${READ_CSS}`;
     doc.head.appendChild(style);
   }
 

@@ -336,3 +336,14 @@ status: PLAN MODE. awaiting fire.
   live bugs found+fixed+lawed (flex-collapse, silent relocation, ghost
   text layer). 370/2 green. session log:
   docs/SESSIONS/0004-pdf-substrate.md
+- **W2.3 + W2.4 core: DONE** (this commit) — reading profiles as
+  derived preset bundles (default/dense/research; night reshaped into
+  orthogonal lighting — no hidden coupling), leading + measure ladders
+  (the 520-760 law, ideal 680) as live settings with panel detents,
+  dual page as a true layout state (two measures side by side,
+  viewport-decided, honest single-column fallback), and every
+  repaginating change through the proven controlled re-render path —
+  marks + position survive everything. 380/2 green (+10 profile-law
+  tests). one false alarm honestly spent (wrong-document mark queries —
+  the 0003 lesson, re-learned with receipts). session log:
+  docs/SESSIONS/0005-profiles-measure-dual-page.md

@@ -1043,10 +1043,18 @@
   background: var(--bg);
 }
 
+/* the measure law (W2.4): the column the reader expands around — a
+ * ladder value set by the typography panel, never the window's whim */
 .reader[data-format='epub'] .epub-container {
   margin: 0 auto;
-  max-width: 760px;
-  min-width: 520px;
+  max-width: var(--ar-measure, 680px);
+  min-width: min(520px, 100vw);
+}
+
+/* dual page (W2.3): two measures side by side, one gutter between — the
+ * viewport still decides (epub.js spread + its small-screen fallback) */
+.reader[data-format='epub'][data-page-mode='auto'] .epub-container {
+  max-width: calc(var(--ar-measure, 680px) * 2 + var(--s6));
 }
 
 .pdf-scroll {
