@@ -58,6 +58,12 @@
   color: var(--ink);
 }
 
+.search-input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--sel);
+  border-radius: var(--r-interactive);
+}
+
 .search-input::placeholder {
   color: var(--ink-3);
 }
@@ -581,7 +587,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 320px;
+  width: min(320px, 100%);
   background: var(--bg-raised);
   border-color: var(--line);
   border-style: solid;
@@ -766,6 +772,13 @@
   outline: none;
 }
 
+.note-input:focus-visible {
+  outline: none;
+  border-color: var(--ink-2);
+  box-shadow: 0 0 0 2px var(--sel);
+}
+}
+
 .note-input:focus {
   border-color: var(--ink-2);
 }
@@ -925,7 +938,7 @@
 /* L10 — the workbench: a wider drawer, the desk's paper */
 
 .drawer-wide {
-  width: 400px;
+  width: min(400px, 100%);
 }
 
 .drawer-empty-note {
@@ -962,7 +975,6 @@
 }
 
 .doc-title-input:focus {
-  outline: none;
   border-bottom-color: var(--ink-2);
 }
 
@@ -1147,6 +1159,13 @@
   background: none;
   font-size: var(--text-md);
   color: var(--ink);
+}
+
+.palette-input-row input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--sel);
+  border-radius: var(--r-interactive);
+}
 }
 
 .palette-input-row input::placeholder {
@@ -1477,6 +1496,13 @@
   font-size: var(--text-xs);
   color: var(--ink);
   padding: var(--s1) 0;
+}
+
+.tag-input:focus-visible {
+  outline: none;
+  border-bottom-color: var(--ink-2);
+  box-shadow: 0 2px 0 0 var(--sel);
+}
   min-width: 110px;
 }
 
