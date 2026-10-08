@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { ArchiveEntry } from '@arivo/core';
 import { api } from '../services/api.ts';
+import { plainError } from '../lib/voice.ts';
 import { useRoom, type DeskMode } from '../stores/room.ts';
 import { IconBookmark, IconNote, IconSearch, IconPencil, IconInfo, IconChevronRight } from '../components/icons.tsx';
 
@@ -167,6 +168,7 @@ function ArchiveEmpty(): ReactNode {
 }
 
 export function ArchiveRoom(): ReactNode {
+  const goShelf = useRoom((s) => s.goShelf);
   const [marks, setMarks] = useState<ArchiveEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const archiveScroll = useRoom((s) => s.archiveScroll);
@@ -181,7 +183,7 @@ export function ArchiveRoom(): ReactNode {
         if (!disposed) setMarks(m);
       })
       .catch((err: unknown) => {
-        if (!disposed) setError(err instanceof Error ? err.message : 'the archive could not be read');
+        if (!disposed) setError(plainError(err, 'the archive could not be read'));
       });
     return () => {
       disposed = true;
@@ -204,6 +206,9 @@ export function ArchiveRoom(): ReactNode {
       <div className="archive-error fade-in">
         <div className="type-title">the archive could not be read</div>
         <p className="meta-label">{error}</p>
+        <button type="button" className="chip" onClick={goShelf}>
+          go to the shelf
+        </button>
       </div>
     );
   }

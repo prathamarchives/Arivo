@@ -405,3 +405,14 @@ status: PLAN MODE. awaiting fire.
   the first shipped act of the effect gatekeeper is a documented NO.
   425/2 green. session log: docs/SESSIONS/0009-effect-registry.md
 - next: L13 — content/voice audit.
+
+## execution log — L13 (the voice becomes law)
+
+- **L13: DONE** (this commit) — the sweep found the voice already
+  honest (zero banned vocabulary in user-facing strings); the real
+  gaps fixed: plainError (lib/voice.ts) is the only error translator
+  (coded errors speak, parser internals never do — both leak points
+  closed + lawed), the archive's error state gained its way out, and
+  VOICE_NOUNS fixes the dictionary. 5 executable voice laws. 430/2
+  green. session log: docs/SESSIONS/0010-voice-becomes-law.md
+- next: L14 — accessibility/responsive.
