@@ -154,6 +154,11 @@
   margin-bottom: var(--s3);
 }
 
+/* ============ the shelf (L9) — one object system ============ */
+/* the grid is rows of objects; the zoom is recorded geometry (the
+   token --cover-w stays the default 200; the shelf's three camera
+   positions override it per grid, like the workbench's range). */
+
 .continue-reading {
   margin-bottom: var(--s8);
 }
@@ -165,146 +170,68 @@
   padding-bottom: var(--s2);
 }
 
-.continue-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s2);
-  min-width: 110px;
-  text-align: left;
-  transition: transform var(--dur-state) var(--ease-settle);
-}
-
-.continue-card:hover {
-  transform: translateY(calc(-1 * var(--lift-s)));
-}
-
-.continue-meta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s1);
-}
-
-.continue-title {
-  font-size: var(--text-sm);
-  color: var(--ink);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 110px;
-}
-
 .book-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--cover-w), 1fr));
   gap: var(--s6) var(--s4);
   justify-items: start;
 }
 
-.book-card {
+/* the shelf's camera zoom — three discrete positions, recorded
+   geometry like the workbench width range (D-020). s/m/l ride the
+   same object; only the frame changes. */
+.book-grid[data-size='s'] {
+  --cover-w: 160px;
+  grid-template-columns: repeat(auto-fill, minmax(var(--cover-w), 1fr));
+}
+
+.book-grid[data-size='l'] {
+  --cover-w: 240px;
+  grid-template-columns: repeat(auto-fill, minmax(var(--cover-w), 1fr));
+}
+
+/* the list view: the ledger camera — same identity, spine-forward */
+
+.row-cover {
   position: relative;
-  cursor: pointer;
-  transition: transform var(--dur-state) var(--ease-settle);
-}
-
-.book-card:hover {
-  transform: translateY(calc(-1 * var(--lift-m)));
-}
-
-.book-card:hover .book-cover {
-  box-shadow: var(--elevation-2);
-}
-
-.book-cover {
-  position: relative;
-  border-radius: var(--r-interactive);
+  width: 32px;
+  height: 48px;
+  flex: none;
+  border-radius: var(--r-structural);
   overflow: hidden;
   background: var(--bg-sunken);
-  border: 1px solid var(--line);
-  box-shadow: var(--elevation-1);
-  transition: box-shadow var(--dur-state) var(--ease-settle);
 }
 
-.book-cover img {
+.row-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.book-cover-fallback {
-  width: 100%;
-  height: 100%;
+/* the empty room: the shelf line exists, one object's place is sunken
+   into it — absence with a shape, never "no items found" */
+.empty-shelf {
+  width: 420px;
+  max-width: 80%;
+  padding-bottom: var(--s12);
+  border-bottom: 1px solid var(--line-strong);
   display: flex;
-  flex-direction: column;
+  align-items: flex-end;
   justify-content: center;
-  align-items: center;
-  gap: var(--s1);
-  padding: var(--s3);
-  text-align: center;
+  margin-bottom: var(--s4);
+}
+
+.empty-shelf-ghost {
+  display: block;
+  width: 96px;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--r-object);
   background: var(--bg-sunken);
+  margin-bottom: var(--s1);
 }
 
-.book-cover-title {
-  /* the designed cover: the book's own matter — literata, the author's voice */
-  font-family: var(--font-read);
-  font-size: var(--text-sm);
-  color: var(--ink-2);
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.book-cover-author {
-  font-family: var(--font-mono);
-  font-size: var(--text-micro);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-meta);
-  color: var(--ink-3);
-}
-
-.format-badge {
-  position: absolute;
-  top: var(--s1);
-  right: var(--s1);
-  font-family: var(--font-mono);
-  font-size: var(--text-micro);
-  letter-spacing: var(--tracking-meta);
-  color: var(--bg-raised);
-  background: var(--ink);
-  /* optical: micro-badge padding sits below the s1 step — recorded in DECISIONS.md */
-  padding: 2px 6px;
-  border-radius: var(--r-structural);
-}
-
-/* truth states on the shelf: the library never hides uncertainty.
-   the system's warm signal is the den accent — never the user's mark hues. */
-.book-flag {
-  position: absolute;
-  bottom: var(--s1);
-  left: var(--s1);
-  font-family: var(--font-mono);
-  font-size: var(--text-micro);
-  letter-spacing: var(--tracking-meta);
-  /* optical: micro-badge padding — DECISIONS.md */
-  padding: 2px 6px;
-  border-radius: var(--r-structural);
-  pointer-events: none;
-}
-
-.book-flag-missing {
-  color: var(--accent-ink);
-  background: color-mix(in srgb, var(--accent) 18%, var(--bg-raised));
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-}
-
-.book-meta {
-  padding-top: var(--s2);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
+/* the row ledger's text identity — same inks the object carries */
 .book-title {
   font-size: var(--text-sm);
   font-weight: 400;
@@ -324,21 +251,6 @@
   max-width: 100%;
 }
 
-.book-progress {
-  margin-top: var(--s1);
-  height: 2px;
-  background: var(--line);
-  border-radius: var(--r-instrument);
-  overflow: hidden;
-}
-
-.book-progress-fill {
-  height: 100%;
-  background: var(--ink-2);
-  border-radius: var(--r-instrument);
-  transition: width var(--dur-material) var(--ease-settle);
-}
-
 .book-menu {
   position: absolute;
   top: var(--s1);
@@ -354,8 +266,8 @@
   transition: opacity var(--dur-state) var(--ease-settle);
 }
 
-.book-card:hover .book-menu,
-.book-row:hover .book-menu {
+.book-row:hover .book-menu,
+.book-row:focus-visible .book-menu {
   opacity: 1;
 }
 

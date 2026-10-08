@@ -176,6 +176,9 @@
 :root {
   --img-scrim: rgba(0, 0, 0, 0.32);
   --img-scrim-strong: rgba(0, 0, 0, 0.5);
+  /* the spine fold — covers are physical: they curl toward the binding.
+     one ink-based gradient, matte, part of the cover's material. */
+  --spine-fold: linear-gradient(to right, rgba(43, 33, 24, 0.09), rgba(43, 33, 24, 0) 16px);
 }
 
 /* legacy aliases — deprecated, swept during surface waves */

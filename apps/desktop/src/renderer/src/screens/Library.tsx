@@ -5,7 +5,8 @@ import { platform, api } from '../services/api.ts';
 import { useLibrary, type SortMode } from '../stores/library.ts';
 import { useSettings } from '../stores/settings.ts';
 import { useRoom } from '../stores/room.ts';
-import { IconButton, Button, Input, Kbd } from '@arivo/ui';
+import { IconButton, Button, Input, Kbd, BookObject, type BookAura } from '@arivo/ui';
+import { computeAura, applyRoomAura } from '../lib/booklight.ts';
 import {
   IconSearch,
   IconPlus,
@@ -21,97 +22,52 @@ import {
   IconBook,
 } from '../components/icons.tsx';
 
-const COVER_SIZES: Record<'s' | 'm' | 'l', number> = { s: 160, m: 200, l: 240 };
-
-function coverStyle(size: number): Record<string, string> {
-  return { width: `${size}px`, height: `${Math.round(size * 1.5)}px` };
-}
-
 function fmtDate(ts: number): string {
   const d = new Date(ts);
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-function Cover({ book, size }: { book: BookWithProgress; size: number }): ReactNode {
-  const [broken, setBroken] = useState(false);
-  const showImg = platform === 'electron' && book.coverPath && !broken;
-  return (
-    <div className="book-cover" style={coverStyle(size)} aria-hidden="true">
-      {showImg ? (
-        <img
-          src={api.book.coverUrl(book.id)}
-          alt=""
-          loading="lazy"
-          onError={() => setBroken(true)}
-        />
-      ) : (
-        <div className="book-cover-fallback">
-          <span className="book-cover-title">{book.title}</span>
-          <span className="book-cover-author">{book.authors[0] ?? ''}</span>
-        </div>
-      )}
-      {book.format === 'pdf' && <span className="format-badge">PDF</span>}
-    </div>
-  );
-}
-
-function BookCard({
+/** the shelf's canonical object — the book as an object, never a card.
+ *  one system (BookObject), the grid's zoom is recorded geometry. */
+function ShelfObject({
   book,
-  size,
+  current,
+  aura,
+  openingId,
+  onOpen,
   onMenu,
+  size = 'md',
 }: {
   book: BookWithProgress;
-  size: number;
+  current?: boolean;
+  aura?: BookAura;
+  openingId: string | null;
+  onOpen: (book: BookWithProgress) => void;
   onMenu: (book: BookWithProgress, x: number, y: number) => void;
+  size?: 'md' | 'sm';
 }): ReactNode {
-  const goDesk = useRoom((s) => s.goDesk);
-  const pct = book.progress ? Math.round(book.progress.percent * 100) : 0;
   return (
-    <div
-      className="book-card"
-      style={{ width: `${size}px` }}
-      role="button"
-      tabIndex={0}
-      aria-label={`${book.title} by ${book.authors.join(', ')}`}
-      onClick={() => goDesk(book.id)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          goDesk(book.id);
-        }
-      }}
-    >
-      <Cover book={book} size={size} />
-      {book.fileMissing && (
-        <div className="book-flag book-flag-missing" title="the book file is missing — annotations are safe">
-          missing file
-        </div>
-      )}
-      <div className="book-meta">
-        <div className="book-title" title={book.title}>
-          {book.title}
-        </div>
-        <div className="book-author">{book.authors.join(', ') || '—'}</div>
-        {pct > 0 && (
-          <div className="book-progress" aria-label={`${pct}% read`}>
-            <div className="book-progress-fill" style={{ width: `${pct}%` }} />
-          </div>
-        )}
-      </div>
-      <button
-        className="book-menu"
-        aria-label="book actions"
-        onClick={(e) => {
-          e.stopPropagation();
-          onMenu(book, e.clientX, e.clientY);
-        }}
-      >
-        <IconDots />
-      </button>
-    </div>
+    <BookObject
+      title={book.title}
+      author={book.authors.join(', ') || undefined}
+      cover={
+        platform === 'electron' && book.coverPath ? api.book.coverUrl(book.id) : undefined
+      }
+      progress={book.progress?.percent ?? undefined}
+      format={book.format}
+      missing={book.fileMissing}
+      current={current}
+      aura={aura}
+      opening={openingId === book.id}
+      size={size}
+      onOpen={() => onOpen(book)}
+      onActions={(x, y) => onMenu(book, x, y)}
+    />
   );
 }
 
+/** the list view: a ledger camera over the same library — the spine,
+ *  not a second card system. same identity inks, same states. */
 function BookRow({
   book,
   onMenu,
@@ -120,6 +76,8 @@ function BookRow({
   onMenu: (book: BookWithProgress, x: number, y: number) => void;
 }): ReactNode {
   const goDesk = useRoom((s) => s.goDesk);
+  const [broken, setBroken] = useState(false);
+  const showImg = platform === 'electron' && book.coverPath && !broken;
   const pct = book.progress ? Math.round(book.progress.percent * 100) : 0;
   return (
     <div
@@ -131,7 +89,13 @@ function BookRow({
         if (e.key === 'Enter') goDesk(book.id);
       }}
     >
-      <Cover book={book} size={32} />
+      <span className="row-cover" aria-hidden="true">
+        {showImg ? (
+          <img src={api.book.coverUrl(book.id)} alt="" loading="lazy" onError={() => setBroken(true)} />
+        ) : null}
+        {book.format === 'pdf' && <span className="bo-badge">PDF</span>}
+        {book.fileMissing && <span className="bo-badge bo-badge-missing">missing</span>}
+      </span>
       <div className="book-row-title">
         <span className="book-title">{book.title}</span>
         <span className="book-author">{book.authors.join(', ') || '—'}</span>
@@ -240,10 +204,12 @@ function EmptyState(): ReactNode {
   const toast = useRoom((s) => s.toast);
   return (
     <div className="empty-state fade-in">
-      <div className="empty-glyph">
-        <IconBook />
+      {/* the room is waiting: the shelf line exists, one object's place
+       * is sunken into it — absence with a shape, not "no items found" */}
+      <div className="empty-shelf" aria-hidden="true">
+        <span className="empty-shelf-ghost" />
       </div>
-      <h1 className="type-title">point me at your books</h1>
+      <h1 className="type-title">your shelf is waiting</h1>
       <p className="empty-sub">
         drop epubs or pdfs anywhere on this page, or pick a folder.
         <br />
@@ -404,35 +370,36 @@ function CollectionsBar(): ReactNode {
   );
 }
 
-function ContinueReading({ books }: { books: BookWithProgress[] }): ReactNode {
-  const goDesk = useRoom((s) => s.goDesk);
+function ContinueReading({
+  books,
+  currentId,
+  aura,
+  openingId,
+  onOpen,
+}: {
+  books: BookWithProgress[];
+  currentId: string | null;
+  aura: BookAura | null;
+  openingId: string | null;
+  onOpen: (book: BookWithProgress) => void;
+}): ReactNode {
   if (books.length === 0) return null;
   return (
     <section className="continue-reading" aria-label="continue reading">
-      <div className="meta-label section-label">continue reading</div>
+      <div className="meta-label section-label">in progress</div>
       <div className="continue-row">
-        {books.map((b) => {
-          const pct = Math.round((b.progress?.percent ?? 0) * 100);
-          return (
-            <button
-              key={b.id}
-              className="continue-card"
-              onClick={() => goDesk(b.id)}
-              aria-label={`continue ${b.title}`}
-            >
-              <Cover book={b} size={110} />
-              <div className="continue-meta">
-                <span className="continue-title">{b.title}</span>
-                <span className="meta-label">
-                  {b.progress?.chapter ?? `${pct}%`}
-                </span>
-                <div className="book-progress">
-                  <div className="book-progress-fill" style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            </button>
-          );
-        })}
+        {books.map((b) => (
+          <ShelfObject
+            key={b.id}
+            book={b}
+            size="sm"
+            current={b.id === currentId}
+            aura={b.id === currentId ? (aura ?? undefined) : undefined}
+            openingId={openingId}
+            onOpen={onOpen}
+            onMenu={() => undefined}
+          />
+        ))}
       </div>
     </section>
   );
@@ -522,6 +489,38 @@ export function LibraryScreen(): ReactNode {
     [books],
   );
 
+  /* the current book: the one object that owns the desk's memory —
+   * the desk context if it exists, else the most recently read */
+  const currentBookId = useRoom((s) => (s.desk ? s.desk.bookId : null)) ??
+    continueList[0]?.id ?? null;
+  const currentBook = books.find((b) => b.id === currentBookId) ?? null;
+
+  /* booklight: the current book tints the light (den only, gate 8).
+   * the cover is sampled once per current book; the room's aura slots
+   * follow it; identity never moves (golden 7). */
+  const [aura, setAura] = useState<BookAura | null>(null);
+  const temperament = settings.temperament;
+  const currentCover =
+    platform === 'electron' && currentBook?.coverPath
+      ? api.book.coverUrl(currentBook.id)
+      : null;
+  useEffect(() => {
+    let disposed = false;
+    if (!currentCover) {
+      applyRoomAura(null, temperament);
+      setAura(null);
+      return;
+    }
+    void computeAura(currentCover).then((a) => {
+      if (disposed) return;
+      setAura(a);
+      applyRoomAura(a, temperament);
+    });
+    return () => {
+      disposed = true;
+    };
+  }, [currentCover, temperament]);
+
   const onDrop = async (e: DragEvent): Promise<void> => {
     e.preventDefault();
     setDragging(false);
@@ -542,7 +541,21 @@ export function LibraryScreen(): ReactNode {
     );
   };
 
-  const size = COVER_SIZES[settings.librarySize] ?? 200;
+  /* the pull-forward: the physical open. the object tips toward the
+   * hand (elevation-3, the launch state), then the desk opens — the
+   * seed of L10's shared-element flight (golden 6). */
+  const goDesk = useRoom((s) => s.goDesk);
+  const [openingId, setOpeningId] = useState<string | null>(null);
+  const openBook = (book: BookWithProgress): void => {
+    if (openingId !== null) return;
+    setOpeningId(book.id);
+    window.setTimeout(() => {
+      setOpeningId(null);
+      goDesk(book.id);
+    }, 150);
+  };
+
+  const size = settings.librarySize;
 
   return (
     <div
@@ -581,7 +594,13 @@ export function LibraryScreen(): ReactNode {
         ) : (
           <>
             <CollectionsBar />
-            <ContinueReading books={continueList} />
+            <ContinueReading
+              books={continueList}
+              currentId={currentBookId}
+              aura={aura}
+              openingId={openingId}
+              onOpen={openBook}
+            />
             <section className="library-grid-section" aria-label="library">
               <div className="meta-label section-label">
                 {activeCollection
@@ -589,9 +608,17 @@ export function LibraryScreen(): ReactNode {
                   : `${visible.length} ${visible.length === 1 ? 'book' : 'books'}`}
               </div>
               {settings.libraryView === 'grid' ? (
-                <div className="book-grid">
+                <div className="book-grid" data-size={size}>
                   {visible.map((b) => (
-                    <BookCard key={b.id} book={b} size={size} onMenu={(book, x, y) => setMenu({ book, x, y })} />
+                    <ShelfObject
+                      key={b.id}
+                      book={b}
+                      current={b.id === currentBookId}
+                      aura={b.id === currentBookId ? (aura ?? undefined) : undefined}
+                      openingId={openingId}
+                      onOpen={openBook}
+                      onMenu={(book, x, y) => setMenu({ book, x, y })}
+                    />
                   ))}
                 </div>
               ) : (

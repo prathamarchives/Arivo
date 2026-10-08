@@ -1,21 +1,30 @@
 /**
- * BookObject — the first serious composite (W6.1). it must teach the
- * whole foundation to hold together:
+ * BookObject — the book as an object (L7 composite, completed by L9's
+ * shelf object system). the canonical physical interaction lives here:
  *
- *   material (paper/fallback cover) · depth (contact+ambient) ·
- *   booklight (aura slot, den only) · hover (component glide, lift-m +
- *   shadow bloom — the quiet precursor; the physical shelf-hover is L9) ·
- *   cover treatment (image + scrim, or the designed typographic
- *   fallback) · metadata hierarchy (title/author, two inks) ·
- *   progress (the hairline, transform) · selection (ink ring + sunken) ·
- *   accessibility (a button that opens; a checkbox-row pattern for
- *   selection mode is L9's concern) · object continuity (open = the
- *   object is the same thing, never a page swap — L10 wires the actual
- *   shared-element handoff; the hover vocabulary here is its seed).
+ *   pointer approaches → the book acknowledges (lift, glide) →
+ *   light/shadow responds (contact+ambient bloom, the aura wakes in den) →
+ *   a pull-forward feeling (press: the object tips toward the hand) →
+ *   contextual actions reveal (the dots, on hover and on keyboard focus)
+ *
+ *   no bounce, no gimmicky 3d, no scale-only hover — mass, lift, shadow.
+ *
+ * the object carries its truth states honestly: format (pdf badge),
+ * missing file (the shelf's flag — annotations are safe), progress
+ * (the hairline), the current-book privilege (den booklight aura),
+ * long titles (clamped, never truncated mid-thought), and the designed
+ * typographic fallback when the author shipped no art (D-019).
+ *
+ * object continuity: `onOpen` is the pull-forward's destination hook —
+ * the shared-element flight to the desk lands with L10; the press
+ * receipt here is its seed. `onActions` reveals the object's context
+ * menu (add to list, export, remove) without leaving the shelf.
  */
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { Text, Metadata } from '../components/Typography.tsx';
 import { ProgressMarker } from '../components/Reader.tsx';
+import { Icon } from '../components/Icon.tsx';
 
 export interface BookAura {
   /** the book tints the light — h/s/l the pipeline derived from the cover */
@@ -32,9 +41,21 @@ export interface BookObjectProps {
   /** 0..1 reading progress; undefined = unread */
   progress?: number;
   selected?: boolean;
+  /** the pull-forward launch: the object was taken — the desk opens */
+  opening?: boolean;
   onOpen?: () => void;
-  /** the den booklight slot — lab/pipeline writes it, lab suppresses it */
+  /** contextual actions — the dots reveal on hover/focus; the shelf's
+   *  book menu (collections, export, remove) lives behind it */
+  onActions?: (x: number, y: number) => void;
+  /** the den booklight slot — the pipeline writes it for the current
+   *  book; lab suppresses it via the root alpha */
   aura?: BookAura;
+  /** pdf is a truth about the object, shown as the quiet format badge */
+  format?: 'epub' | 'pdf';
+  /** the file is gone but truth remains — shown honestly, never hidden */
+  missing?: boolean;
+  /** the current-book privilege: the object that owns the desk */
+  current?: boolean;
   size?: 'md' | 'sm';
 }
 
@@ -44,10 +65,19 @@ export function BookObject({
   cover,
   progress,
   selected,
+  opening,
   onOpen,
+  onActions,
   aura,
+  format,
+  missing,
+  current,
   size = 'md',
 }: BookObjectProps): ReactNode {
+  /* a broken cover is a missing cover: the designed typographic
+   * fallback speaks (D-019) — never a broken-image glyph */
+  const [broken, setBroken] = useState(false);
+  const showCover = cover && !broken;
   const auraStyle = aura
     ? ({
         '--aura-h': `${aura.h}`,
@@ -56,28 +86,54 @@ export function BookObject({
       } as React.CSSProperties)
     : undefined;
 
+  const state = opening ? 'opening' : selected ? 'selected' : current ? 'current' : 'rest';
+
   return (
     <div
-      className={`book-object bo-${size} ${selected ? 'is-selected' : ''}`.trim()}
+      className={`book-object bo-${size} ${selected ? 'is-selected' : ''} ${current ? 'is-current' : ''} ${opening ? 'is-opening' : ''}`.trim()}
       style={auraStyle}
       data-aura={aura ? 'on' : 'off'}
+      data-state={state}
     >
       {aura ? <span className="bo-aura" aria-hidden="true" /> : null}
       <button
         type="button"
         className="bo-tap"
         onClick={onOpen}
-        aria-label={author ? `${title} — ${author}` : title}
+        aria-label={
+          author
+            ? `${title} — ${author}${progress ? `, ${Math.round(progress * 100)}%` : ''}`
+            : title
+        }
       >
         <span className="bo-cover">
-          {cover ? (
-            <img className="bo-img" src={cover} alt="" loading="lazy" />
+          {showCover ? (
+            <img
+              className="bo-img"
+              src={cover}
+              alt=""
+              loading="lazy"
+              onError={() => setBroken(true)}
+            />
           ) : (
             <span className="bo-fallback">
               <span className="bo-fallback-title">{title}</span>
               <span className="bo-spine" aria-hidden="true" />
             </span>
           )}
+          {/* the spine fold — covers are physical: they fold toward the
+              spine. matte, 1 token, never decoration */}
+          {showCover ? <span className="bo-fold" aria-hidden="true" /> : null}
+          {format === 'pdf' ? (
+            <span className="bo-badge" aria-label="pdf">
+              PDF
+            </span>
+          ) : null}
+          {missing ? (
+            <span className="bo-badge bo-badge-missing" aria-label="file missing">
+              missing
+            </span>
+          ) : null}
         </span>
         <span className="bo-meta">
           <Text as="span" role="control" className="bo-title">
@@ -91,13 +147,28 @@ export function BookObject({
           {progress !== undefined ? <ProgressMarker value={progress} label={`${title} progress`} /> : null}
         </span>
       </button>
-      {progress !== undefined && progress > 0 && progress < 1 ? (
-        <Metadata className="bo-progress-label">
-          {Math.round(progress * 100)}%
-        </Metadata>
-      ) : progress !== undefined && progress >= 1 ? (
-        <Metadata className="bo-progress-label">finished</Metadata>
-      ) : null}
+      <div className="bo-foot">
+        {progress !== undefined && progress > 0 && progress < 1 ? (
+          <Metadata className="bo-progress-label">{Math.round(progress * 100)}%</Metadata>
+        ) : progress !== undefined && progress >= 1 ? (
+          <Metadata className="bo-progress-label">finished</Metadata>
+        ) : (
+          <span />
+        )}
+        {onActions ? (
+          <button
+            type="button"
+            className="bo-actions"
+            aria-label={`${title} actions`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onActions(e.clientX, e.clientY);
+            }}
+          >
+            <Icon name="dots" />
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

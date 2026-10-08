@@ -199,11 +199,18 @@ async function createWindow(): Promise<BrowserWindow> {
           try {
             const opened = (await win.webContents.executeJavaScript(
               `(() => {
-                const card = document.querySelector('.continue-card') || document.querySelector('.book-card') || document.querySelector('.book-row');
+                // the canonical book object (L9): one system, one selector —
+                // the shelf's objects are bo-tap buttons. the pull-forward
+                // receipt fires the navigation on its own clock.
+                const card = document.querySelector('.continue-row .bo-tap') || document.querySelector('.book-grid .bo-tap') || document.querySelector('.book-row');
                 if (card) { card.click(); return true; }
                 return false;
               })()`,
             )) as boolean;
+            // the pull-forward receipt: the object tips toward the hand,
+            // then the desk opens (150ms) — wait out the launch before
+            // paginating
+            await new Promise((r) => setTimeout(r, 400));
             // paginate into the body text — the cover is page one
             for (let i = 0; i < 3; i += 1) {
               await win.webContents.executeJavaScript(
@@ -212,6 +219,22 @@ async function createWindow(): Promise<BrowserWindow> {
               await new Promise((r) => setTimeout(r, 900));
             }
             await new Promise((r) => setTimeout(r, 2500));
+            // a hidden window composites on demand: input events force
+            // BeginFrames so capturePage sees the rendered page. the first
+            // wake paints the reading text; the second (after the attention
+            // flip and the chrome fade complete) paints the full desk.
+            try {
+              await win.webContents.executeJavaScript(
+                `window.dispatchEvent(new MouseEvent('mousemove', { clientX: 400, clientY: 24 })); true;`,
+              );
+              await new Promise((r) => setTimeout(r, 650));
+              await win.webContents.executeJavaScript(
+                `window.dispatchEvent(new MouseEvent('mousemove', { clientX: 400, clientY: 24 })); true;`,
+              );
+              await new Promise((r) => setTimeout(r, 550));
+            } catch {
+              /* wake is best-effort */
+            }
             const image = await win.webContents.capturePage();
             fs.writeFileSync(path.resolve(process.cwd(), 'smoke-reader.png'), image.toPNG());
             console.warn(`[arivo] reader capture → ${opened ? 'opened + captured' : 'NO BOOK — captured library only'}`);
