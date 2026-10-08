@@ -33,11 +33,13 @@ export function propsOf(css: string): Map<string, string> {
   return out;
 }
 
-/** spacing tokens must sit exactly on the canonical scale */
+/** spacing tokens must sit exactly on the canonical scale.
+ *  the pattern binds to the scale's own names (--s1..--s32) so a blur or
+ *  shadow token that merely starts with --s is not misread as spacing. */
 export function spacingViolations(css: string): string[] {
   const scale = new Set(['4px', '8px', '12px', '16px', '24px', '32px', '48px', '64px', '96px', '128px']);
   const bad: string[] = [];
-  for (const m of css.matchAll(/(--s[a-z0-9-]*)\s*:\s*(\d+px);/g)) {
+  for (const m of css.matchAll(/(--s\d+)\s*:\s*(\d+px);/g)) {
     if (!scale.has(m[2]!)) bad.push(`${m[1]}: ${m[2]}`);
   }
   return bad;

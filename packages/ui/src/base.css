@@ -134,6 +134,18 @@ textarea {
     var(--shadow-ambient);
 }
 
+/* the failure path (L12's law): without backdrop-filter the instrument
+   must not become unreadable translucency — the tint yields to a solid
+   raised surface. the rim and elevation survive; the blur budget was
+   never promised to this environment. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--bg-raised);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
 /* --------------------- primitives: button ---------------------- */
 
 .btn {

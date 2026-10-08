@@ -136,6 +136,15 @@
     var(--shadow-ambient);
 }
 
+/* the failure path — same law as .glass: readable, never washed out */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .mat-glass {
+    background: var(--bg-raised);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
 .mat-ink {
   background: var(--ink);
   color: var(--bg-raised);

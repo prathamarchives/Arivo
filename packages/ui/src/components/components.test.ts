@@ -80,7 +80,11 @@ describe('W5 gate: surface materials are roles, not accidents', () => {
   });
 
   it('glass is the only blur in the room', () => {
-    const blurs = COMPONENTS_CSS.match(/backdrop-filter[^;]*/g) ?? [];
+    // the fallback's explicit `none` disables the effect, and the
+    // @supports capability probe (blur(1px)) is a question, not a blur
+    const blurs = (COMPONENTS_CSS.match(/backdrop-filter[^;]*/g) ?? []).filter(
+      (b) => !b.includes(': none') && !b.includes('blur(1px)'),
+    );
     expect(blurs.length).toBe(2); // prefixed pair on one rule
   });
 
