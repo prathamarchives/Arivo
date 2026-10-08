@@ -1,0 +1,687 @@
+/* components.css — the L6 primitive skin. every value from tokens.css.
+   the design law scans this file: raw hex, raw durations, off-grammar
+   radius, off-scale spacing, raw z-index are all violations.
+   state coverage (law 39): data-state drives the conditional states;
+   :hover/:active/:focus-visible drive device truth. */
+
+/* ------------------------- icon ------------------------- */
+
+.icon {
+  display: inline-block;
+  flex: none; /* icons never squish inside an inline run */
+}
+
+/* ------------------------- typography roles ------------------------- */
+
+.t-display {
+  font-family: var(--font-ui);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.t-screen-title {
+  font-family: var(--font-ui);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.t-title {
+  font-family: var(--font-ui);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.t-emphasis {
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 400;
+  line-height: var(--lh-base);
+}
+
+.t-body {
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  font-weight: 400;
+  line-height: var(--lh-base);
+}
+
+.t-quiet {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: var(--lh-base);
+  color: var(--ink-2);
+}
+
+.t-control {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: var(--lh-snug);
+}
+
+.t-label {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: var(--lh-snug);
+  color: var(--ink-2);
+}
+
+.t-meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  font-weight: 400;
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.t-micro {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 400;
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.t-read {
+  font-family: var(--font-read);
+  font-size: var(--text-md);
+  font-weight: 400;
+  line-height: var(--lh-loose);
+  color: var(--ink);
+}
+
+.ink-1 { color: var(--ink); }
+.ink-2 { color: var(--ink-2); }
+.ink-3 { color: var(--ink-3); }
+
+/* ------------------------- surface ------------------------- */
+
+.surface-mat {
+  position: relative;
+  min-width: 0;
+}
+
+.mat-paper {
+  background: var(--bg-raised);
+}
+
+.mat-paper.mat-bordered {
+  border: 1px solid var(--line);
+}
+
+.mat-paper.mat-sunken {
+  background: var(--bg-sunken);
+}
+
+/* glass — an instrument, never wallpaper (law 22). floating chrome only. */
+.mat-glass {
+  background: var(--glass-tint);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  border: 1px solid var(--glass-rim);
+  box-shadow:
+    inset 0 1px 0 var(--glass-light),
+    var(--shadow-ambient);
+}
+
+.mat-ink {
+  background: var(--ink);
+  color: var(--bg-raised);
+}
+
+/* ------------------------- divider ------------------------- */
+
+.divider {
+  border: none;
+  background: var(--line);
+}
+
+.divider-horizontal {
+  width: 100%;
+  height: 1px;
+  margin-block: var(--s3);
+}
+
+.divider-vertical {
+  width: 1px;
+  align-self: stretch;
+  margin-inline: var(--s3);
+}
+
+/* ------------------------- spinner (D-018) ------------------------- */
+
+.spinner {
+  width: var(--s3);
+  height: var(--s3);
+  border-radius: var(--r-instrument);
+  border: 1.5px solid var(--line-strong);
+  border-top-color: var(--ink-2);
+  animation: arivo-spin var(--dur-spatial-in) linear infinite;
+  flex: none;
+}
+
+@keyframes arivo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ------------------------- button states ------------------------- */
+/* base .btn/.btn-solid/.btn-ghost/.btn-lg live in base.css (L2). these
+   are the L5 semantic states — what loading/error MEAN on a button. */
+
+.btn[data-state='loading'],
+.btn[data-state='saving'],
+.btn[data-state='processing'],
+.btn[data-state='recovering'] {
+  color: var(--ink-2);
+  cursor: progress;
+  gap: var(--s2);
+}
+
+.btn[data-state='error'] {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn[data-state='error'].btn-solid {
+  background: var(--accent-ink);
+  border-color: var(--accent-ink);
+  color: var(--bg-raised);
+}
+
+.btn[data-state='needs-attention'] {
+  border-color: var(--accent);
+}
+
+.btn[data-state='saved'] {
+  color: var(--ink-2);
+}
+
+/* ------------------------- toggle ------------------------- */
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  height: var(--control-h);
+}
+
+.toggle:active .toggle-thumb {
+  transform: scale(0.985);
+}
+
+.toggle.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.toggle-track {
+  display: inline-block;
+  width: var(--s8);
+  height: var(--s4);
+  border-radius: var(--r-instrument);
+  background: var(--bg-sunken);
+  border: 1px solid var(--line-strong);
+  position: relative;
+  transition:
+    background var(--dur-state) var(--ease-settle),
+    border-color var(--dur-state) var(--ease-settle);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: var(--s3);
+  height: var(--s3);
+  border-radius: var(--r-instrument);
+  background: var(--bg-raised);
+  box-shadow: var(--elevation-1);
+  transform: translateX(0);
+  transition: transform var(--dur-micro-in) var(--ease-settle);
+}
+
+.toggle.is-on .toggle-track {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.toggle.is-on .toggle-thumb {
+  transform: translateX(calc(var(--s8) - var(--s3) - 2px));
+  background: var(--bg-raised);
+}
+
+/* compact rhythm for dense rails */
+.toggle-compact .toggle-track {
+  width: var(--s6);
+  height: var(--s3);
+}
+
+.toggle-compact .toggle-thumb {
+  width: var(--s2);
+  height: var(--s2);
+}
+
+.toggle-compact.is-on .toggle-thumb {
+  transform: translateX(calc(var(--s6) - var(--s2) - 2px));
+}
+
+/* ------------------------- textarea / select ------------------------- */
+
+.textarea {
+  width: 100%;
+  min-height: var(--s24);
+  padding: var(--s3);
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-interactive);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  line-height: var(--lh-base);
+  resize: vertical;
+  transition: border-color var(--dur-state) var(--ease-settle);
+}
+
+.textarea::placeholder {
+  color: var(--ink-3);
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--ink-2);
+}
+
+.textarea:focus-visible {
+  outline: none;
+  border-color: var(--ink-2);
+  box-shadow: 0 0 0 2px var(--sel);
+}
+
+.select-wrap {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.select {
+  appearance: none;
+  width: 100%;
+  height: var(--control-h);
+  padding: 0 var(--s8) 0 var(--s3);
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-interactive);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color var(--dur-state) var(--ease-settle);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--ink-2);
+}
+
+.select:focus-visible {
+  outline: none;
+  border-color: var(--ink-2);
+  box-shadow: 0 0 0 2px var(--sel);
+}
+
+.select-chevron {
+  position: absolute;
+  right: var(--s2);
+  top: 50%;
+  transform: translateY(-50%) rotate(90deg);
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+/* input semantic states */
+.input[data-state='error'],
+.textarea[data-state='error'],
+.select[data-state='error'] {
+  border-color: var(--accent);
+}
+
+.input[data-state='modified'],
+.textarea[data-state='modified'] {
+  border-color: var(--accent-ink);
+}
+
+.input[data-state='empty'],
+.textarea[data-state='empty'] {
+  border-style: dashed;
+}
+
+/* ------------------------- badge ------------------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--s4);
+  height: var(--s4);
+  padding: 0 var(--s1);
+  border-radius: var(--r-instrument);
+  background: var(--bg-sunken);
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  letter-spacing: var(--tracking-meta);
+  flex: none;
+}
+
+.nav-item .badge {
+  margin-left: auto;
+}
+
+/* ------------------------- progress ------------------------- */
+/* the fill is a scaleX transform — never width (the layout law). */
+
+.progress {
+  width: 100%;
+  height: 2px;
+  border-radius: var(--r-instrument);
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+
+.progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ink-2);
+  transform-origin: left center;
+  transform: scaleX(0);
+  transition: transform var(--dur-surface-in) var(--ease-shift);
+}
+
+.progress.is-indeterminate .progress-fill {
+  transform-origin: left center;
+  animation: arivo-progress-travel var(--dur-spatial-in) var(--ease-shift) infinite alternate;
+  width: 40%;
+}
+
+@keyframes arivo-progress-travel {
+  from {
+    transform: translateX(0) scaleX(1);
+  }
+  to {
+    transform: translateX(150%) scaleX(1);
+  }
+}
+
+/* ------------------------- status ------------------------- */
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.status-dot {
+  width: var(--s2);
+  height: var(--s2);
+  border-radius: var(--r-instrument);
+  background: var(--ink-3);
+  flex: none;
+}
+
+.status-saving .status-dot,
+.status-processing .status-dot,
+.status-loading .status-dot {
+  background: var(--ink-2);
+}
+
+.status-saved .status-dot {
+  background: var(--anno-sage);
+}
+
+.status-error .status-dot,
+.status-needs-attention .status-dot,
+.status-recovering .status-dot {
+  background: var(--accent);
+}
+
+.status-error,
+.status-needs-attention {
+  color: var(--accent-ink);
+}
+
+/* ------------------------- tabs ------------------------- */
+
+.tabs {
+  display: inline-flex;
+  gap: var(--s1);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1px;
+}
+
+.tab {
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-interactive) var(--r-interactive) 0 0;
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+  transition:
+    color var(--dur-state) var(--ease-settle),
+    background var(--dur-state) var(--ease-settle);
+}
+
+.tab:hover {
+  color: var(--ink);
+}
+
+.tab:active {
+  transform: scale(0.985);
+}
+
+.tab.is-selected {
+  color: var(--ink);
+  font-weight: 700;
+  background: var(--bg-sunken);
+}
+
+/* ------------------------- nav item ------------------------- */
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  width: 100%;
+  height: var(--control-h);
+  padding: 0 var(--s3);
+  border-radius: var(--r-interactive);
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+  transition:
+    color var(--dur-state) var(--ease-settle),
+    background var(--dur-state) var(--ease-settle);
+}
+
+.nav-item:hover {
+  color: var(--ink);
+  background: var(--bg-sunken);
+}
+
+.nav-item:active {
+  transform: scale(0.985);
+}
+
+.nav-item.is-selected {
+  color: var(--ink);
+  background: var(--bg-sunken);
+  font-weight: 700;
+}
+
+/* ------------------------- tooltip ------------------------- */
+
+.tooltip-host {
+  position: relative;
+  display: inline-flex;
+}
+
+.tooltip-anchor {
+  display: inline-flex;
+}
+
+.tooltip {
+  position: absolute;
+  left: 50%;
+  z-index: var(--z-floating);
+  padding: var(--s1) var(--s2);
+  border-radius: var(--r-interactive);
+  background: var(--ink);
+  color: var(--bg-raised);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: arivo-rise var(--dur-micro-in) var(--ease-glide) both;
+}
+
+.tooltip-top {
+  bottom: calc(100% + var(--s2));
+}
+
+.tooltip-bottom {
+  top: calc(100% + var(--s2));
+}
+
+/* ------------------------- visually hidden ------------------------- */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------- reader: selection dots ------------------------- */
+
+.sel-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s2);
+  border-radius: var(--r-instrument);
+}
+
+.sel-dot {
+  width: var(--s3);
+  height: var(--s3);
+  border-radius: var(--r-instrument);
+  border: 1px solid var(--img-scrim);
+  transition: transform var(--dur-micro-in) var(--ease-settle);
+}
+
+.sel-dot:hover {
+  transform: scale(1.15);
+}
+
+.sel-dot:active {
+  transform: scale(0.985);
+}
+
+.sel-amber { background: var(--anno-amber); }
+.sel-sage { background: var(--anno-sage); }
+.sel-blue { background: var(--anno-blue); }
+.sel-rose { background: var(--anno-rose); }
+.sel-violet { background: var(--anno-violet); }
+.sel-gray { background: var(--ink-3); }
+
+.sel-note {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--s4);
+  height: var(--s4);
+  border-radius: var(--r-interactive);
+  color: var(--ink-2);
+}
+
+.sel-note:hover {
+  color: var(--ink);
+  background: var(--bg-sunken);
+}
+
+/* ------------------------- reader: the wash ------------------------- */
+/* chrome contexts (cards, previews) — the reader column itself uses the
+   ar-hl system from reader-themes.ts; identical identities, different
+   derived surfaces. */
+
+.hl {
+  border-radius: var(--r-structural);
+  padding-inline: 1px;
+  margin-inline: -1px;
+}
+
+.hl-amber { background: var(--wash-amber); }
+.hl-sage { background: var(--wash-sage); }
+.hl-blue { background: var(--wash-blue); }
+.hl-rose { background: var(--wash-rose); }
+.hl-violet { background: var(--wash-violet); }
+.hl-gray { background: var(--wash-gray); }
+
+.hl.is-active {
+  box-shadow: 0 0 0 2px var(--sel);
+}
+
+/* ------------------------- reader: the hairline ------------------------- */
+
+.read-progress {
+  width: 100%;
+  height: 2px;
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+
+.read-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--ink-2);
+  transform-origin: left center;
+  transform: scaleX(0);
+  transition: transform var(--dur-surface-in) var(--ease-shift);
+}
+
+/* ------------------------- reduced motion twins ------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner,
+  .progress.is-indeterminate .progress-fill,
+  .tooltip,
+  .toggle-thumb,
+  .toggle-track,
+  .progress-fill,
+  .read-progress-fill,
+  .sel-dot {
+    animation-duration: 0ms;
+    transition-duration: 0ms;
+  }
+}

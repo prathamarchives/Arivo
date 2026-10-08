@@ -18,6 +18,7 @@ import {
 import { MotionRuntimeLab } from './MotionLab.tsx';
 import { SpatialRuntimeLab } from './SpatialLab.tsx';
 import { StateRuntimeLab } from './StateLab.tsx';
+import { PrimitivesLab } from './PrimitivesLab.tsx';
 
 type Temperament = 'den' | 'lab';
 type Lighting = 'paper' | 'sepia' | 'night';
@@ -301,6 +302,9 @@ export function DesignLab(): ReactNode {
 
         {/* ---------------- state runtime (L5 — the contract) ---------------- */}
         <StateRuntimeLab />
+
+        {/* ---------------- primitives (L6 — the gallery) ---------------- */}
+        <PrimitivesLab />
 
         <footer className="lab-header" style={{ borderBottom: 'none', borderTop: '1px solid var(--line)', paddingTop: 'var(--s6)' }}>
           <span className="meta-label">

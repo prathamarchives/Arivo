@@ -723,3 +723,84 @@
     animation-duration: 0ms;
   }
 }
+
+/* ---------- 16 · the primitive gallery ---------- */
+
+.lab-prims-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--s3);
+}
+
+.lab-prims-grid > .surface-mat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.mat-ink-text {
+  color: inherit;
+}
+
+.lab-prims-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
+}
+
+.lab-prims-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  max-width: 560px;
+}
+
+.lab-prim-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.lab-prim-gap {
+  width: var(--s4);
+  flex: none;
+}
+
+.lab-prim-slider {
+  width: var(--s32);
+  accent-color: var(--ink);
+}
+
+.lab-prims-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  width: var(--s24);
+  background: var(--bg);
+  padding: var(--s2);
+  border-radius: var(--r-surface);
+  border: 1px solid var(--line);
+}
+
+.lab-icons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: var(--s2);
+}
+
+.lab-icon-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s3) var(--s2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-interactive);
+  color: var(--ink-2);
+}
+
+.lab-icon-cell:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+}

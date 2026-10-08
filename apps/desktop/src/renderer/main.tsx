@@ -7,6 +7,7 @@ import '@fontsource/jetbrains-mono/400.css';
 import '@arivo/ui/tokens.css';
 import '@arivo/ui/base.css';
 import '@arivo/ui/layout.css';
+import '@arivo/ui/components.css';
 import '@arivo/ui/lab.css';
 import './src/styles/app.css';
 import { App } from './src/app.tsx';
