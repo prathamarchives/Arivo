@@ -15,6 +15,7 @@ const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 const TOKENS = readFileSync(join(ROOT, 'packages/ui/src/tokens.css'), 'utf-8');
 const BASE = readFileSync(join(ROOT, 'packages/ui/src/base.css'), 'utf-8');
 const COMPONENTS_CSS = readFileSync(join(ROOT, 'packages/ui/src/components/components.css'), 'utf-8');
+const OBJECTS_CSS = readFileSync(join(ROOT, 'packages/ui/src/objects/objects.css'), 'utf-8');
 const LAYOUT_CSS = readFileSync(join(ROOT, 'packages/ui/src/layout/layout.css'), 'utf-8');
 const LAB_CSS = readFileSync(join(ROOT, 'packages/ui/src/lab/lab.css'), 'utf-8');
 const APP_CSS = readFileSync(join(ROOT, 'apps/desktop/src/renderer/src/styles/app.css'), 'utf-8');
@@ -205,28 +206,30 @@ describe('the design law — components speak only tokens', () => {
   it('no raw hex in any component skin file (token files own color)', () => {
     expect(rawHexViolations(BASE)).toEqual([]);
     expect(rawHexViolations(COMPONENTS_CSS)).toEqual([]);
+    expect(rawHexViolations(OBJECTS_CSS)).toEqual([]);
     expect(rawHexViolations(LAYOUT_CSS)).toEqual([]);
     expect(rawHexViolations(LAB_CSS)).toEqual([]);
   });
 
   it('z-index is semantic everywhere (law 47)', () => {
-    expect(zIndexViolations(BASE, COMPONENTS_CSS, LAYOUT_CSS, LAB_CSS, APP_CSS)).toEqual([]);
+    expect(zIndexViolations(BASE, COMPONENTS_CSS, OBJECTS_CSS, LAYOUT_CSS, LAB_CSS, APP_CSS)).toEqual([]);
   });
 
   it('weights are 400/700 only (300 wordmark) — the supplied cuts', () => {
-    expect(weightViolations(BASE, COMPONENTS_CSS, LAYOUT_CSS, LAB_CSS, APP_CSS)).toEqual([]);
+    expect(weightViolations(BASE, COMPONENTS_CSS, OBJECTS_CSS, LAYOUT_CSS, LAB_CSS, APP_CSS)).toEqual([]);
   });
 
   it('no raw durations — transitions speak only the ladder (L3)', () => {
     expect(rawDurationViolations(BASE)).toEqual([]);
     expect(rawDurationViolations(COMPONENTS_CSS)).toEqual([]);
+    expect(rawDurationViolations(OBJECTS_CSS)).toEqual([]);
     expect(rawDurationViolations(LAYOUT_CSS)).toEqual([]);
     expect(rawDurationViolations(LAB_CSS)).toEqual([]);
     expect(rawDurationViolations(APP_CSS)).toEqual([]);
   });
 
   it('retired tokens never return', () => {
-    expect(retiredTokenViolations(BASE, COMPONENTS_CSS, LAYOUT_CSS, LAB_CSS, APP_CSS, READER_THEMES)).toEqual([]);
+    expect(retiredTokenViolations(BASE, COMPONENTS_CSS, OBJECTS_CSS, LAYOUT_CSS, LAB_CSS, APP_CSS, READER_THEMES)).toEqual([]);
   });
 
   it('the retired display serif is gone from the reading surface', () => {

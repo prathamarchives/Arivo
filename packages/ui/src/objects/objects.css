@@ -1,0 +1,405 @@
+/* objects.css — the composite skin. composites compose primitives and
+   tokens; they never invent foundations. the design law scans this file. */
+
+/* ------------------------- book object ------------------------- */
+
+.book-object {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  width: var(--cover-w);
+  flex: none;
+}
+
+.bo-sm {
+  width: calc(var(--cover-w) * 0.6);
+}
+
+.bo-tap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  text-align: left;
+  border-radius: var(--r-object);
+}
+
+/* the cover: 2:3 object. hover = component-mass glide, lift-m + shadow
+   bloom — the quiet precursor; the physical shelf-hover is L9. */
+.bo-cover {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--r-object);
+  overflow: hidden;
+  background: var(--bg-sunken);
+  box-shadow: var(--elevation-1);
+  transition:
+    transform var(--dur-comp-in) var(--ease-glide),
+    box-shadow var(--dur-comp-in) var(--ease-glide);
+}
+
+.bo-tap:hover .bo-cover {
+  transform: translateY(calc(-1 * var(--lift-m)));
+  box-shadow: var(--elevation-2);
+}
+
+.bo-tap:active .bo-cover {
+  transform: translateY(calc(-1 * var(--lift-s)));
+}
+
+.bo-tap:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.book-object.is-selected .bo-cover {
+  box-shadow:
+    0 0 0 2px var(--ink),
+    var(--elevation-2);
+}
+
+.bo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* the designed fallback: a typographic cover — literata speaks for the
+   author even when the author shipped no art */
+.bo-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  padding: var(--s4);
+  background: var(--bg-sunken);
+}
+
+.bo-fallback-title {
+  font-family: var(--font-read);
+  font-size: var(--text-md);
+  font-weight: 400;
+  line-height: var(--lh-snug);
+  color: var(--ink-2);
+  overflow-wrap: break-word;
+}
+
+.bo-spine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--s2);
+  width: 1px;
+  background: var(--line-strong);
+}
+
+.bo-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  min-width: 0;
+}
+
+.bo-title {
+  color: var(--ink);
+  overflow-wrap: break-word;
+}
+
+.bo-author {
+  overflow-wrap: break-word;
+}
+
+.bo-progress-label {
+  margin-top: calc(-1 * var(--s1));
+}
+
+/* booklight: the aura slot — den only (lab pins alpha to 0 at the root).
+   it tints the light AROUND the object, never the object itself. */
+.bo-aura {
+  position: absolute;
+  inset: calc(-1 * var(--s12));
+  z-index: var(--z-canvas);
+  pointer-events: none;
+  border-radius: var(--r-instrument);
+  background: radial-gradient(
+    ellipse 70% 55% at 50% 45%,
+    hsl(var(--aura-h) var(--aura-s) var(--aura-l) / var(--aura-alpha)),
+    transparent 70%
+  );
+}
+
+/* ------------------------- selection menu (glass) ------------------------- */
+
+.sel-menu-float {
+  position: fixed;
+  z-index: var(--z-floating);
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s2);
+  background: var(--glass-tint);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  border: 1px solid var(--glass-rim);
+  border-radius: var(--r-instrument);
+  box-shadow:
+    inset 0 1px 0 var(--glass-light),
+    var(--shadow-ambient);
+  animation: arivo-rise var(--dur-surface-in) var(--ease-glide) both;
+}
+
+.sel-menu-rule {
+  width: 1px;
+  align-self: stretch;
+  background: var(--glass-rim);
+}
+
+.sel-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--s4);
+  height: var(--s4);
+  border-radius: var(--r-interactive);
+  color: var(--ink-2);
+  transition:
+    color var(--dur-state) var(--ease-settle),
+    background var(--dur-state) var(--ease-settle);
+}
+
+.sel-action:hover {
+  color: var(--ink);
+  background: var(--glass-light);
+}
+
+.sel-action:active {
+  transform: scale(0.985);
+}
+
+/* ------------------------- workbench ------------------------- */
+
+.workbench {
+  position: relative;
+  display: flex;
+  height: 100%;
+  border-inline-start: 1px solid var(--line);
+  background: var(--bg);
+  animation: arivo-slide-in-right var(--dur-surface-in) var(--ease-glide) both;
+}
+
+/* the resize handle: direct manipulation — no transition while the user
+   owns the width (dragging a transitioned width is taffy, not furniture) */
+.workbench-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * var(--s1));
+  width: var(--s2);
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.workbench-handle:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.workbench-inner {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: calc(var(--s4) * var(--density));
+  overflow-y: auto;
+}
+
+.workbench-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+.workbench-title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--lh-tight);
+}
+
+.workbench-context {
+  padding: var(--s3);
+  border-radius: var(--r-surface);
+  background: var(--bg-sunken);
+}
+
+.workbench-body {
+  flex: 1;
+}
+
+.workbench-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--line);
+}
+
+.workbench-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s1) var(--s2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-instrument);
+  color: var(--ink-2);
+  font-size: var(--text-xs);
+}
+
+.workbench-attachment-label {
+  color: var(--ink-2);
+}
+
+@keyframes arivo-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(var(--s12));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ------------------------- dialog ------------------------- */
+
+.dialog {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  background: var(--img-scrim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: arivo-fade-in var(--dur-micro-in) var(--ease-settle) both;
+}
+
+.dialog-sheet {
+  width: min(100% - var(--s8), 480px);
+  max-height: calc(100% - var(--s16));
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-raised);
+  border-radius: var(--r-generous);
+  box-shadow: var(--elevation-3);
+  animation: arivo-rise var(--dur-surface-in) var(--ease-glide) both;
+}
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: var(--s4) var(--s6);
+  border-bottom: 1px solid var(--line);
+}
+
+.dialog-title {
+  font-size: var(--text-lg);
+}
+
+.dialog-body {
+  padding: var(--s6);
+  overflow-y: auto;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s2);
+  padding: var(--s4) var(--s6);
+  border-top: 1px solid var(--line);
+}
+
+/* ------------------------- panel ------------------------- */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: var(--s3) var(--s4);
+  border-bottom: 1px solid var(--line);
+}
+
+.panel-title {
+  font-size: var(--text-md);
+}
+
+.panel-body {
+  padding: var(--s4);
+}
+
+/* ------------------------- note preview ------------------------- */
+
+.note-preview {
+  display: flex;
+  gap: var(--s3);
+  padding: var(--s3);
+  border-radius: var(--r-surface);
+  text-align: left;
+  transition: background var(--dur-state) var(--ease-settle);
+}
+
+.note-preview:hover {
+  background: var(--bg-sunken);
+}
+
+.note-preview:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.note-preview-swatch mark {
+  padding-inline: var(--s2);
+  border-radius: var(--r-structural);
+}
+
+.note-preview-body {
+  min-width: 0;
+}
+
+.note-preview-quote {
+  font-family: var(--font-read);
+  font-size: var(--text-sm);
+  line-height: var(--lh-base);
+  color: var(--ink);
+  overflow-wrap: break-word;
+}
+
+.note-preview-note {
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+  overflow-wrap: break-word;
+}
+
+/* ------------------------- reduced-motion twins ------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .bo-cover,
+  .sel-menu-float,
+  .workbench,
+  .dialog,
+  .dialog-sheet,
+  .note-preview {
+    animation-duration: 0ms;
+    transition-duration: 0ms;
+  }
+}

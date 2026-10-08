@@ -160,3 +160,27 @@ reduced-motion twin.
 **reason:** the easing vocabulary governs TRANSITIONS between states;
 constant angular velocity is not a transition. linear is the physically
 honest curve for pure rotation.
+
+## D-019 · the cover fallback is typographic
+
+**decision:** books without cover art render a designed fallback: the
+title in literata on sunken ground with a spine hairline — never a gray
+rectangle, never a generic gradient.
+**reason:** the two-system law — the author speaks for the book; absence
+of art is not absence of voice.
+
+## D-020 · the workbench width range is recorded geometry
+
+**decision:** the workbench resizes between 300px and 460px (default
+360). the range is furniture geometry like `--cover-w`, not spacing.
+**reason:** composites may own recorded geometry; they may not invent
+fluid values that drift per screen.
+
+## D-021 · drag is exempt from motion transitions
+
+**decision:** while the user's pointer owns a value (workbench resize,
+the interruption probe), it follows the pointer with no transition.
+**reason:** the motion law governs state changes the system initiates;
+direct manipulation with a transitioned follower feels like pulling
+taffy. causality: the hand is the cause, the follower is the effect,
+with zero invented easing.
