@@ -8,7 +8,7 @@ a default that unblocks work and an evidence condition that closes it.
 | 1 | exact icon family + custom glyphs | current inline set, 1.5px stroke | icon audit pass on real screens |
 | 2 | final numeric type scale | the optically compensated ladder (+1px body steps for helvetica's x-height) | lab specimen review at real density |
 | 3 | exact shadow opacities/blur | contact 0.1 / ambient 0.1 / e3 0.14 | rendered elevation review in den + night |
-| 4 | exact spring/curve values | the four beziers as shipped | motion specimen review + interruption feel |
+| 4 | exact spring/curve values | the four beziers + critically damped presets (ζ ≥ 1) shipped in the runtime | motion specimen review + interruption feel on real screens |
 | 5 | hover glow promotion | rejected until proven | lab experiment + perf profile |
 | 6 | responsive breakpoints | none yet (desktop-first, min 960) | L14 accessibility/responsive pass |
 | 7 | dark-room elevation increments | surface stepping as shipped | night-mode elevation review |

@@ -62,3 +62,48 @@ brisk. things entering feel lighter than things leaving.
    hijack, no inertia.
 5. every motion has a reduced-motion twin — enforced by
    `tests/design-law.test.ts`.
+
+## the runtime (L3.1) — laws as behavior
+
+the map above is now enforced by `packages/ui/src/motion/`. the table is
+data; the contract is typed; the violation throws at authoring time.
+
+```text
+motion.define({ mass: 'surface', job: 'enter', interruptible: true })
+```
+
+the component answers WHAT it is doing (mass + job); the runtime decides
+the number, the curve, the twin. there is no numeric slot in the contract
+— an off-ladder duration cannot be expressed.
+
+### the two layers (D-011)
+
+| layer | engine | jobs | reduced twin |
+|---|---|---|---|
+| state motion | css transitions from specs | hover, focus, press, color/border shifts, entrances | token vars → 0ms by the media block |
+| physical motion | spring runtime (`spatial.ts`) | drag, follow, pill travel | snap — no travel at all |
+
+### what the runtime enforces
+
+1. **no arbitrary durations** — `DurationSpec` exists only via the ladder;
+   the ladder mirrors tokens.css and the test proves the mirror.
+2. **no bounce** — every spring config is validated ζ ≥ 1 at construction;
+   simulated travel never overshoots the target (motion.test.ts).
+3. **no layout animation by accident** — `--layout:*` properties require a
+   `measuredReason` string, recorded on the spec.
+4. **reduced motion** — every job has a twin (crossfade / instant / none);
+   physics snaps under reduced motion; the lab can force inspection.
+5. **interruption** — `spring.follow(target)` mid-flight preserves position
+   AND velocity; the lab's section 12 is the drag-retarget torture test.
+6. **exact rest** — settle snaps value to target, velocity to zero.
+7. **zero idle cost** — the animator's rAF loop runs only while unsettled;
+   hidden tabs pause it; out-of-view instruments stop paying.
+8. **reader scroll stays native** — the sampler is passive (never
+   preventDefault, never writes scroll position); effects are opt-in.
+
+### the scroll runtime (L3.2)
+
+`scroll.ts` samples velocity (ema-smoothed), direction, and settle state
+on a budget. velocity exposure and edge dissolve are OFF by default and
+provable in lab section 13 with both toggles — promotion to product
+requires profiling + review (law 44).

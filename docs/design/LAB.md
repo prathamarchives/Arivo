@@ -25,6 +25,13 @@ and fonts the app uses.
 | 08 controls | state coverage of the primitives |
 | 09 booklight | the aura wash — light, never walls |
 | 10 motion | the four easings on hover tracks + the duration table |
+| 11 motion runtime | the engine: two-layer map, mass-class demos, twin inspection |
+| 12 interruption | the drag-retarget torture test — velocity survives |
+| 13 scroll runtime | passive sampling readout + opt-in exposure/dissolve toggles |
+| 14 spatial runtime | the room at every width — 960→2560, primitives only |
+| 15 state runtime | the precedence playground + the canonical nine, simultaneously |
+| 16 primitives | the L6 gallery — every primitive, every state |
+| 17 the synthetic room | the L7 gate: composites coexist in one physical world |
 
 every specimen shows its token name. `lab-data.ts` mirrors the token
 file and `tests/design-law.test.ts` proves the mirror — the lab cannot

@@ -15,6 +15,11 @@ import {
   EASINGS,
   ANNOTATION,
 } from './lab-data.ts';
+import { MotionRuntimeLab } from './MotionLab.tsx';
+import { SpatialRuntimeLab } from './SpatialLab.tsx';
+import { StateRuntimeLab } from './StateLab.tsx';
+import { PrimitivesLab } from './PrimitivesLab.tsx';
+import { SyntheticRoomLab } from './RoomLab.tsx';
 
 type Temperament = 'den' | 'lab';
 type Lighting = 'paper' | 'sepia' | 'night';
@@ -289,6 +294,21 @@ export function DesignLab(): ReactNode {
             ))}
           </div>
         </section>
+
+        {/* ---------------- motion runtime (L3 — the engine) ---------------- */}
+        <MotionRuntimeLab />
+
+        {/* ---------------- spatial runtime (L4 — the room) ---------------- */}
+        <SpatialRuntimeLab />
+
+        {/* ---------------- state runtime (L5 — the contract) ---------------- */}
+        <StateRuntimeLab />
+
+        {/* ---------------- primitives (L6 — the gallery) ---------------- */}
+        <PrimitivesLab />
+
+        {/* ---------------- composites (L7 — the synthetic room) ---------------- */}
+        <SyntheticRoomLab />
 
         <footer className="lab-header" style={{ borderBottom: 'none', borderTop: '1px solid var(--line)', paddingTop: 'var(--s6)' }}>
           <span className="meta-label">

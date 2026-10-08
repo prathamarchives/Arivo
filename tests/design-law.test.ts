@@ -14,6 +14,9 @@ const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 
 const TOKENS = readFileSync(join(ROOT, 'packages/ui/src/tokens.css'), 'utf-8');
 const BASE = readFileSync(join(ROOT, 'packages/ui/src/base.css'), 'utf-8');
+const COMPONENTS_CSS = readFileSync(join(ROOT, 'packages/ui/src/components/components.css'), 'utf-8');
+const OBJECTS_CSS = readFileSync(join(ROOT, 'packages/ui/src/objects/objects.css'), 'utf-8');
+const LAYOUT_CSS = readFileSync(join(ROOT, 'packages/ui/src/layout/layout.css'), 'utf-8');
 const LAB_CSS = readFileSync(join(ROOT, 'packages/ui/src/lab/lab.css'), 'utf-8');
 const APP_CSS = readFileSync(join(ROOT, 'apps/desktop/src/renderer/src/styles/app.css'), 'utf-8');
 const READER_THEMES = readFileSync(join(ROOT, 'packages/ui/src/reader-themes.ts'), 'utf-8');
@@ -124,6 +127,15 @@ export function rawHexViolations(css: string): string[] {
   return bad;
 }
 
+/** durations only through the ladder — no raw non-zero ms in css (L3 law) */
+export function rawDurationViolations(css: string): string[] {
+  const bad: string[] = [];
+  for (const m of css.matchAll(/(?:transition|animation)[^;{}]*?(\d+)ms/g)) {
+    if (m[1]! !== '0') bad.push(`${m[1]}ms — ${m[0]!.slice(0, 50)}`);
+  }
+  return bad;
+}
+
 /* ------------------- the law: the real files -------------------- */
 
 describe('the design law — tokens are the closed vocabulary', () => {
@@ -191,21 +203,33 @@ describe('the design law — tokens are the closed vocabulary', () => {
 });
 
 describe('the design law — components speak only tokens', () => {
-  it('no raw hex in base.css or lab.css (token files own color)', () => {
+  it('no raw hex in any component skin file (token files own color)', () => {
     expect(rawHexViolations(BASE)).toEqual([]);
+    expect(rawHexViolations(COMPONENTS_CSS)).toEqual([]);
+    expect(rawHexViolations(OBJECTS_CSS)).toEqual([]);
+    expect(rawHexViolations(LAYOUT_CSS)).toEqual([]);
     expect(rawHexViolations(LAB_CSS)).toEqual([]);
   });
 
   it('z-index is semantic everywhere (law 47)', () => {
-    expect(zIndexViolations(BASE, LAB_CSS, APP_CSS)).toEqual([]);
+    expect(zIndexViolations(BASE, COMPONENTS_CSS, OBJECTS_CSS, LAYOUT_CSS, LAB_CSS, APP_CSS)).toEqual([]);
   });
 
   it('weights are 400/700 only (300 wordmark) — the supplied cuts', () => {
-    expect(weightViolations(BASE, LAB_CSS, APP_CSS)).toEqual([]);
+    expect(weightViolations(BASE, COMPONENTS_CSS, OBJECTS_CSS, LAYOUT_CSS, LAB_CSS, APP_CSS)).toEqual([]);
+  });
+
+  it('no raw durations — transitions speak only the ladder (L3)', () => {
+    expect(rawDurationViolations(BASE)).toEqual([]);
+    expect(rawDurationViolations(COMPONENTS_CSS)).toEqual([]);
+    expect(rawDurationViolations(OBJECTS_CSS)).toEqual([]);
+    expect(rawDurationViolations(LAYOUT_CSS)).toEqual([]);
+    expect(rawDurationViolations(LAB_CSS)).toEqual([]);
+    expect(rawDurationViolations(APP_CSS)).toEqual([]);
   });
 
   it('retired tokens never return', () => {
-    expect(retiredTokenViolations(BASE, LAB_CSS, APP_CSS, READER_THEMES)).toEqual([]);
+    expect(retiredTokenViolations(BASE, COMPONENTS_CSS, OBJECTS_CSS, LAYOUT_CSS, LAB_CSS, APP_CSS, READER_THEMES)).toEqual([]);
   });
 
   it('the retired display serif is gone from the reading surface', () => {
@@ -248,6 +272,14 @@ describe('the checkers work — seeded violations are caught', () => {
 
   it('raw hex checker catches a stray color', () => {
     expect(rawHexViolations('.btn { background: #3B82F6; }')).toHaveLength(1);
+  });
+
+  it('raw duration checker catches an invented 340ms transition', () => {
+    expect(
+      rawDurationViolations('.btn { transition: transform 340ms var(--ease-glide); }'),
+    ).toHaveLength(1);
+    // zero is the twin, not a violation
+    expect(rawDurationViolations('.btn { transition-duration: 0ms; }')).toHaveLength(0);
   });
 });
 

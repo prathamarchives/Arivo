@@ -96,3 +96,91 @@ captures the paginated body (the golden path, end-to-end, every run).
 **reason:** "no visual change without a baseline" + "never accept
 checks-only when behavior changed" — the capture pipeline is now part of
 the launch gate.
+
+## D-011 · motion is two layers: css state, spring physics
+
+**decision:** state motion (hover, focus, press receipts, color/border
+shifts, simple entrances) is css transitions built from `motion.define`
+specs — token vars, zeroed automatically by the reduced-motion block.
+physical motion (drag, following instruments, pill travel) is the spring
+runtime (`packages/ui/src/motion/spatial.ts`) — velocity-continuous,
+interruptible, visibility-paused.
+**reason:** css is cheaper and simpler for ~80% of ui motion; physics
+belongs where velocity continuity actually matters. making the whole app
+depend on a spring engine would be the opposite of the performance law.
+**risk recorded:** the split is a boundary, not a hierarchy — neither layer
+may grow into the other's jobs (follow jobs throw if asked of css).
+
+## D-012 · springs are critically damped, always
+
+**decision:** every sanctioned spring config carries damping ratio
+ζ ≥ 1 (critically damped: the fastest no-overshoot settle). the Spring
+constructor rejects bouncier configs. presets — follow (170/26.1/1),
+object (120/24/1.2), travel (300/34.7/1) — are the only tuning surface
+until a motion-specimen review reopens them (gate 4).
+**reason:** law 28 — no visible bounce, no elastic overshoot, no rebound.
+critically damped is the exact, defensible reading of "viscous precision".
+
+## D-013 · scroll effects are opt-in and off
+
+**decision:** the scroll runtime (`scroll.ts`) is a passive sampler —
+velocity, direction, settle detection on a rAF budget that costs zero at
+rest, pauses when hidden, never hijacks (law 43). velocity exposure and
+edge dissolve are lab-provable toggles, default off, promoted only with
+profiling + review (law 44).
+**reason:** infrastructure first, effects later — the sampler proving
+itself in the lab (section 13) is evidence; wiring blur into the product
+is not.
+
+## D-014 · the reduced-motion override is lab-only
+
+**decision:** `setReducedMotionOverride` exists so the lab can inspect
+twins under any os setting (`data-lab-reduced` zeroes css twins inside
+the lab root). production code never sets it; the physics runtime consults
+the real preference on every follow().
+**reason:** you cannot review what you cannot force on; but the user's os
+setting is the only production truth.
+
+## D-017 · the arivo state extension slots lawfully
+
+**decision:** the async family slots under loading, urgency-ordered
+(recovering > saving > processing); needs-attention defers to error but
+outranks focus; the quiet receipts (saved, modified) rank below
+interaction but above rest. error/needs-attention keep the pointer LIVE —
+retry is the whole point of an attention control.
+**reason:** the documented core order stays byte-identical; the extension
+is a total order (compile-enforced via the exhaustive Record) so no
+component can invent a contradictory precedence.
+
+## D-018 · spinners rotate linear
+
+**decision:** the async spinner's rotation uses `linear` — the one
+sanctioned non-easing keyword — at transform only, zeroed by the
+reduced-motion twin.
+**reason:** the easing vocabulary governs TRANSITIONS between states;
+constant angular velocity is not a transition. linear is the physically
+honest curve for pure rotation.
+
+## D-019 · the cover fallback is typographic
+
+**decision:** books without cover art render a designed fallback: the
+title in literata on sunken ground with a spine hairline — never a gray
+rectangle, never a generic gradient.
+**reason:** the two-system law — the author speaks for the book; absence
+of art is not absence of voice.
+
+## D-020 · the workbench width range is recorded geometry
+
+**decision:** the workbench resizes between 300px and 460px (default
+360). the range is furniture geometry like `--cover-w`, not spacing.
+**reason:** composites may own recorded geometry; they may not invent
+fluid values that drift per screen.
+
+## D-021 · drag is exempt from motion transitions
+
+**decision:** while the user's pointer owns a value (workbench resize,
+the interruption probe), it follows the pointer with no transition.
+**reason:** the motion law governs state changes the system initiates;
+direct manipulation with a transitioned follower feels like pulling
+taffy. causality: the hand is the cause, the follower is the effect,
+with zero invented easing.
