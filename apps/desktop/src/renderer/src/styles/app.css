@@ -649,6 +649,36 @@
   background: var(--bg-sunken);
 }
 
+/* outline children sit one step in — depth comes from the tree */
+.toc-child {
+  font-size: var(--text-meta);
+}
+
+/* the pdf page jump — an input that speaks the document's own numbers */
+.toc-jump {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s2) var(--s2) var(--s3);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--s3);
+}
+
+.toc-jump-input {
+  width: var(--s12);
+  text-align: center;
+}
+
+.toc-jump-input::-webkit-outer-spin-button,
+.toc-jump-input::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.toc-jump-input[type='number'] {
+  appearance: textfield;
+}
+
 /* notebook cards */
 
 .note-card {
@@ -914,6 +944,13 @@
   height: 24px;
 }
 
+/* the zoom stepper's honest readout */
+.type-zoom-label {
+  align-self: center;
+  min-width: var(--s12);
+  text-align: center;
+}
+
 /* ============ palette ============ */
 
 .palette {
@@ -1026,6 +1063,41 @@
   background: #fff;
   box-shadow: var(--elevation-2);
   border-radius: var(--r-structural);
+  /* column-flex scrollers shrink auto-min-height items to zero — a page
+   * is geometry, never a shrinkee (found live, W2.2) */
+  flex-shrink: 0;
+}
+
+/* the lazy window: unrendered pages hold their geometry with a quiet sheet
+ * (the #fff allowlist is documented — pdf paper is genuinely white) */
+.pdf-page[data-pending]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  border-radius: inherit;
+  opacity: 0.6;
+}
+
+[data-read-theme='night'] .pdf-page[data-pending]::after {
+  filter: invert(0.92) hue-rotate(180deg);
+  opacity: 1;
+}
+
+/* a page that failed to render says so — never a silent hole */
+.pdf-page.pdf-render-failed {
+  box-shadow: var(--shadow-contact);
+}
+.pdf-page.pdf-render-failed::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  border-radius: inherit;
+  opacity: 0.9;
+}
+.pdf-page.pdf-render-failed .pdf-page-label {
+  color: var(--ink-2);
 }
 
 .pdf-page canvas {
@@ -1038,8 +1110,9 @@
   inset: 0;
   overflow: hidden;
   line-height: 1;
-  opacity: 0.2;
-  mix-blend-mode: multiply;
+  /* the text layer is a selection proxy, not ink — invisible until selected
+   * (the 0.2-opacity era ghosted the canvas glyphs; found by visual review, W2.2) */
+  opacity: 0;
   color: #000;
   cursor: text;
   user-select: text;
@@ -1049,6 +1122,12 @@
   position: absolute;
   white-space: pre;
   transform-origin: 0 0;
+}
+
+/* selection IS the signature moment — amber ink, visible on every page */
+.pdf-text ::selection,
+.pdf-text::selection {
+  background: var(--anno-amber);
 }
 
 .pdf-page-label {

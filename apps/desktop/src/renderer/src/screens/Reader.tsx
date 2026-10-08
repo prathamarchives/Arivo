@@ -14,8 +14,9 @@ import type {
   ReaderSettings,
 } from '@arivo/core';
 import { uuidv7, FONT_STEPS } from '@arivo/core';
-import { EpubAdapter, PdfAdapter, type PdfAnchorData } from '@arivo/reader';
-import { IconButton, Button, Kbd } from '@arivo/ui';
+import { EpubAdapter, PdfAdapter, type PdfAnchorData, type ZoomMode } from '@arivo/reader';
+import { zoomLabel, stepZoom, parsePageTarget } from '@arivo/reader';
+import { IconButton, Button, Input, Kbd } from '@arivo/ui';
 import { api } from '../services/api.ts';
 import { BOOK_FONT_FACE_CSS } from '../lib/book-fonts.ts';
 import { useSettings } from '../stores/settings.ts';
@@ -387,13 +388,15 @@ function TypographyPanel({
   settings,
   onSet,
   isPdf,
+  zoom,
   onZoom,
   onClose,
 }: {
   settings: ReaderSettings;
   onSet: (partial: Partial<ReaderSettings>) => void;
   isPdf: boolean;
-  onZoom: (z: 'fit-width' | 'fit-page' | '100%') => void;
+  zoom: ZoomMode;
+  onZoom: (z: ZoomMode) => void;
   onClose: () => void;
 }): ReactNode {
   const themes = [
@@ -459,14 +462,26 @@ function TypographyPanel({
         <>
           <div className="meta-label type-label">zoom</div>
           <div className="type-flow">
-            <button className="chip" onClick={() => onZoom('fit-width')}>
+            <button
+              className={`chip${zoom === 'fit-width' ? ' chip-active' : ''}`}
+              onClick={() => onZoom('fit-width')}
+            >
               <IconFitWidth /> fit width
             </button>
-            <button className="chip" onClick={() => onZoom('fit-page')}>
+            <button
+              className={`chip${zoom === 'fit-page' ? ' chip-active' : ''}`}
+              onClick={() => onZoom('fit-page')}
+            >
               <IconFitPage /> fit page
             </button>
-            <button className="chip" onClick={() => onZoom('100%')}>
-              100%
+          </div>
+          <div className="type-flow">
+            <button className="chip" onClick={() => onZoom(stepZoom(zoom, 0.8))} aria-label="zoom out">
+              <span aria-hidden="true">−</span>
+            </button>
+            <span className="meta-label type-zoom-label">{zoomLabel(zoom)}</span>
+            <button className="chip" onClick={() => onZoom(stepZoom(zoom, 1.25))} aria-label="zoom in">
+              <span aria-hidden="true">+</span>
             </button>
           </div>
         </>
@@ -499,7 +514,10 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
   const [focusId, setFocusId] = useState<string | null>(null);
   const [percent, setPercent] = useState(0);
   const [chapter, setChapter] = useState('');
-  const [chapters, setChapters] = useState<{ label: string; target: string }[]>([]);
+  const [chapters, setChapters] = useState<{ label: string; target: string; depth: number }[]>([]);
+  const [pdfZoom, setPdfZoom] = useState<ZoomMode>('fit-width');
+  const [pdfPageCount, setPdfPageCount] = useState(0);
+  const [pageQuery, setPageQuery] = useState('');
 
   /* chrome visibility is the shell's attention model — the reader reports
    * engagement (selection, drawers), the room decides quiet/absent */
@@ -597,7 +615,19 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
 
         await adapter.open(host, bytes);
         if (disposed) return;
-        setChapters(adapter.getChapters().map((c) => ({ label: c.label, target: c.target })));
+        // the outline arrives as a tree — the drawer reads it flattened, indented
+        const flat: { label: string; target: string; depth: number }[] = [];
+        const walkChapters = (nodes: ReturnType<FormatReader['getChapters']>, depth: number): void => {
+          for (const c of nodes) {
+            flat.push({ label: c.label, target: c.target, depth });
+            if (c.children.length > 0) walkChapters(c.children, depth + 1);
+          }
+        };
+        walkChapters(adapter.getChapters(), 0);
+        setChapters(flat);
+        if (book.format === 'pdf') {
+          setPdfPageCount((adapter as PdfAdapter).getPageCount());
+        }
 
         // annotations + the drift pass
         const { highlights, bookmarks, notes } = await api.annotations.list(bookId);
@@ -682,6 +712,12 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
     adapterRef.current?.applySettings(settings);
   }, [settings]);
 
+  // ---- pdf zoom flows to the adapter ----
+  useEffect(() => {
+    const pdf = adapterRef.current as PdfAdapter | null;
+    if (pdf?.setZoom && book?.format === 'pdf') pdf.setZoom(pdfZoom);
+  }, [pdfZoom, book?.format]);
+
   /* engagement: while the reader holds work in hand (selection,
    * drawers, panels) the shell stays present — quiet/absent is for
    * unencumbered reading only */
@@ -714,10 +750,12 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
           break;
         case '+':
         case '=':
-          if (!isPdf) setSettings({ fontStep: Math.min(FONT_STEPS.length - 1, settings.fontStep + 1) });
+          if (isPdf) setPdfZoom((z) => stepZoom(z, 1.25));
+          else setSettings({ fontStep: Math.min(FONT_STEPS.length - 1, settings.fontStep + 1) });
           break;
         case '-':
-          if (!isPdf) setSettings({ fontStep: Math.max(0, settings.fontStep - 1) });
+          if (isPdf) setPdfZoom((z) => stepZoom(z, 0.8));
+          else setSettings({ fontStep: Math.max(0, settings.fontStep - 1) });
           break;
         case 'b':
         case 'B':
@@ -892,11 +930,6 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
           <span className="meta-label">{book?.authors.join(', ') ?? ''}</span>
         </div>
         <div className="reader-actions">
-          {isPdf && (
-            <IconButton label="zoom" onClick={() => setTypeOpen(true)}>
-              <IconType />
-            </IconButton>
-          )}
           <IconButton
             label="reading settings"
             onClick={() => {
@@ -968,10 +1001,36 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
             </IconButton>
           </header>
           <div className="drawer-body">
+            {isPdf && pdfPageCount > 0 && (
+              <div className="toc-jump">
+                <Input
+                  className="toc-jump-input"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={pdfPageCount}
+                  aria-label="go to page"
+                  placeholder="page"
+                  value={pageQuery}
+                  onChange={(e) => setPageQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter') return;
+                    const target = parsePageTarget(pageQuery || undefined, pdfPageCount);
+                    void adapterRef.current?.display(`page:${target}`);
+                    setPageQuery('');
+                    setTocOpen(false);
+                  }}
+                />
+                <span className="meta-label">
+                  of {pdfPageCount} {pdfPageCount === 1 ? 'page' : 'pages'}
+                </span>
+              </div>
+            )}
             {chapters.map((c) => (
               <button
-                key={c.target}
-                className={`toc-item${c.label === chapter ? ' toc-current' : ''}`}
+                key={`${c.target}-${c.label}`}
+                className={`toc-item${c.label === chapter ? ' toc-current' : ''}${c.depth > 0 ? ' toc-child' : ''}`}
+                style={c.depth > 0 ? { paddingLeft: `calc(var(--s4) + ${c.depth} * var(--s2))` } : undefined}
                 onClick={() => {
                   void adapterRef.current?.display(c.target);
                   setTocOpen(false);
@@ -989,10 +1048,8 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
           settings={settings}
           onSet={(partial) => setSettings(partial)}
           isPdf={!!isPdf}
-          onZoom={(z) => {
-            const pdf = adapterRef.current as PdfAdapter | null;
-            if (pdf?.setZoom) pdf.setZoom(z === '100%' ? 1 : z);
-          }}
+          zoom={pdfZoom}
+          onZoom={(z) => setPdfZoom(z)}
           onClose={() => setTypeOpen(false)}
         />
       )}

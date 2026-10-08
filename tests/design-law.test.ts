@@ -319,3 +319,24 @@ describe('the design lab tells the truth', () => {
     }
   });
 });
+
+/* ------- the pdf substrate's css laws (found live, W2.2 — stay laws) ------- */
+
+describe('the pdf substrate — geometry laws discovered by live verification', () => {
+  const PDF_BLOCK = APP_CSS.slice(APP_CSS.indexOf('.pdf-scroll'));
+
+  it('a page is geometry, never a flex-shrinkee (the collapsed-placeholder bug)', () => {
+    const m = PDF_BLOCK.match(/\.pdf-page\s*\{[^}]*\}/);
+    expect(m).not.toBeNull();
+    expect(m![0]).toMatch(/flex-shrink:\s*0/);
+  });
+
+  it('the text layer is a selection proxy, not ink — invisible until selected', () => {
+    const m = PDF_BLOCK.match(/\.pdf-text\s*\{[^}]*\}/);
+    expect(m).not.toBeNull();
+    expect(m![0]).toMatch(/opacity:\s*0/);
+    // and selection is visible ink: the ::selection rule exists and speaks a token
+    const sel = PDF_BLOCK.match(/\.pdf-text\s+::selection[\s\S]{0,200}?background:\s*var\(--anno-amber\)/);
+    expect(sel).not.toBeNull();
+  });
+});

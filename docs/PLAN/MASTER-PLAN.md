@@ -324,3 +324,15 @@ status: PLAN MODE. awaiting fire.
   stale mark geometry on font change). 331/2 skipped green, live
   evidence m001-m008. session log:
   docs/SESSIONS/0003-the-great-reconciliation.md
+- **W2.1 + W2.2 pdf substrate: DONE** (this commit) — lazy windowed
+  rendering (12-page fixture = 3-5 canvases, not 12; the 500-canvas
+  cliff is dead), real outline TOC + page jump + outline-driven
+  chapter labels, zoom that re-renders only the visible window and
+  keeps the reading spot, plain-language failures, info-dict import
+  (authors/description via the /Info object reference, never an
+  outline item's /Title). the reader package got its first tests
+  (pdf-logic 24 + fixture 5). D11 closed: the first live pdf proof
+  ever — open → mark → save → reopen → restart at the exact page, 3
+  live bugs found+fixed+lawed (flex-collapse, silent relocation, ghost
+  text layer). 370/2 green. session log:
+  docs/SESSIONS/0004-pdf-substrate.md
