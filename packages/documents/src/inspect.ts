@@ -200,7 +200,9 @@ function joinZipPath(opfPath: string, href: string): string {
   return dir + decodeURIComponent(href);
 }
 
-/** pdf inspection v0.1: honest minimal — filename is the title, truth discovered on open */
+/** pdf inspection: the info dict where it exists, the filename where it
+ *  doesn't — never a guessed metadata field (W2.1: authors + description
+ *  joined the title). */
 export async function inspectPdf(path: string): Promise<InspectedFile> {
   const size = (await stat(path)).size;
   validateFileShape(path, size, '.pdf');
@@ -209,14 +211,38 @@ export async function inspectPdf(path: string): Promise<InspectedFile> {
   if (head !== '%PDF-') throw new DocumentRejected('not a pdf file');
   const hash = createHash('sha256').update(data).digest('hex');
   const base = basename(path, extname(path)).replace(/[_-]+/g, ' ').trim();
-  // try to pull the title from the pdf info dict (best effort, no parser dep)
+  // info-dict fields — parsed from the /Info object itself when the trailer
+  // points at one (outline items also carry /Title; the tail-wide regex
+  // must never read a bookmark's title as the document's)
   const tail = data.subarray(Math.max(0, data.length - LIMITS.pdfTailBytes)).toString('latin1');
-  const titleMatch = tail.match(/\/Title\s*\(([^)]{1,200})\)/)?.[1];
+  let infoScope = tail;
+  const infoRef = tail.match(/\/Info\s+(\d+)\s+0\s+R/)?.[1];
+  if (infoRef) {
+    const start = tail.indexOf(`${infoRef} 0 obj`);
+    if (start !== -1) {
+      const end = tail.indexOf('endobj', start);
+      infoScope = tail.slice(start, end === -1 ? undefined : end);
+    }
+  }
+  const infoString = (key: string): string | null => {
+    const matches = [...infoScope.matchAll(new RegExp(`/${key}\\s*\\(([^)]{1,400})\\)`, 'g'))];
+    const last = matches.at(-1)?.[1];
+    return last ? last.trim() : null;
+  };
+  const titleMatch = infoString('Title');
   const title = titleMatch
-    ? titleMatch.trim()
+    ? titleMatch.slice(0, LIMITS.maxMetadataLength)
     : base.length > 0
       ? base.slice(0, LIMITS.maxMetadataLength)
       : basename(path);
+  // /Author holds one or many names — split on the conventional separators
+  const authorRaw = infoString('Author');
+  const authors = (authorRaw ?? '')
+    .split(/[;]\s*/)
+    .map((a) => a.trim())
+    .filter((a) => a.length > 0)
+    .map((a) => a.slice(0, LIMITS.maxMetadataLength));
+  const description = capField(infoString('Subject'), 'description');
   return {
     format: 'pdf',
     hash,
@@ -224,8 +250,8 @@ export async function inspectPdf(path: string): Promise<InspectedFile> {
     fileSize: size,
     title,
     subtitle: null,
-    authors: [],
-    description: null,
+    authors,
+    description,
     language: null,
     publisher: null,
     publishedYear: null,

@@ -20,7 +20,7 @@ html, body {
 }
 body {
   font-family: var(--font-read), Georgia, serif !important;
-  line-height: 1.65 !important;
+  line-height: var(--ar-leading, 1.65) !important;
   color: var(--read-ink) !important;
   -webkit-font-smoothing: antialiased;
   text-align: justify;

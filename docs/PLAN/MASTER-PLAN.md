@@ -324,3 +324,36 @@ status: PLAN MODE. awaiting fire.
   stale mark geometry on font change). 331/2 skipped green, live
   evidence m001-m008. session log:
   docs/SESSIONS/0003-the-great-reconciliation.md
+- **W2.1 + W2.2 pdf substrate: DONE** (this commit) — lazy windowed
+  rendering (12-page fixture = 3-5 canvases, not 12; the 500-canvas
+  cliff is dead), real outline TOC + page jump + outline-driven
+  chapter labels, zoom that re-renders only the visible window and
+  keeps the reading spot, plain-language failures, info-dict import
+  (authors/description via the /Info object reference, never an
+  outline item's /Title). the reader package got its first tests
+  (pdf-logic 24 + fixture 5). D11 closed: the first live pdf proof
+  ever — open → mark → save → reopen → restart at the exact page, 3
+  live bugs found+fixed+lawed (flex-collapse, silent relocation, ghost
+  text layer). 370/2 green. session log:
+  docs/SESSIONS/0004-pdf-substrate.md
+- **W2.3 + W2.4 core: DONE** (this commit) — reading profiles as
+  derived preset bundles (default/dense/research; night reshaped into
+  orthogonal lighting — no hidden coupling), leading + measure ladders
+  (the 520-760 law, ideal 680) as live settings with panel detents,
+  dual page as a true layout state (two measures side by side,
+  viewport-decided, honest single-column fallback), and every
+  repaginating change through the proven controlled re-render path —
+  marks + position survive everything. 380/2 green (+10 profile-law
+  tests). one false alarm honestly spent (wrong-document mark queries —
+  the 0003 lesson, re-learned with receipts). session log:
+  docs/SESSIONS/0005-profiles-measure-dual-page.md
+- **W2.5 + W2.6: DONE** (this commit) — the page-turn beat (8px drift +
+  3px blur, one --dur-turn long, twin-collapsed under reduced motion;
+  live-proven in both directions) closes motion's true gap — the L3
+  runtime already owned the rest of the vocabulary. the campaign's four
+  named bugs became permanent regression laws (menu z-layer, single-
+  token annotation classes, the complete repaginates trigger, the
+  gitignored seed path). 385/2 green. session log:
+  docs/SESSIONS/0006-motion-and-regression-laws.md
+- **WAVE 2 CLOSED**: the reader substrate is first-class on both
+  formats. next: L10 Desk.

@@ -4,12 +4,13 @@ import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { inspectFile, inspectEpub, detectFormat, ImportError } from './inspect.ts';
+import { inspectFile, inspectEpub, inspectPdf, detectFormat, ImportError } from './inspect.ts';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(HERE, '../../..');
-// the committed deterministic fixture — runs everywhere (fresh clones, CI)
+// the committed deterministic fixtures — run everywhere (fresh clones, CI)
 const FIXTURE_EPUB = join(ROOT, 'test-fixtures/fixture.epub');
+const FIXTURE_PDF = join(ROOT, 'test-fixtures/fixture.pdf');
 // the owner's real book — present on the dev machine, gitignored, skipped elsewhere
 const REAL_EPUB = join(
   ROOT,
@@ -99,5 +100,42 @@ describe('the epub is untrusted input — validation', () => {
     const fake = join(tmp, 'fake.pdf');
     await writeFile(fake, '%NOT-PDF');
     await expect(inspectFile(fake)).rejects.toThrow(ImportError);
+  });
+});
+
+describe('inspectPdf — on the committed fixture (W2.1: the info dict joined)', () => {
+  it('extracts title, authors, and description from the info dict', async () => {
+    const result = await inspectPdf(FIXTURE_PDF);
+    expect(result.format).toBe('pdf');
+    expect(result.title).toBe('Arivo Field Notes');
+    expect(result.authors).toEqual(['A. Reader']);
+    expect(result.description).toBe('a synthetic pdf for substrate verification');
+    expect(result.hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.fileSize).toBe((await readFile(FIXTURE_PDF)).length);
+  });
+
+  it('a filename with no info dict stays honest — the name is the title', async () => {
+    const bare = join(tmp, 'municipal_reports.pdf');
+    await writeFile(bare, Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(32)]));
+    const result = await inspectPdf(bare);
+    expect(result.title).toBe('municipal reports');
+    expect(result.authors).toEqual([]);
+    expect(result.description).toBeNull();
+  });
+});
+
+describe('inspectPdf — multi-author splitting', () => {
+  it('splits the conventional semicolon list', async () => {
+    const bytes = await readFile(FIXTURE_PDF);
+    // splice a new info dict line into the tail bytes the inspector reads
+    const s = bytes.toString('latin1').replace(
+      '/Author (A. Reader)',
+      '/Author (Ada Lovelace; Alan Turing)',
+    );
+    const multi = join(tmp, 'multi.pdf');
+    await writeFile(multi, Buffer.from(s, 'latin1'));
+    const result = await inspectPdf(multi);
+    expect(result.authors).toEqual(['Ada Lovelace', 'Alan Turing']);
+    expect(result.title).toBe('Arivo Field Notes');
   });
 });

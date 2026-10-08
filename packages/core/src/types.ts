@@ -41,6 +41,18 @@ export type ReadingTheme = 'paper' | 'sepia' | 'night';
 
 export type ReadingFlow = 'paginated' | 'scrolled';
 
+/** the reading typography bundles — presets, not modes. selecting one
+ *  writes its fields into the live settings; the reader may then nudge
+ *  any field (visible, never hidden coupling). the active profile is
+ *  DERIVED: a chip lights only when every field matches its bundle.
+ *  lighting (theme) is orthogonal — the register's 'night profile' is
+ *  night lighting on any profile, not a fourth typography. */
+export type ReadingProfile = 'default' | 'dense' | 'research';
+
+/** dual page: 'auto' lets the viewport decide (epub.js spread, with its
+ *  own small-screen fallback); 'single' is the explicit one-column law */
+export type PageMode = 'single' | 'auto';
+
 export type LibraryView = 'grid' | 'list';
 
 export type LibrarySize = 's' | 'm' | 'l';
@@ -53,7 +65,12 @@ export interface ReaderSettings {
   theme: ReadingTheme;
   /** index into the type steps: 16 / 18 / 20 / 22 / 24 */
   fontStep: number;
+  /** paragraph leading from the ladder: 1.5 / 1.65 / 1.8 (the value) */
+  lineHeight: number;
+  /** the measure from the ladder: 520 / 620 / 680 / 760 (the px value; ideal 680) */
+  measure: number;
   flow: ReadingFlow;
+  pageMode: PageMode;
 }
 
 export interface AppSettings extends ReaderSettings {
@@ -68,10 +85,54 @@ export interface AppSettings extends ReaderSettings {
 
 export const FONT_STEPS = [16, 18, 20, 22, 24] as const;
 
+/** the leading ladder — paragraph air in three honest steps */
+export const LINE_HEIGHTS = [1.5, 1.65, 1.8] as const;
+
+/** the measure ladder (the law: 520–760, ideal 680) — the column the
+ *  reader expands around, independent of window width */
+export const MEASURES = [520, 620, 680, 760] as const;
+
+export interface ReadingProfilePreset {
+  fontStep: number;
+  lineHeight: number;
+  measure: number;
+  flow: ReadingFlow;
+}
+
+/** the three typography bundles (W2.3): default is the law's own
+ *  geometry; dense packs more words for long-haul reading; research
+ *  is the study posture — larger type, narrow column, continuous flow
+ *  so a highlighted passage never paginates away mid-thought. */
+export const READING_PROFILES: Record<ReadingProfile, ReadingProfilePreset> = {
+  default: { fontStep: 1, lineHeight: 1.65, measure: 680, flow: 'paginated' },
+  dense: { fontStep: 0, lineHeight: 1.5, measure: 760, flow: 'paginated' },
+  research: { fontStep: 2, lineHeight: 1.8, measure: 520, flow: 'scrolled' },
+};
+
+/** the derived active profile — exact match on every field, else null
+ *  (a nudged setting is honest divergence, not a stale chip) */
+export function activeProfile(s: ReaderSettings): ReadingProfile | null {
+  for (const key of Object.keys(READING_PROFILES) as ReadingProfile[]) {
+    const p = READING_PROFILES[key];
+    if (
+      s.fontStep === p.fontStep &&
+      s.lineHeight === p.lineHeight &&
+      s.measure === p.measure &&
+      s.flow === p.flow
+    ) {
+      return key;
+    }
+  }
+  return null;
+}
+
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'paper',
   fontStep: 1,
+  lineHeight: 1.65,
+  measure: 680,
   flow: 'paginated',
+  pageMode: 'single',
   libraryView: 'grid',
   librarySize: 'm',
   booksDir: null,
