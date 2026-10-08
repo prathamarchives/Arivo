@@ -318,3 +318,9 @@ status: PLAN MODE. awaiting fire.
   fixed: single-token classes + svg fill via READ_CSS; pdf colors too.
   proof: font 18→24, flow switch, reload — mark + cfi stable.
   session log: docs/SESSIONS/0002-wave-one-and-notes.md
+- **the reconciliation: DONE** (04e9205, 2b8aae7, bdf885c) — axs/world
+  (L8+L9) and the v0.2.2 feature line merged into one main; two
+  live-found bugs fixed (the unclickable selection menu — z-under-scrim;
+  stale mark geometry on font change). 331/2 skipped green, live
+  evidence m001-m008. session log:
+  docs/SESSIONS/0003-the-great-reconciliation.md
