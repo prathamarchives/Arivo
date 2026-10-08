@@ -94,7 +94,10 @@
 .library-body {
   flex: 1;
   overflow-y: auto;
-  padding: var(--s6) var(--s8) var(--s16);
+  /* the region breathes with the temperament — density is inherited,
+   * never multiplied per component (gate 16). the bottom runway is
+   * long: the last row of objects never hugs the window edge. */
+  padding: calc(var(--s4) * var(--density)) calc(var(--s6) * var(--density)) var(--s16);
 }
 
 .collections-bar {
@@ -158,6 +161,42 @@
 /* the grid is rows of objects; the zoom is recorded geometry (the
    token --cover-w stays the default 200; the shelf's three camera
    positions override it per grid, like the workbench's range). */
+
+/* large libraries: objects outside the viewport skip rendering — the
+   shelf holds thousands without paying for all of them. the intrinsic
+   size is the object's resting height so the scrollbar is honest. */
+.book-object {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 392px;
+}
+
+/* the selection bar — objects in hand: count, actions, the door out */
+.select-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding: var(--s2) var(--s6);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-raised);
+}
+
+.select-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.select-bar-menu {
+  position: relative;
+}
+
+.select-bar-menu .menu {
+  position: absolute;
+  top: calc(var(--s4) + var(--s1));
+  right: 0;
+  z-index: var(--z-overlay);
+}
 
 .continue-reading {
   margin-bottom: var(--s8);

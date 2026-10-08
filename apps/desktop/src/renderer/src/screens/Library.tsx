@@ -20,6 +20,7 @@ import {
   IconDownload,
   IconCollection,
   IconBook,
+  IconCheck,
 } from '../components/icons.tsx';
 
 function fmtDate(ts: number): string {
@@ -34,6 +35,8 @@ function ShelfObject({
   current,
   aura,
   openingId,
+  selectionMode,
+  selected,
   onOpen,
   onMenu,
   size = 'md',
@@ -42,7 +45,12 @@ function ShelfObject({
   current?: boolean;
   aura?: BookAura;
   openingId: string | null;
-  onOpen: (book: BookWithProgress) => void;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onOpen: (
+    book: BookWithProgress,
+    e?: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean },
+  ) => void;
   onMenu: (book: BookWithProgress, x: number, y: number) => void;
   size?: 'md' | 'sm';
 }): ReactNode {
@@ -59,8 +67,10 @@ function ShelfObject({
       current={current}
       aura={aura}
       opening={openingId === book.id}
+      selectionMode={selectionMode}
+      selected={selected}
       size={size}
-      onOpen={() => onOpen(book)}
+      onOpen={(e) => onOpen(book, e)}
       onActions={(x, y) => onMenu(book, x, y)}
     />
   );
@@ -231,7 +241,13 @@ function EmptyState(): ReactNode {
   );
 }
 
-function Toolbar(): ReactNode {
+function Toolbar({
+  selectionMode,
+  onToggleSelection,
+}: {
+  selectionMode: boolean;
+  onToggleSelection: () => void;
+}): ReactNode {
   const { query, setQuery, sort, setSort } = useLibrary();
   const { settings, set } = useSettings();
   const importDialog = useLibrary((s) => s.importDialog);
@@ -269,6 +285,14 @@ function Toolbar(): ReactNode {
           <option value="author">author</option>
           <option value="progress">progress</option>
         </select>
+        {settings.libraryView === 'grid' && (
+          <IconButton
+            label={selectionMode ? 'leave selection' : 'select books'}
+            onClick={onToggleSelection}
+          >
+            <IconCheck />
+          </IconButton>
+        )}
         <IconButton
           label="reading theme"
           onClick={() => {
@@ -381,11 +405,14 @@ function ContinueReading({
   currentId: string | null;
   aura: BookAura | null;
   openingId: string | null;
-  onOpen: (book: BookWithProgress) => void;
+  onOpen: (
+    book: BookWithProgress,
+    e?: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean },
+  ) => void;
 }): ReactNode {
   if (books.length === 0) return null;
   return (
-    <section className="continue-reading" aria-label="continue reading">
+    <section className="continue-reading" aria-label="in progress">
       <div className="meta-label section-label">in progress</div>
       <div className="continue-row">
         {books.map((b) => (
@@ -405,6 +432,77 @@ function ContinueReading({
   );
 }
 
+/** the bulk bar — objects in hand. quiet structure: count, the two
+ *  real actions (gather into a list, remove), and the door out. */
+function SelectionBar({
+  count,
+  collections,
+  onAssign,
+  onRemove,
+  onDone,
+}: {
+  count: number;
+  collections: { collection: { id: string; name: string }; count: number }[];
+  onAssign: (collectionId: string) => void;
+  onRemove: (deleteFiles: boolean) => void;
+  onDone: () => void;
+}): ReactNode {
+  const [listOpen, setListOpen] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  return (
+    <div className="select-bar rise" role="toolbar" aria-label="selected books">
+      <span className="meta-label">
+        {count} {count === 1 ? 'book' : 'books'} selected
+      </span>
+      <div className="select-bar-actions">
+        <div className="select-bar-menu">
+          <button type="button" className="chip" onClick={() => setListOpen((v) => !v)}>
+            <IconCollection />
+            add to list
+          </button>
+          {listOpen && (
+            <div className="menu glass rise" role="menu">
+              {collections.length === 0 && <div className="menu-empty">no lists yet</div>}
+              {collections.map(({ collection }) => (
+                <button
+                  key={collection.id}
+                  type="button"
+                  className="menu-item"
+                  onClick={() => {
+                    onAssign(collection.id);
+                    setListOpen(false);
+                  }}
+                >
+                  <IconCollection />
+                  {collection.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {!confirm ? (
+          <button type="button" className="chip" onClick={() => setConfirm(true)}>
+            <IconTrash />
+            remove…
+          </button>
+        ) : (
+          <>
+            <button type="button" className="chip" onClick={() => onRemove(false)}>
+              remove, keep files
+            </button>
+            <button type="button" className="chip" onClick={() => onRemove(true)}>
+              remove with files
+            </button>
+          </>
+        )}
+        <button type="button" className="chip chip-add" onClick={onDone}>
+          done
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function LibraryScreen(): ReactNode {
   const {
     books,
@@ -415,6 +513,8 @@ export function LibraryScreen(): ReactNode {
     loading,
     refresh,
     importDropped,
+    removeBook,
+    assign,
   } = useLibrary();
   const { settings } = useSettings();
   const toast = useRoom((s) => s.toast);
@@ -543,16 +643,64 @@ export function LibraryScreen(): ReactNode {
 
   /* the pull-forward: the physical open. the object tips toward the
    * hand (elevation-3, the launch state), then the desk opens — the
-   * seed of L10's shared-element flight (golden 6). */
+   * seed of L10's shared-element flight (golden 6). ctrl/cmd+click is
+   * the selection shortcut: objects in hand, never an accidental open. */
   const goDesk = useRoom((s) => s.goDesk);
   const [openingId, setOpeningId] = useState<string | null>(null);
-  const openBook = (book: BookWithProgress): void => {
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
+
+  const openBook = (
+    book: BookWithProgress,
+    e?: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean },
+  ): void => {
+    if (selectionMode || e?.ctrlKey || e?.metaKey) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(book.id)) next.delete(book.id);
+        else next.add(book.id);
+        return next;
+      });
+      if (!selectionMode) setSelectionMode(true);
+      return;
+    }
     if (openingId !== null) return;
     setOpeningId(book.id);
     window.setTimeout(() => {
       setOpeningId(null);
       goDesk(book.id);
     }, 150);
+  };
+
+  /* Escape leaves selection mode — the door out is always one key away */
+  useEffect(() => {
+    if (!selectionMode) return;
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        setSelectionMode(false);
+        setSelectedIds(new Set());
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectionMode]);
+
+  const exitSelection = (): void => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const removeSelected = (deleteFiles: boolean): void => {
+    for (const id of selectedIds) void removeBook(id, deleteFiles);
+    toast(`removed ${selectedIds.size} ${selectedIds.size === 1 ? 'book' : 'books'}${deleteFiles ? ' with files' : ' — files kept'}`);
+    exitSelection();
+  };
+
+  const assignSelected = (collectionId: string): void => {
+    const name = collections.find((c) => c.collection.id === collectionId)?.collection.name ?? 'list';
+    for (const id of selectedIds) void assign(collectionId, id);
+    toast(`added ${selectedIds.size} ${selectedIds.size === 1 ? 'book' : 'books'} to ${name}`);
+    exitSelection();
   };
 
   const size = settings.librarySize;
@@ -569,7 +717,16 @@ export function LibraryScreen(): ReactNode {
       }}
       onDrop={(e) => void onDrop(e)}
     >
-      <Toolbar />
+      <Toolbar selectionMode={selectionMode} onToggleSelection={() => (selectionMode ? exitSelection() : setSelectionMode(true))} />
+      {selectionMode && (
+        <SelectionBar
+          count={selectedIds.size}
+          collections={collections}
+          onAssign={assignSelected}
+          onRemove={removeSelected}
+          onDone={exitSelection}
+        />
+      )}
       {dragging && (
         <div className="dropzone-overlay fade-in">
           <div className="dropzone-card glass">
@@ -616,6 +773,8 @@ export function LibraryScreen(): ReactNode {
                       current={b.id === currentBookId}
                       aura={b.id === currentBookId ? (aura ?? undefined) : undefined}
                       openingId={openingId}
+                      selectionMode={selectionMode}
+                      selected={selectedIds.has(b.id)}
                       onOpen={openBook}
                       onMenu={(book, x, y) => setMenu({ book, x, y })}
                     />

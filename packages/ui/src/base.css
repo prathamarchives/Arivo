@@ -315,6 +315,20 @@ textarea {
   }
 }
 
+/* the camera move (L8/L9): rooms enter at spatial mass — the rail is
+   furniture and never moves; the work region is the camera. transform
+   + opacity only; the rise is one spacing step. */
+@keyframes arivo-room-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--s2));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .fade-in {
   animation: arivo-fade-in var(--dur-material) var(--ease-glide) both;
 }
@@ -323,9 +337,14 @@ textarea {
   animation: arivo-rise var(--dur-surface-in) var(--ease-glide) both;
 }
 
+.room-enter {
+  animation: arivo-room-enter var(--dur-spatial-in) var(--ease-glide) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fade-in,
-  .rise {
+  .rise,
+  .room-enter {
     animation-duration: 0ms;
   }
 }

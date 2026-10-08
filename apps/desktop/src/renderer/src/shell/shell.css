@@ -177,10 +177,19 @@
   position: relative;
 }
 
-/* the screens fill the region — the rail is furniture, never a viewport */
+/* the screens fill the region — the rail is furniture, never a viewport.
+ * the camera move: rooms enter at spatial mass; the rail stays put
+ * (spatial memory — the room never re-arrives, only the camera does). */
 .shell-work > * {
   flex: 1;
   min-height: 0;
+  animation: arivo-room-enter var(--dur-spatial-in) var(--ease-glide) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell-work > * {
+    animation-duration: 0ms;
+  }
 }
 
 /* ---------------- visibility: attention, not routing ---------------- */

@@ -43,13 +43,18 @@ export interface BookObjectProps {
   selected?: boolean;
   /** the pull-forward launch: the object was taken — the desk opens */
   opening?: boolean;
-  onOpen?: () => void;
+  /** the open intent carries the pointer event: ctrl/cmd+click is the
+   *  shelf's selection shortcut (the event is how the shelf learns) */
+  onOpen?: (e?: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }) => void;
   /** contextual actions — the dots reveal on hover/focus; the shelf's
    *  book menu (collections, export, remove) lives behind it */
   onActions?: (x: number, y: number) => void;
   /** the den booklight slot — the pipeline writes it for the current
    *  book; lab suppresses it via the root alpha */
   aura?: BookAura;
+  /** selection mode: the tap becomes a checkbox (aria-pressed) — the
+   *  object's identity stays, its immediate job changes */
+  selectionMode?: boolean;
   /** pdf is a truth about the object, shown as the quiet format badge */
   format?: 'epub' | 'pdf';
   /** the file is gone but truth remains — shown honestly, never hidden */
@@ -72,6 +77,7 @@ export function BookObject({
   format,
   missing,
   current,
+  selectionMode = false,
   size = 'md',
 }: BookObjectProps): ReactNode {
   /* a broken cover is a missing cover: the designed typographic
@@ -99,11 +105,14 @@ export function BookObject({
       <button
         type="button"
         className="bo-tap"
-        onClick={onOpen}
+        onClick={(e) => onOpen?.({ ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey })}
+        aria-pressed={selectionMode ? Boolean(selected) : undefined}
         aria-label={
-          author
-            ? `${title} — ${author}${progress ? `, ${Math.round(progress * 100)}%` : ''}`
-            : title
+          selectionMode
+            ? `${selected ? 'deselect' : 'select'} ${title}`
+            : author
+              ? `${title} — ${author}${progress ? `, ${Math.round(progress * 100)}%` : ''}`
+              : title
         }
       >
         <span className="bo-cover">
