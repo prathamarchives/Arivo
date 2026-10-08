@@ -239,3 +239,46 @@ clock even without pointer movement.
 **reason:** two independent chrome-fade systems would disagree; the
 room must have one quietness. engagement re-checks at fire time, so an
 open selection can never have its chrome stolen.
+
+## D-026 · the shelf's views are cameras over one object system (L9)
+
+**decision:** the library renders the canonical BookObject — the
+forked BookCard/BookRow system is retired. the grid is the object
+camera (zoom via recorded geometry: --cover-w 160/200/240 on the grid,
+like the workbench range), the list view is the spine ledger (same
+identity inks, same truth badges), the in-progress strip is sm objects
+with the current book privileged. the pull-forward: on open, the
+object launches (elevation-3, deeper lift, scale 1.02) and the desk
+opens ~150ms later — the seed of L10's shared-element flight.
+**reason:** "views are camera positions over the same library. do NOT
+duplicate entirely different book-card systems." one object, one
+identity, every state.
+**risk recorded:** the list row is still app.css skin (not a composite)
+— it is a ledger line, not a card; L9's surface wave owns it if it
+grows.
+
+## D-027 · booklight is a pipeline, not a token flip (gate 8)
+
+**decision:** the enabling path for --aura-alpha is the renderer's
+booklight util: computeAura samples the current book's cover on canvas
+(CORS-clean: the arivo:// protocol already answers app://arivo),
+averages, converts to hsl, clamps to the gate's constants (s ≤ 26%,
+l 40–60%, on-alpha 0.12, taste floor s < 4 = no light), and writes the
+room's slots when the temperament is den. the lab specimens show the
+wash locally (the specimen's claim must be visible).
+**reason:** audit found --aura-alpha was 0 everywhere — the lab claimed
+booklight but nothing could enable it. an enabling path that doesn't
+exist is a foundation defect; the fix landed at the pipeline layer the
+tokens comment always described.
+
+## D-028 · pagination before the book is open is a no-op, never a throw
+
+**decision:** EpubAdapter.next()/prev() return early until the first
+display completes (private paged flag). the smoke caught the real bug:
+epub.js's Rendition.next() on an unstarted rendition throws
+("reading 'next' of undefined") — and the exception took down the
+page's paint pipeline in a hidden window.
+**reason:** key presses during book load are normal user behavior;
+"there is nothing to turn yet" is the honest answer. the smoke's
+reader capture now wakes the hidden compositor with input events —
+capturePage needs a live frame.
