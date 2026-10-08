@@ -19,6 +19,16 @@ export type Place = 'shelf' | 'desk' | 'archive';
 
 export type Attention = 'active' | 'reading';
 
+/**
+ * L10 — the desk's attention modes. not pages, not routes: instruments.
+ * the book stays the primary object; the mode decides which work surface
+ * is available beside it. READ is the resting state and stays sacred —
+ * the chrome-withdrawal law (attention) is untouched by mode switches.
+ */
+export type DeskMode = 'read' | 'mark' | 'research' | 'make' | 'reflect';
+
+export const DESK_MODES: readonly DeskMode[] = ['read', 'mark', 'research', 'make', 'reflect'];
+
 /** the desk's live context — survives navigation (spatial memory, law 32) */
 export interface DeskContext {
   bookId: string;
@@ -27,6 +37,11 @@ export interface DeskContext {
   pendingLocator: string | null;
   /** one-shot highlight to focus after an exact return */
   pendingFocusId: string | null;
+  /** L10 — the desk's mode. rides the desk context: a shelf roundtrip
+   *  returns to the same instruments, the same open document. */
+  mode: DeskMode;
+  /** the workbench's open document, if any — part of the desk's state */
+  workbenchDocId: string | null;
 }
 
 interface RoomState {
@@ -51,6 +66,11 @@ interface RoomState {
   goArchive: () => void;
   /** back to the desk exactly as it was — no locator, progress is truth */
   returnToDesk: () => void;
+
+  /** L10 — switch the desk's mode without losing any desk context */
+  setDeskMode: (mode: DeskMode) => void;
+  /** L10 — the workbench's open document (part of spatial memory) */
+  setWorkbenchDoc: (docId: string | null) => void;
 
   setEngaged: (engaged: boolean) => void;
   /** pointer woke the chrome (edge proximity) — active until idle again */
@@ -107,6 +127,9 @@ export const useRoom = create<RoomState>((set, get) => ({
         // the truth file's progress speak
         pendingLocator: locator ?? null,
         pendingFocusId: focusId ?? null,
+        // a fresh open starts in READ — the resting state, the sacred one
+        mode: 'read',
+        workbenchDocId: null,
       },
     });
     scheduleIdle();
@@ -136,6 +159,26 @@ export const useRoom = create<RoomState>((set, get) => ({
 
   setShelfScroll: (top) => set({ shelfScroll: top }),
   setArchiveScroll: (top) => set({ archiveScroll: top }),
+
+  /* L10 — mode is a property of the desk, not a route: switching never
+   * recreates the context, never touches attention's withdrawal law.
+   * the work modes (research/make/reflect) are engagement — the chrome
+   * cannot withdraw mid-work. READ and MARK leave the attention model
+   * exactly as it was: mark's engagement is the selection in hand. */
+  setDeskMode: (mode) => {
+    const d = get().desk;
+    if (!d || d.mode === mode) return;
+    set({ desk: { ...d, mode } });
+    if (mode === 'research' || mode === 'make' || mode === 'reflect') {
+      set({ engaged: true });
+    }
+  },
+
+  setWorkbenchDoc: (docId) => {
+    const d = get().desk;
+    if (!d || d.workbenchDocId === docId) return;
+    set({ desk: { ...d, workbenchDocId: docId } });
+  },
 
   clearDeskPending: () => {
     const d = get().desk;

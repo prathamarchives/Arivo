@@ -357,3 +357,24 @@ status: PLAN MODE. awaiting fire.
   docs/SESSIONS/0006-motion-and-regression-laws.md
 - **WAVE 2 CLOSED**: the reader substrate is first-class on both
   formats. next: L10 Desk.
+
+## execution log — L10 (the desk becomes a workbench)
+
+- **L10: DONE** (this commit) — the five attention modes live as
+  instruments, not routes: READ/MARK kept sacred (the attention law
+  untouched, regression 6), the workbench drawer hosts RESEARCH/MAKE/
+  REFLECT (one DeskDoc entity, three kinds, sourceRefs carrying
+  provenance — quote + locator + origin). the mark menu gained
+  question (a margin note that asks) and collect (the MARK→RESEARCH
+  bridge). THE PERSISTENCE CONTRACT is a real state machine
+  (DraftEngine: draft/saving/saved/modified/error/recovered) — every
+  keystroke mirrors synchronously, confirmation retires the mirror, a
+  death mid-write resurrects as recovered and the text reaches the
+  display. migration 004 (desk_docs + notes.question) follows the
+  dual-write law; rebuild survives index death; v3→v4 proven in place.
+  three live-found bugs fixed + lawed (recovered-text display, the
+  stale-snapshot duplicate doc, the seed that un-skipped the real-book
+  test — regression 4 caught it live a third time). 414/2 green.
+  session log: docs/SESSIONS/0007-desk-the-workbench.md
+- next: L11 Archive — provenance-first (artifact → note → selection →
+  chapter → book), then presentation.

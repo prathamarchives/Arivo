@@ -9,6 +9,7 @@ import type {
   Bookmark,
   BookWithProgress,
   Collection,
+  DeskDoc,
   Highlight,
   ImportResult,
   Note,
@@ -44,45 +45,52 @@ export function createMockApi(): ArivoApi {
     highlights: Highlight[];
     bookmarks: Bookmark[];
     notes: Note[];
+    deskDocs: DeskDoc[];
     collections: { collection: Collection; count: number }[];
     settings: AppSettings;
   }
   const load = (): MockState => {
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) return JSON.parse(raw) as MockState;
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<MockState>;
+        // tolerant read: state written before L10 has no deskDocs
+        return { ...fresh(), ...parsed, deskDocs: parsed.deskDocs ?? [] };
+      }
     } catch {
       /* fresh */
     }
-    return {
-      books: [
-        {
-          id: 'mock-burnout',
-          title: 'The Burnout Society',
-          subtitle: null,
-          authors: ['Byung-Chul Han'],
-          description: null,
-          language: 'en',
-          publisher: null,
-          publishedYear: '2010',
-          coverPath: null,
-          format: 'epub',
-          hash: 'mock',
-          fileName: 'The Burnout Society.epub',
-          fileSize: 0,
-          addedAt: Date.now() - 86400000,
-          updatedAt: Date.now(),
-          tags: ['philosophy'],
-          progress: null,
-        },
-      ],
-      highlights: [],
-      bookmarks: [],
-      notes: [],
-      collections: [{ collection: { id: 'mock-col-1', name: 'philosophy', description: null, createdAt: Date.now() }, count: 1 }],
-      settings: { ...DEFAULT_SETTINGS },
-    };
+    return fresh();
   };
+  const fresh = (): MockState => ({
+    books: [
+      {
+        id: 'mock-burnout',
+        title: 'The Burnout Society',
+        subtitle: null,
+        authors: ['Byung-Chul Han'],
+        description: null,
+        language: 'en',
+        publisher: null,
+        publishedYear: '2010',
+        coverPath: null,
+        format: 'epub',
+        hash: 'mock',
+        fileName: 'The Burnout Society.epub',
+        fileSize: 0,
+        addedAt: Date.now() - 86400000,
+        updatedAt: Date.now(),
+        tags: ['philosophy'],
+        progress: null,
+      },
+    ],
+    highlights: [],
+    bookmarks: [],
+    notes: [],
+    deskDocs: [],
+    collections: [{ collection: { id: 'mock-col-1', name: 'philosophy', description: null, createdAt: Date.now() }, count: 1 }],
+    settings: { ...DEFAULT_SETTINGS },
+  });
   let state = load();
   const save = () => localStorage.setItem(KEY, JSON.stringify(state));
   const uid = (): string => {
@@ -213,6 +221,33 @@ export function createMockApi(): ArivoApi {
         save();
       },
     },
+    desk: {
+      listDocs: async (bookId) =>
+        state.deskDocs
+          .filter((d) => d.bookId === bookId)
+          .sort((a, b) => b.updatedAt - a.updatedAt),
+      createDoc: async (bookId, d) => {
+        // idempotent: a retried create after a confirmed save must not duplicate
+        if (state.deskDocs.some((x) => x.id === d.id)) return;
+        state = { ...state, deskDocs: [...state.deskDocs, d] };
+        save();
+      },
+      updateDoc: async (bookId, d) => {
+        // insert-if-missing mirrors the desktop store's honest fallback —
+        // an optimistic doc that outran its create must never drop
+        state = {
+          ...state,
+          deskDocs: state.deskDocs.some((x) => x.id === d.id)
+            ? state.deskDocs.map((x) => (x.id === d.id ? d : x))
+            : [...state.deskDocs, d],
+        };
+        save();
+      },
+      deleteDoc: async (bookId, id) => {
+        state = { ...state, deskDocs: state.deskDocs.filter((d) => d.id !== id) };
+        save();
+      },
+    },
     archive: {
       marks: async () => {
         const entries: ArchiveEntry[] = [];
@@ -300,6 +335,11 @@ export function createMockApi(): ArivoApi {
         for (const n of state.notes) {
           if (n.body.toLowerCase().includes(ql)) {
             hits.push({ kind: 'note', id: n.id, title: n.body.slice(0, 80), context: n.chapter, bookId: n.bookId, locator: n.anchor.primary, highlightId: null });
+          }
+        }
+        for (const d of state.deskDocs) {
+          if (d.title.toLowerCase().includes(ql) || d.body.toLowerCase().includes(ql)) {
+            hits.push({ kind: 'deskdoc', id: d.id, title: (d.title || d.body).slice(0, 80), context: d.body.slice(0, 120) || null, bookId: d.bookId, locator: null, highlightId: null });
           }
         }
         return hits;

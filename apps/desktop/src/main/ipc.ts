@@ -106,6 +106,19 @@ export function registerIpc(getServices: () => Services): void {
     s().store.deleteNote(bookId, nid),
   );
 
+  handleArg('desk:listDocs', schemas.deskDocList, ({ bookId }) =>
+    s().store.listDeskDocs(bookId),
+  );
+  handleArg('desk:createDoc', schemas.deskDocCreate, ({ bookId, d }) =>
+    s().store.createDeskDoc(bookId, d as import('@arivo/core').DeskDoc),
+  );
+  handleArg('desk:updateDoc', schemas.deskDocUpdate, ({ bookId, d }) =>
+    s().store.updateDeskDoc(bookId, d as import('@arivo/core').DeskDoc),
+  );
+  handleArg('desk:deleteDoc', schemas.deskDocDelete, ({ bookId, id: did }) =>
+    s().store.deleteDeskDoc(bookId, did),
+  );
+
   handle('collections:list', () => s().store.listCollections());
   handleArg('collections:create', schemas.collectionsCreate, ({ name, description }) =>
     s().store.createCollection(name, description),

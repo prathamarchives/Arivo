@@ -865,6 +865,173 @@
   justify-content: space-between;
 }
 
+/* the composer's honest state — the ink says where text lives */
+.note-composer-actions .meta-label[data-status='error'] {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.note-composer-actions .meta-label[data-status='recovered'] {
+  color: var(--ink);
+  font-style: italic;
+}
+
+/* L10 — the desk's mode rail: five instruments, quiet chips.
+ * it rides the bottom edge with the reading chrome and fades with it. */
+
+.mode-rail {
+  position: absolute;
+  bottom: 34px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-floating);
+  display: flex;
+  gap: var(--s1);
+  padding: var(--s1);
+  border-radius: var(--r-instrument);
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  transition: opacity var(--dur-state) var(--ease-settle);
+}
+
+.mode-chip {
+  border: 0;
+  background: transparent;
+  padding: 0 var(--s3);
+  height: 24px;
+  border-radius: var(--r-interactive);
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.mode-chip:hover {
+  color: var(--ink);
+  background: var(--bg-sunken);
+}
+
+.mode-chip-active {
+  color: var(--ink);
+  font-weight: 700;
+  background: var(--bg-sunken);
+}
+
+.mode-chip:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+/* L10 — the workbench: a wider drawer, the desk's paper */
+
+.drawer-wide {
+  width: 400px;
+}
+
+.drawer-empty-note {
+  padding: var(--s2) var(--s3);
+}
+
+.note-card-click {
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  background: transparent;
+}
+
+.doc-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.doc-editor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.doc-title-input {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  padding: var(--s1) 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  color: var(--ink);
+}
+
+.doc-title-input:focus {
+  outline: none;
+  border-bottom-color: var(--ink-2);
+}
+
+.doc-body-input {
+  flex-grow: 1;
+  min-height: 200px;
+  resize: vertical;
+}
+
+.doc-status {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: 24px;
+}
+
+.doc-status .meta-label {
+  color: var(--ink-2);
+}
+
+.doc-status[data-status='error'] .meta-label {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.doc-status[data-status='recovered'] .meta-label {
+  color: var(--ink);
+  font-style: italic;
+}
+
+.doc-refs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--line);
+}
+
+.note-ref {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.note-ref-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.note-flag-question {
+  color: var(--accent-ink);
+  font-style: italic;
+}
+
+.doc-title {
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+
+.doc-snippet {
+  margin: 0;
+}
+
+.doc-refcount {
+  align-self: flex-start;
+  color: var(--ink-3);
+}
+
 /* typography panel */
 
 .type-panel {

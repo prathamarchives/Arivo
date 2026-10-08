@@ -4,7 +4,7 @@
  * error envelopes; unwrap here so codes survive into the renderer.
  */
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-import { unwrapEnvelope, type ArivoApi, type AppSettings, type ArchiveEntry, type Bookmark, type Highlight, type Note, type ImportResult, type SearchHit, type ReconciliationReport, type DiagnosticsReport, type SessionStats } from '@arivo/core';
+import { unwrapEnvelope, type ArivoApi, type AppSettings, type ArchiveEntry, type Bookmark, type DeskDoc, type Highlight, type Note, type ImportResult, type SearchHit, type ReconciliationReport, type DiagnosticsReport, type SessionStats } from '@arivo/core';
 import type { BookWithProgress, Collection } from '@arivo/core';
 
 const invoke = async <T>(name: string, arg?: unknown): Promise<T> =>
@@ -42,6 +42,12 @@ const api: ArivoApi = {
     createNote: (bookId, n) => invoke<void>('note:create', { bookId, n }),
     updateNote: (bookId, n) => invoke<void>('note:update', { bookId, n }),
     deleteNote: (bookId, id) => invoke<void>('note:delete', { bookId, id }),
+  },
+  desk: {
+    listDocs: (bookId) => invoke<DeskDoc[]>('desk:listDocs', { bookId }),
+    createDoc: (bookId, d) => invoke<void>('desk:createDoc', { bookId, d }),
+    updateDoc: (bookId, d) => invoke<void>('desk:updateDoc', { bookId, d }),
+    deleteDoc: (bookId, id) => invoke<void>('desk:deleteDoc', { bookId, id }),
   },
   archive: {
     marks: () => invoke<ArchiveEntry[]>('archive:marks'),
