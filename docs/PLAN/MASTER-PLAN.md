@@ -416,3 +416,14 @@ status: PLAN MODE. awaiting fire.
   VOICE_NOUNS fixes the dictionary. 5 executable voice laws. 430/2
   green. session log: docs/SESSIONS/0010-voice-becomes-law.md
 - next: L14 — accessibility/responsive.
+
+## execution log — L14 (the keyboard is a first-class reader)
+
+- **L14: DONE** (this commit) — four inputs had invisible keyboard
+  focus (lawed: outlines are replaced, never removed); the title
+  input's ring-killer fixed; drawers bounded by their viewport (live
+  at 480px: zero overflow); the keyboard golden path proven live
+  (tab → enter → rail → modes → escape); the shell's responsive
+  identity verified (labels leave, furniture persists); 6 a11y laws.
+  436/2 green. session log: docs/SESSIONS/0011-keyboard-first.md
+- next: L15 — performance/reliability at scale.
