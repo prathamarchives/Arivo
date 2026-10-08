@@ -86,6 +86,10 @@ export const schemas = {
   importPaths: v.array(v.string({ min: 1, max: 2048 }), { max: 50 }),
   remove: v.object({ id, deleteFiles: v.boolean() }),
   bookGet: id,
+  bookSetTags: v.object({
+    id,
+    tags: v.array(v.string({ min: 1, max: 100 }), { max: 50 }),
+  }),
   progressSave: v.object({ bookId: id, progress }),
   sessionBegin: v.object({ bookId: id, startPercent: v.number({ min: 0, max: 1 }) }),
   sessionEnd: v.object({ sessionId: id, endPercent: v.number({ min: 0, max: 1 }) }),
@@ -100,6 +104,7 @@ export const schemas = {
     description: v.nullable(v.string({ max: 2000 })),
   }),
   collectionsRemove: id,
+  collectionsRename: v.object({ id, name: v.string({ min: 1, max: 200 }) }),
   collectionsAssign: v.object({ collectionId: id, bookId: id }),
   collectionsUnassign: v.object({ collectionId: id, bookId: id }),
   collectionsBooks: id,

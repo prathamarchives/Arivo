@@ -460,10 +460,12 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
             : new EpubAdapter(hooks);
         adapterRef.current = adapter;
         adapter.setFontFace(BOOK_FONT_FACE_CSS);
+        // settings land BEFORE the first render: the persisted flow is honored
+        // at renderTo time, not patched in after (the toggle is real)
+        adapter.applySettings(readerSettingsRef.current);
 
         await adapter.open(host, bytes);
         if (disposed) return;
-        adapter.applySettings(readerSettingsRef.current);
         setChapters(adapter.getChapters().map((c) => ({ label: c.label, target: c.target })));
 
         // annotations + the drift pass

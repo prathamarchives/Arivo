@@ -22,6 +22,9 @@ import type {
   Anchor,
   HighlightColor,
   ResolutionStatus,
+  SessionStats,
+  SessionDayStat,
+  BookTimeStat,
 } from '@arivo/core';
 import { uuidv7, exportReadingNotes } from '@arivo/core';
 import { writeFileSyncAtomic } from '@arivo/persistence';
@@ -317,6 +320,28 @@ export class ArivoStore {
       .run(missing ? 1 : 0, Date.now(), id);
   }
 
+  /** tags are user-owned truth: metadata.json first, index second (the dual-write law) */
+  setBookTags(bookId: string, tags: string[]): void {
+    const metaFile = join(this.bookDir(bookId), 'metadata.json');
+    try {
+      const meta = JSON.parse(readFileSync(metaFile, 'utf-8')) as BookRecord;
+      meta.tags = tags;
+      meta.updatedAt = Date.now();
+      writeFileSyncAtomic(metaFile, JSON.stringify(meta, null, 2));
+    } catch {
+      /* the folder may be gone (fileMissing) — the index still holds the tags;
+         a later reconcile re-syncs truth when the folder returns */
+    }
+    this.db.raw.prepare('DELETE FROM tags WHERE book_id = ?').run(bookId);
+    const tagStmt = this.db.raw.prepare(
+      'INSERT OR IGNORE INTO tags(book_id, tag) VALUES (?, ?)',
+    );
+    for (const t of tags) tagStmt.run(bookId, t);
+    this.db.raw
+      .prepare('UPDATE books SET updated_at = ? WHERE id = ?')
+      .run(Date.now(), bookId);
+  }
+
   /**
    * register a book folder that already exists on disk (truth complete):
    * index the metadata + the truth contents WITHOUT rewriting truth files.
@@ -405,6 +430,67 @@ export class ArivoStore {
         'UPDATE sessions SET ended_at = ?, duration_ms = ?, end_percent = ? WHERE id = ?',
       )
       .run(Date.now(), Date.now() - s.started_at, endPercent, sessionId);
+  }
+
+  /** the reading life, from finished sessions only — quiet numbers, index-derived */
+  sessionStats(): SessionStats {
+    const rows = this.db.raw
+      .prepare('SELECT book_id, started_at, duration_ms, ended_at FROM sessions')
+      .all() as { book_id: string; started_at: number; duration_ms: number; ended_at: number | null }[];
+    const finished = rows.filter((r) => r.ended_at !== null);
+
+    const localDay = (ts: number): number => {
+      const d = new Date(ts);
+      d.setHours(0, 0, 0, 0);
+      return d.getTime();
+    };
+    const today = localDay(Date.now());
+    const DAY = 86_400_000;
+
+    const totalMs = finished.reduce((acc, r) => acc + r.duration_ms, 0);
+    const weekMs = finished
+      .filter((r) => r.started_at >= today - 6 * DAY)
+      .reduce((acc, r) => acc + r.duration_ms, 0);
+
+    // per-day buckets for the last 14 days + the streak walk
+    const byDay = new Map<number, number>();
+    for (const r of finished) {
+      const day = localDay(r.started_at);
+      if (day >= today - 13 * DAY) {
+        byDay.set(day, (byDay.get(day) ?? 0) + r.duration_ms);
+      }
+    }
+    const days: SessionDayStat[] = [...byDay.entries()]
+      .map(([day, ms]) => ({ day, ms }))
+      .sort((a, b) => a.day - b.day);
+
+    // the read-days set spans all history (a streak can be older than 14 days)
+    const readDays = new Set(finished.map((r) => localDay(r.started_at)));
+    let streakDays = 0;
+    let cursor = readDays.has(today) ? today : today - DAY;
+    while (readDays.has(cursor)) {
+      streakDays++;
+      cursor -= DAY;
+    }
+
+    const byBook = new Map<string, { ms: number; last: number }>();
+    for (const r of finished) {
+      const b = byBook.get(r.book_id) ?? { ms: 0, last: 0 };
+      b.ms += r.duration_ms;
+      b.last = Math.max(b.last, r.ended_at ?? r.started_at);
+      byBook.set(r.book_id, b);
+    }
+    const books: BookTimeStat[] = [...byBook.entries()]
+      .map(([bookId, { ms, last }]) => {
+        const row = this.db.raw
+          .prepare('SELECT title FROM books WHERE id = ?')
+          .get(bookId) as { title: string } | undefined;
+        return { bookId, title: row?.title ?? '(removed book)', ms, lastReadAt: last };
+      })
+      .sort((a, b) => b.ms - a.ms)
+      .slice(0, 6);
+
+    return { totalMs, weekMs, streakDays, sessions: finished.length, days, books };
   }
 
   // ---------- highlights (the dual-write heart) ----------
@@ -554,6 +640,16 @@ export class ArivoStore {
       .prepare('INSERT INTO collections (id, name, description, created_at) VALUES (?, ?, ?, ?)')
       .run(c.id, c.name, c.description, c.createdAt);
     return c;
+  }
+
+  /** rename — truth first, index second; a duplicate name throws honestly (UNIQUE) */
+  renameCollection(id: string, name: string): void {
+    const truth = this.readCollections();
+    const c = truth.collections.find((x) => x.id === id);
+    if (!c) return;
+    c.name = name;
+    this.writeCollections(truth);
+    this.db.raw.prepare('UPDATE collections SET name = ? WHERE id = ?').run(name, id);
   }
 
   deleteCollection(id: string): void {

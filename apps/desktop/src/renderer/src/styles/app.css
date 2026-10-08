@@ -1098,3 +1098,305 @@
   mix-blend-mode: multiply;
   border-radius: 1px;
 }
+
+/* ============ book detail (the metadata gets its face) ============ */
+
+.detail-drawer {
+  width: 420px;
+  z-index: 66;
+  box-shadow: var(--shadow-3);
+}
+
+.detail-body {
+  padding: var(--s4);
+  gap: var(--s5);
+}
+
+.detail-hero {
+  display: flex;
+  gap: var(--s5);
+  align-items: flex-start;
+}
+
+.detail-hero .book-cover {
+  box-shadow: var(--shadow-2);
+  border-radius: var(--r2);
+  overflow: hidden;
+}
+
+.detail-hero-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  min-width: 0;
+  flex: 1;
+}
+
+.detail-title {
+  font-size: var(--text-xl);
+  line-height: 1.15;
+  overflow-wrap: break-word;
+}
+
+.detail-subtitle {
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.detail-author {
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+}
+
+.detail-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  margin: var(--s1) 0 var(--s2);
+}
+
+.detail-marks {
+  display: flex;
+  gap: var(--s4);
+  color: var(--ink-3);
+}
+
+.detail-marks span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.detail-description {
+  font-family: var(--font-read);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  color: var(--ink);
+}
+
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  align-items: center;
+}
+
+.chip-tag {
+  gap: var(--s1);
+}
+
+.tag-remove {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  color: var(--ink-3);
+}
+
+.tag-remove:hover {
+  color: var(--ink);
+  background: var(--bg-sunken);
+}
+
+.tag-input {
+  border: none;
+  border-bottom: 1px dashed var(--line-strong);
+  outline: none;
+  background: none;
+  font-size: var(--text-xs);
+  color: var(--ink);
+  padding: var(--s1) 0;
+  min-width: 110px;
+}
+
+.tag-input::placeholder {
+  color: var(--ink-3);
+}
+
+.detail-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s2) var(--s4);
+  margin: 0;
+}
+
+.detail-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-top: 1px solid var(--line);
+  padding-top: var(--s2);
+}
+
+.detail-fact dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink);
+  overflow-wrap: break-word;
+}
+
+.tags-bar {
+  margin-bottom: var(--s4);
+  color: var(--ink-3);
+}
+
+/* ============ settings (one quiet page) ============ */
+
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 64;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+.settings-page {
+  width: min(560px, calc(100vw - var(--s16)));
+  max-height: min(640px, calc(100vh - var(--s16)));
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r3);
+  box-shadow: var(--shadow-3);
+  overflow: hidden;
+}
+
+.settings-body {
+  padding: var(--s4) var(--s6);
+  gap: var(--s6);
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s4);
+  min-height: var(--control-h);
+}
+
+.settings-row-label {
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+
+.settings-path {
+  font-size: var(--text-sm);
+  color: var(--ink);
+  overflow-wrap: break-word;
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  flex-wrap: wrap;
+  margin-top: var(--s1);
+}
+
+.settings-note {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  margin-top: var(--s2);
+  color: var(--ink-2);
+}
+
+.settings-foot {
+  text-align: center;
+  padding: var(--s2) 0 var(--s4);
+}
+
+.settings-empty {
+  padding: var(--s2) 0;
+}
+
+.settings-facts {
+  line-height: 1.8;
+}
+
+.settings-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+/* the reading life — quiet numbers, editorial type */
+
+.reading-life {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+.stats-row {
+  display: flex;
+  gap: var(--s8);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-value {
+  font-size: var(--text-lg);
+}
+
+.stat-days {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 48px;
+}
+
+.stat-day-bar {
+  flex: 1;
+  min-width: 6px;
+  max-width: 18px;
+  background: var(--line-strong);
+  border-radius: var(--r1);
+  transition: background var(--t-hover) var(--ease);
+}
+
+.stat-day-bar:hover {
+  background: var(--ink-3);
+}
+
+.stat-books {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.stat-book {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s3);
+  border-top: 1px solid var(--line);
+  padding-top: var(--s2);
+}
+
+.stat-book-title {
+  font-size: var(--text-sm);
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

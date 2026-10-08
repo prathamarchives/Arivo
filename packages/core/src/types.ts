@@ -168,6 +168,37 @@ export interface ReadingSession {
   endPercent: number | null;
 }
 
+// ---------- reading life (quiet numbers — sessions are index telemetry) ----------
+
+export interface SessionDayStat {
+  /** local-midnight epoch ms of the day bucket */
+  day: number;
+  /** total ms read that day */
+  ms: number;
+}
+
+export interface BookTimeStat {
+  bookId: string;
+  title: string;
+  /** total ms spent in this book */
+  ms: number;
+  lastReadAt: number | null;
+}
+
+export interface SessionStats {
+  totalMs: number;
+  /** the last 7 days, ms */
+  weekMs: number;
+  /** consecutive reading days ending today or yesterday; 0 = none yet */
+  streakDays: number;
+  /** finished sessions, all time */
+  sessions: number;
+  /** the last 14 days, sparse (absent = no reading that day) */
+  days: SessionDayStat[];
+  /** where the time went, most-first, capped */
+  books: BookTimeStat[];
+}
+
 export interface Collection {
   id: string;
   name: string;

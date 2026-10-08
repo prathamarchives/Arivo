@@ -181,6 +181,39 @@ describe('structured channels reject malformed structures', () => {
       expectAccept(schemas.collectionsCreate, { name: 'philosophy', description: null }),
     ).not.toThrow();
   });
+
+  it('book:set-tags — tags are bounded, non-empty strings in a bounded array', () => {
+    for (const input of HOSTILE) {
+      expectReject(schemas.bookSetTags, input);
+    }
+    expectReject(schemas.bookSetTags, { id: 'bk-1', tags: 'philosophy' });
+    expectReject(schemas.bookSetTags, { id: 'bk-1', tags: [''] });
+    expectReject(schemas.bookSetTags, { id: 'bk-1', tags: ['ok', 42] });
+    expectReject(schemas.bookSetTags, { id: 'bk-1', tags: ['x'.repeat(101)] });
+    expectReject(schemas.bookSetTags, { id: '', tags: ['ok'] });
+    expectReject(schemas.bookSetTags, { tags: ['ok'] });
+    expectReject(
+      schemas.bookSetTags,
+      { id: 'bk-1', tags: Array.from({ length: 51 }, (_, i) => `t${i}`) },
+    );
+    // empty tags = clearing them — legal, honest
+    expect(() => expectAccept(schemas.bookSetTags, { id: 'bk-1', tags: [] })).not.toThrow();
+    expect(() =>
+      expectAccept(schemas.bookSetTags, { id: 'bk-1', tags: ['philosophy', 'to-reread'] }),
+    ).not.toThrow();
+  });
+
+  it('collections:rename — {id, name} with the same bounds as create', () => {
+    for (const input of HOSTILE) {
+      expectReject(schemas.collectionsRename, input);
+    }
+    expectReject(schemas.collectionsRename, { id: 'c-1', name: '' });
+    expectReject(schemas.collectionsRename, { id: 'c-1', name: 'x'.repeat(201) });
+    expectReject(schemas.collectionsRename, { id: '', name: 'ok' });
+    expectReject(schemas.collectionsRename, { name: 'ok' });
+    expectReject(schemas.collectionsRename, { id: 'c-1' });
+    expect(() => expectAccept(schemas.collectionsRename, { id: 'c-1', name: 'renamed' })).not.toThrow();
+  });
 });
 
 describe('fuzz: arbitrary json never slips through object schemas', () => {

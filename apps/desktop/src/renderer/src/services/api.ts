@@ -11,6 +11,7 @@ import type {
   Highlight,
   ImportResult,
   SearchHit,
+  SessionStats,
 } from '@arivo/core';
 import { DEFAULT_SETTINGS } from '@arivo/core';
 
@@ -136,6 +137,13 @@ export function createMockApi(): ArivoApi {
       openUrl: (id) => mockBlobs.get(id) ?? `/seed/${state.books.find((b) => b.id === id)?.fileName ?? ''}`,
       coverUrl: () => '',
       get: async (id) => state.books.find((b) => b.id === id) ?? null,
+      setTags: async (id, tags) => {
+        state = {
+          ...state,
+          books: state.books.map((b) => (b.id === id ? { ...b, tags } : b)),
+        };
+        save();
+      },
     },
     progress: {
       save: async (bookId, progress) => {
@@ -149,6 +157,15 @@ export function createMockApi(): ArivoApi {
     sessions: {
       begin: async () => 'mock-session',
       end: async () => undefined,
+      stats: async () =>
+        ({
+          totalMs: 0,
+          weekMs: 0,
+          streakDays: 0,
+          sessions: 0,
+          days: [],
+          books: [],
+        }) as SessionStats,
     },
     annotations: {
       list: async (bookId) => ({
@@ -191,6 +208,15 @@ export function createMockApi(): ArivoApi {
         state = { ...state, collections: state.collections.filter((c) => c.collection.id !== id) };
         save();
       },
+      rename: async (id, name) => {
+        state = {
+          ...state,
+          collections: state.collections.map((c) =>
+            c.collection.id === id ? { collection: { ...c.collection, name }, count: c.count } : c,
+          ),
+        };
+        save();
+      },
       assign: async () => undefined,
       unassign: async () => undefined,
       books: async () => [],
@@ -218,6 +244,7 @@ export function createMockApi(): ArivoApi {
         state = { ...state, settings: s };
         save();
       },
+      pickBooksDir: async () => null,
     },
     exportNotes: {
       save: async () => null,

@@ -42,3 +42,10 @@ export const IconZoomIn = (): ReactNode => S('M7 12.5a5.5 5.5 0 1 0 0-11 5.5 5.5
 export const IconZoomOut = (): ReactNode => S('M7 12.5a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11ZM11.5 11.5 14 14M5 7h4');
 export const IconFitWidth = (): ReactNode => S('M2.5 5.5v5M13.5 5.5v5M4.5 8h7M4.5 8l2-2M4.5 8l2 2M11.5 8l-2-2M11.5 8l-2 2');
 export const IconFitPage = (): ReactNode => S('M4 2.5h8v11H4v-11ZM4 8h8');
+export const IconSettings = (): ReactNode =>
+  S('M8 10.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5ZM8 1.75l.9 1.5 1.7-.4.4 1.7 1.5.9-.9 1.55.9 1.55-1.5.9-.4 1.7-1.7-.4L8 14.25l-.9-1.5-1.7.4-.4-1.7-1.5-.9.9-1.55-.9-1.55 1.5-.9.4-1.7 1.7.4L8 1.75Z');
+export const IconInfo = (): ReactNode => S('M8 14.25a6.25 6.25 0 1 0 0-12.5 6.25 6.25 0 0 0 0 12.5ZM8 7.25v4M8 4.6v.01');
+export const IconTag = (): ReactNode => S('M2.5 3.5h5l5.5 5.5-5 5L2.5 8.5v-5ZM5 6v.01');
+export const IconPencil = (): ReactNode => S('M10.5 2.5 13.5 5.5 5.5 13.5 2.5 13.5 2.5 10.5 10.5 2.5Z');
+export const IconFolder = (): ReactNode => S('M2 4.5h4l1.5 2H14v7H2v-9Z');
+export const IconPulse = (): ReactNode => S('M2.5 8.5 5 8.5 6.5 4.5 9 12 10.5 8.5 13.5 8.5');

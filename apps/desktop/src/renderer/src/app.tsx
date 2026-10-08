@@ -5,6 +5,8 @@ import { useLibrary } from './stores/library.ts';
 import { useUi } from './stores/ui.ts';
 import { LibraryScreen } from './screens/Library.tsx';
 import { ReaderScreen } from './screens/Reader.tsx';
+import { BookDetail } from './screens/BookDetail.tsx';
+import { SettingsScreen } from './screens/Settings.tsx';
 import { CommandPalette } from './features/palette/CommandPalette.tsx';
 import { api } from './services/api.ts';
 
@@ -58,6 +60,8 @@ export function App(): ReactNode {
   return (
     <>
       {view.kind === 'library' ? <LibraryScreen /> : <ReaderScreen bookId={view.bookId} />}
+      <BookDetail />
+      <SettingsScreen />
       <CommandPalette />
       <Toaster />
       <RecoveryBanner />

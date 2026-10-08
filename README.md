@@ -32,10 +32,12 @@ zero loss. **data is a right, not a feature.**
 ## what it does (v0.1)
 
 - **library** — drag epubs and pdfs in, covers and metadata extracted,
-  collections, tags, continue-reading, three cover sizes, grid or list
+  collections, editable tags, book details (description, publisher, marks,
+  lists), continue-reading, three cover sizes, grid or list
 - **reading** — epub.js reflowable with literata typography (five sizes,
   1.65 leading, real margins), three themes (paper / sepia / night),
-  paginated or scrolled, progress restored on open
+  paginated or scrolled (the toggle is real — the switch preserves your
+  place and your marks), progress restored on open
 - **annotating** — select text → a quiet glass menu → five colors, notes,
   bookmarks; the notebook panel lists everything and jumps back to it
 - **search** — ctrl+k palette across titles, authors, highlights, notes
@@ -44,6 +46,9 @@ zero loss. **data is a right, not a feature.**
 - **pdf** — fixed-layout reading with zoom/fit, page bookmarks, and
   text-layer highlights when the pdf has a text layer (scanned pages get
   page bookmarks, honestly labeled)
+- **settings** — the library folder (path-guarded, restart-applied),
+  reading defaults, the reading life (quiet numbers from your sessions),
+  diagnostics export (counts and statuses, never your text)
 
 ## what it looks like
 
@@ -86,10 +91,14 @@ pdf.js · better-sqlite3 (index only) · zustand · pnpm workspaces.
 ## roadmap
 
 - v0.2 — sync (optional, bring-your-own supabase), calibre import,
-  reading statistics, annoyance-log fixes
+  annoyance-log fixes
 - v0.3 — work/edition model, more export formats, full typography control
 - later — the knowledge layer, the ai companion (promotion-gated, provenance
   forever) — only after the reading experience is perfect
+
+the full wave plan (honesty debt → reader depth → unified search →
+materials → 50k scale → sync → knowledge) lives in
+[docs/PLAN/MASTER-PLAN.md](./docs/PLAN/MASTER-PLAN.md)
 
 ## license
 
