@@ -349,10 +349,19 @@ export class EpubAdapter implements FormatReader {
   private renderOne(view: AnnotationView, flash: boolean): void {
     const r = this.rendition;
     if (!r) return;
-    const cls = `ar-hl ar-hl-${view.color}${flash ? ' ar-hl-flash' : ''}${
-      view.anchor.primary === '' ? ' ar-hl-orphaned' : ''
-    }`;
-    const data = { id: view.id, color: view.color, note: view.note };
+    // marks-pane applies the class via classList.add — a SINGLE token, no
+    // spaces (multi-class strings throw InvalidCharacterError and the mark
+    // never paints). the color IS the token; the svg fill comes from
+    // READ_CSS — css rules override the presentation attributes epub.js
+    // sets as defaults, and the rects inherit from the group.
+    const cls =
+      view.anchor.primary === '' ? 'ar-hl-orphaned' : `ar-hl-${view.color}`;
+    const data: Record<string, string> = {
+      id: view.id,
+      color: view.color,
+      note: view.note ?? '',
+    };
+    if (flash) data.flash = '1';
     const click = (e: unknown, d: Record<string, unknown>) => {
       if (typeof e === 'object' && e && 'preventDefault' in (e as object)) {
         (e as { preventDefault: () => void }).preventDefault();

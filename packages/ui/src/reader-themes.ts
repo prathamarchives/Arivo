@@ -57,30 +57,34 @@ hr {
 em, i { font-style: italic; }
 strong, b { font-weight: 600; }
 
-/* the highlight materials */
-.ar-hl {
-  border-radius: 2px;
+/* the highlight materials — one class token per mark: marks-pane applies
+   the class via classList.add, which rejects spaces. the mark is an svg
+   group — the color is the FILL (css overrides the presentation
+   attributes epub.js sets, and the rects inherit from the group). */
+[class^='ar-hl-'] {
   cursor: pointer;
   transition: filter var(--t-hover) var(--ease);
+  fill-opacity: 0.75;
+  mix-blend-mode: multiply;
 }
-.ar-hl:hover { filter: brightness(0.97); }
-.ar-hl-yellow { background: var(--hl-yellow); }
-.ar-hl-blue   { background: var(--hl-blue); }
-.ar-hl-green  { background: var(--hl-green); }
-.ar-hl-pink   { background: var(--hl-pink); }
-.ar-hl-gray   { background: var(--hl-gray); }
+[class^='ar-hl-']:hover { filter: brightness(0.95); }
+.ar-hl-yellow { fill: var(--hl-yellow); }
+.ar-hl-blue   { fill: var(--hl-blue); }
+.ar-hl-green  { fill: var(--hl-green); }
+.ar-hl-pink   { fill: var(--hl-pink); }
+.ar-hl-gray   { fill: var(--hl-gray); }
 .ar-hl-orphaned {
-  background: var(--hl-gray);
-  opacity: 0.6;
-  border-bottom: 2px dotted var(--read-ink-3);
+  fill: var(--hl-gray);
+  fill-opacity: 0.4;
+  cursor: default;
 }
 
-/* drift repair flash */
-.ar-hl-flash {
+/* drift repair flash (focusAnnotation) */
+[class^='ar-hl-'][data-flash] {
   animation: ar-hl-flash 1.2s var(--ease-out);
 }
 @keyframes ar-hl-flash {
-  0% { filter: brightness(1.3); }
+  0% { filter: brightness(1.4); }
   100% { filter: brightness(1); }
 }
 `;
@@ -156,5 +160,6 @@ export function readThemeVars(theme: ReadingTheme): string {
 }
 
 export function hlClass(color: HighlightColor, orphaned = false): string {
-  return orphaned ? 'ar-hl ar-hl-orphaned' : `ar-hl ar-hl-${color}`;
+  // single token: marks-pane's classList.add rejects multi-class strings
+  return orphaned ? 'ar-hl-orphaned' : `ar-hl-${color}`;
 }
