@@ -25,9 +25,31 @@ beforeAll(() => {
   dbPath = join(root, 'index.db');
 });
 
+// windows refuses to delete a file sqlite still holds open. every store
+// opened in this file is registered and closed before the temp tree comes
+// down — the v0.3.0 release run (this repo's only windows runner) taught
+// it the hard way: afterAll fires while a dozen live handles still keep
+// index.db locked → EPERM. linux never sees this; unlink-while-open is
+// allowed there, which is exactly why the leak hid until release day.
+const openStores: ArivoStore[] = [];
+
 afterAll(() => {
-  rmSync(root, { recursive: true, force: true });
+  for (const s of openStores) {
+    try {
+      s.close();
+    } catch {
+      // its own test already closed the underlying db
+    }
+  }
+  rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 120 });
 });
+
+/** the one door tests open their store through — registered for cleanup */
+function makeStore(): ArivoStore {
+  const store = new ArivoStore(openDb(dbPath), root);
+  openStores.push(store);
+  return store;
+}
 
 function seedBook(store: ArivoStore, id: string, title: string): string {
   const dir = join(root, 'library', id);
@@ -104,7 +126,7 @@ const mkDoc = (id: string, kind: DeskDoc['kind'], title: string, body: string): 
 
 describe('desk documents (L10 — the workbench storage law)', () => {
   it('create → listDeskDocs reads it back; annotations.json carries it (truth first)', () => {
-    const store = new ArivoStore(openDb(dbPath), root);
+    const store = makeStore();
     const id = seedBook(store, uuidv7(), 'Worked Book');
     const d = { ...mkDoc('doc-1', 'research', 'burnout quotes', 'gathering the argument'), bookId: id };
     store.createDeskDoc(id, d);
@@ -121,7 +143,7 @@ describe('desk documents (L10 — the workbench storage law)', () => {
   });
 
   it('update + delete flow through both stores', () => {
-    const store = new ArivoStore(openDb(dbPath), root);
+    const store = makeStore();
     const id = seedBook(store, uuidv7(), 'Edited Desk');
     const d = { ...mkDoc('doc-2', 'reflect', 'reflection', 'first'), bookId: id };
     store.createDeskDoc(id, d);
@@ -143,6 +165,7 @@ describe('desk documents (L10 — the workbench storage law)', () => {
   it('desk documents survive index death and are found by search (the full law)', () => {
     const db = openDb(dbPath);
     const store = new ArivoStore(db, root);
+    openStores.push(store);
     const id = seedBook(store, uuidv7(), 'Immortal Desk');
     store.createDeskDoc(id, {
       ...mkDoc('doc-3', 'research', 'a very specific collection', 'searchable body'),
@@ -161,7 +184,7 @@ describe('desk documents (L10 — the workbench storage law)', () => {
   });
 
   it('removing the book cascades desk docs with it', () => {
-    const store = new ArivoStore(openDb(dbPath), root);
+    const store = makeStore();
     const id = seedBook(store, uuidv7(), 'Leaving Desk');
     store.createDeskDoc(id, { ...mkDoc('doc-4', 'make', 'gone with the book', 'x'), bookId: id });
     store.removeBook(id, false);
@@ -169,7 +192,7 @@ describe('desk documents (L10 — the workbench storage law)', () => {
   });
 
   it('old truth files without deskDocs still parse (tolerant read)', () => {
-    const store = new ArivoStore(openDb(dbPath), root);
+    const store = makeStore();
     const id = seedBook(store, uuidv7(), 'Old Shape Desk');
     // seedBook writes the v3 shape (no deskDocs key) — read + write must not crash
     const before = store.listDeskDocs(id);
@@ -179,7 +202,7 @@ describe('desk documents (L10 — the workbench storage law)', () => {
   });
 
   it('the question flag on margin notes round-trips', () => {
-    const store = new ArivoStore(openDb(dbPath), root);
+    const store = makeStore();
     const id = seedBook(store, uuidv7(), 'Asking Book');
     const n: Note = {
       id: 'q-1',
@@ -202,7 +225,7 @@ describe('desk documents (L10 — the workbench storage law)', () => {
 
 describe('the archive ledger (L11 — evidence of a mind at work)', () => {
   it('notes and desk documents join the ledger with provenance intact', () => {
-    const store = new ArivoStore(openDb(dbPath), root);
+    const store = makeStore();
     const id = seedBook(store, uuidv7(), 'Ledger Book');
     store.createNote(id, {
       id: 'an-1',
@@ -248,6 +271,7 @@ describe('the archive ledger (L11 — evidence of a mind at work)', () => {
   it('the ledger survives index death (the portability law, whole)', () => {
     const db = openDb(dbPath);
     const store = new ArivoStore(db, root);
+    openStores.push(store);
     const id = seedBook(store, uuidv7(), 'Immortal Ledger');
     store.createNote(id, {
       id: 'an-2',
@@ -270,8 +294,13 @@ describe('the archive ledger (L11 — evidence of a mind at work)', () => {
     expect(ledger.some((e) => e.id === 'ad-2' && e.deskKind === 'reflect')).toBe(true);
   });
 
-  it('a large ledger reads in one pass — 1,000 objects stay honest', () => {
-    const store = new ArivoStore(openDb(dbPath), root);
+  // 1,000 individually-fsync'd transactions: ~2s on a local linux box,
+  // 30s+ on a loaded windows runner (the v0.3.0 release lesson — the 30s
+  // floor in vitest.config.ts is a linux-shaped number). the budget below
+  // is untouched: it is the law; this timeout only keeps a slow runner
+  // from reading a live law as broken.
+  it('a large ledger reads in one pass — 1,000 objects stay honest', { timeout: 120_000 }, () => {
+    const store = makeStore();
     const id = seedBook(store, uuidv7(), 'Thousand Object Book');
     for (let i = 0; i < 1000; i++) {
       store.createNote(id, {
