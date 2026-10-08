@@ -1,145 +1,483 @@
-/* arivo tokens — the closed vocabulary. no component invents a value. */
+/* arivo tokens — the closed vocabulary, v2 (the experience system).
+   every color, size, duration, and easing lives here. no component invents
+   a value. laws: docs/design/CONSTITUTION.md. thesis: docs/design/EXPERIENCE.md
 
-/* ---------- type: the catalyst family ---------- */
-:root {
-  --font-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
-  --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-read: 'Literata', Georgia, 'Times New Roman', serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+   architecture — two independent axes:
+     [data-temperament='lab' | 'den']   the room's temperament (deltas)
+     [data-theme='paper' | 'sepia' | 'night']   the light in the room
+   den + paper is the default. lab suppresses atmosphere; den allows it. */
 
-  --text-meta: 11px;   /* mono, uppercase, tracked */
-  --text-xs: 12px;
-  --text-sm: 13px;
-  --text-base: 14px;
-  --text-md: 16px;
-  --text-lg: 18px;
-  --text-xl: 22px;
-  --text-2xl: 28px;
-  --text-hero: 40px;
+/* ============================== fonts ============================== */
+/* the supplied helvetica assets — the room's voice. 400 + 700 are the
+   workhorses; 300 is the light cut (latin subset) reserved for the
+   wordmark and large display. obliques/compressed/rounded are not part
+   of the system and are not shipped. literata (the author's voice) and
+   jetbrains mono (metadata utility) load from @fontsource in the app. */
 
-  --tracking-meta: 0.08em;
-  --tracking-wide: 0.02em;
+@font-face {
+  font-family: 'Helvetica';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/helvetica-400.woff2') format('woff2');
 }
 
-/* ---------- spacing: the 4px ladder ---------- */
+@font-face {
+  font-family: 'Helvetica';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/helvetica-700.woff2') format('woff2');
+}
+
+/* the light cut — latin-only subset. wordmark + display-1 specimen ONLY.
+   never a body role: mid-word fallbacks on non-latin titles. */
+@font-face {
+  font-family: 'Helvetica Light';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('./fonts/helvetica-300-wordmark.woff2') format('woff2');
+}
+
 :root {
-  --s-2: 2px;
+  --font-ui: 'Helvetica', 'Helvetica Neue', Arial, sans-serif;
+  --font-wordmark: 'Helvetica Light', 'Helvetica', Arial, sans-serif;
+  --font-read: 'Literata', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+  /* instrument serif is retired: helvetica speaks for the room, literata
+     speaks for the author. two systems, one spatial treaty. */
+}
+
+/* ============================ typography ============================ */
+/* helvetica's x-height is smaller than the previous ui voice — sizes are
+   optically compensated (+1px at body steps). weights are 400 / 700 only
+   (500 and 600 do not exist in the supplied cuts; bold is spent
+   deliberately). 300 is wordmark-only. */
+
+:root {
+  --text-meta: 11px;   /* mono, uppercase, tracked — data, counts, labels */
+  --text-xs: 12px;     /* quiet chrome: timestamps, hints */
+  --text-sm: 14px;     /* controls, table text */
+  --text-base: 15px;   /* body ui */
+  --text-md: 17px;     /* emphasized body, reader chrome */
+  --text-lg: 19px;     /* panel titles, section heads */
+  --text-xl: 23px;     /* screen titles */
+  --text-2xl: 29px;    /* large statements */
+  --text-hero: 42px;   /* the wordmark scale, empty-room moments */
+  --text-micro: 10px;  /* the mono micro floor — uppercase only, never prose */
+
+  --lh-tight: 1.25;
+  --lh-snug: 1.35;
+  --lh-base: 1.5;
+  --lh-loose: 1.65;
+
+  --tracking-meta: 0.08em;    /* uppercase mono labels */
+  --tracking-tight: -0.012em; /* large sizes */
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;    /* small caps-ish labels */
+}
+
+/* ============================= spacing ============================= */
+/* the canonical scale — 4/8 system, nothing else. density modulates
+   REGION breathing (canvas padding, section rhythm), never text
+   legibility: multiply at the point of use, not inside the tokens. */
+
+:root {
   --s1: 4px;
   --s2: 8px;
   --s3: 12px;
   --s4: 16px;
-  --s5: 20px;
   --s6: 24px;
   --s8: 32px;
-  --s10: 40px;
   --s12: 48px;
   --s16: 64px;
   --s24: 96px;
+  --s32: 128px;
 }
 
-/* ---------- geometry ---------- */
+/* ============================= geometry ============================= */
+
 :root {
-  --r1: 2px;
-  --r2: 4px;
-  --r3: 8px;
-  --cover-w: 200px;        /* 2:3, medium density */
+  /* radius grammar — roundness communicates proximity to the hand.
+     walls restrained. objects softer. instruments fully rounded. */
+  --r-structural: 4px;   /* walls, rules, table edges */
+  --r-surface: 8px;     /* panels, raised surfaces */
+  --r-interactive: 12px; /* buttons, inputs, controls */
+  --r-object: 14px;     /* book objects, cards, artifacts */
+  --r-generous: 16px;   /* generous surfaces, sheets */
+  --r-instrument: 999px; /* pills, floating instruments */
+
+  --cover-w: 200px;      /* 2:3 book object */
   --control-h: 32px;
   --control-h-lg: 40px;
-  --hit: 32px;             /* minimum target */
+  --hit: 32px;           /* minimum touch target */
 }
 
-/* ---------- motion ---------- */
+/* ============================ z-space ============================= */
+/* semantic and closed. no arbitrary giant z-index values. */
+
 :root {
-  --t-press: 100ms;
-  --t-hover: 150ms;
-  --t-turn: 250ms;
-  --t-drawer: 400ms;
-  --t-material: 700ms;
-  --ease: cubic-bezier(0.2, 0, 0, 1);
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --z-canvas: 0;
+  --z-content: 1;
+  --z-sticky: 10;
+  --z-floating: 20;
+  --z-overlay: 30;
+  --z-transient: 40;
 }
 
-/* ---------- themes: monochrome base, annotation colors are the only hue ---------- */
+/* ============================ elevation ============================ */
+/* two shadows: contact = closeness, ambient = altitude. light rooms use
+   warm shadows; dark rooms step surface values before piling shadow on
+   shadow. */
+
+:root {
+  --shadow-contact: 0 1px 2px rgba(43, 33, 24, 0.10);
+  --shadow-ambient: 0 8px 24px rgba(43, 33, 24, 0.10);
+  --elevation-1: var(--shadow-contact);
+  --elevation-2: var(--shadow-contact), var(--shadow-ambient);
+  --elevation-3: 0 2px 6px rgba(43, 33, 24, 0.10), 0 16px 48px rgba(43, 33, 24, 0.14);
+}
+
+/* ============================== motion ============================== */
+/* viscous precision: immediate -> continuous -> weighted -> exact.
+   four easings only. durations scale with mass class, not mood.
+   entering breathes; leaving is brisk. */
+
+:root {
+  --ease-glide: cubic-bezier(0.16, 1, 0.3, 1);   /* enter: fast start, weighted decel, exact rest */
+  --ease-retreat: cubic-bezier(0.4, 0, 1, 1);    /* exit: brisk, accelerating away */
+  --ease-shift: cubic-bezier(0.3, 0, 0.2, 1);    /* move: controlled continuity */
+  --ease-settle: cubic-bezier(0.2, 0, 0, 1);     /* rest: viscous, no overshoot */
+
+  --dur-state: 150ms;          /* hover / focus state shifts */
+  --dur-micro-in: 120ms;
+  --dur-micro-out: 90ms;
+  --dur-comp-in: 200ms;
+  --dur-comp-out: 140ms;
+  --dur-surface-in: 320ms;
+  --dur-surface-out: 220ms;
+  --dur-spatial-in: 560ms;
+  --dur-spatial-out: 380ms;
+  --dur-turn: 250ms;           /* the page turn */
+  --dur-material: 700ms;       /* material state changes (theme, glass) */
+  --dur-atmosphere: 1400ms;    /* booklight, room light shifts */
+
+  /* transform distances for the hover vocabulary (lift / breathe). on the
+     4-grid; the physical book-hover is L9 shelf work, these are the
+     quiet precursors. */
+  --lift-s: 2px;
+  --lift-m: 4px;
+}
+
+/* image scrims — theme-independent, read correctly over any cover art */
+:root {
+  --img-scrim: rgba(0, 0, 0, 0.32);
+  --img-scrim-strong: rgba(0, 0, 0, 0.5);
+}
+
+/* legacy aliases — deprecated, swept during surface waves */
+:root {
+  --t-press: var(--dur-micro-in);
+  --t-hover: var(--dur-state);
+  --t-turn: var(--dur-turn);
+  --t-drawer: var(--dur-surface-in);
+  --t-material: var(--dur-material);
+  --ease: var(--ease-settle);
+  --ease-out: var(--ease-glide);
+}
+
+/* ====================== material: matte paper ====================== */
+/* the default surface: warm, quiet, low reflectivity, fine grain. the
+   grain is luminance-neutral noise at whisper opacity — texture must
+   support material meaning, never decorate. */
+
+:root {
+  --paper-grain-opacity: 0.035;
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ====================== material: soft glass ====================== */
+/* an instrument, never wallpaper. floating chrome only: selection menus,
+   command surfaces, mode controls. blur is a budgeted resource. */
+
+:root {
+  --glass-blur: 16px;
+  --glass-saturation: 1.12;
+}
+
+/* ==================== annotation identity colors ==================== */
+/* saturation is a privilege reserved for the user's marks. these five are
+   CONSTANT across temperaments and lighting — law 38. the washes below
+   are derived surfaces for legibility, not the identity itself.
+   'gray' is a legacy stored color: rendered as a neutral pencil mark,
+   no longer offered in the picker (see docs/design/GATES.md). */
+
+:root {
+  --anno-amber: #DCA93B;
+  --anno-sage: #6E9951;
+  --anno-blue: #4E8FC4;
+  --anno-rose: #C66A67;
+  --anno-violet: #9074C2;
+}
+
+/* ======================= selection & focus ======================= */
+
+:root {
+  --sel: rgba(43, 33, 24, 0.12);
+  --focus-ring: 2px solid var(--ink);
+}
+
+/* =================== temperament axis (deltas) ==================== */
+/* lab: monastic, dense, ink authority, no atmosphere.
+   den: warm, comfortable, allows environmental variation. */
+
 :root,
+[data-temperament='den'] {
+  --temperament: den;
+  --density: 1.1;
+  --aura-alpha: 0;            /* atmosphere off until a book provides light */
+}
+
+[data-temperament='lab'] {
+  --temperament: lab;
+  --density: 0.9;
+  --aura-alpha: 0;            /* lab never responds to booklight */
+}
+
+/* ======================= lighting axis ======================= */
+/* lighting conditions, not alternate identities. values are per
+   temperament where the rooms genuinely differ. */
+
+/* ---------- den · paper (default) ---------- */
+:root,
+[data-temperament='den'][data-theme='paper'],
+[data-temperament='den'] {
+  --bg: #f4eee2;
+  --bg-raised: #fbf7ec;
+  --bg-sunken: #ece3d1;
+  --ink: #2b2118;
+  --ink-2: #6b5f4f;
+  --ink-3: #a2988a;
+  --line: #e2d9c6;
+  --line-strong: #cfc2a9;
+  --accent: #8a5c3a;          /* restrained leather — spent sparingly */
+  --accent-ink: #6f4830;      /* readable accent for text on paper */
+  --glass-tint: rgba(251, 247, 236, 0.86);
+  --glass-rim: rgba(43, 33, 24, 0.09);
+  --glass-light: rgba(255, 252, 244, 0.5);
+
+  --shadow-contact: 0 1px 2px rgba(43, 33, 24, 0.1);
+  --shadow-ambient: 0 8px 24px rgba(43, 33, 24, 0.1);
+}
+
+[data-temperament='den'][data-theme='sepia'] {
+  --bg: #f1e7d2;
+  --bg-raised: #f8f0dd;
+  --bg-sunken: #e7dbc0;
+  --ink: #33281c;
+  --ink-2: #74634c;
+  --ink-3: #a8977b;
+  --line: #ddcfae;
+  --line-strong: #c9b88f;
+  --accent: #8a5c3a;
+  --accent-ink: #6f4830;
+  --glass-tint: rgba(248, 240, 221, 0.88);
+  --glass-rim: rgba(51, 40, 28, 0.1);
+  --glass-light: rgba(255, 248, 232, 0.5);
+
+  --shadow-contact: 0 1px 2px rgba(51, 40, 28, 0.11);
+  --shadow-ambient: 0 8px 24px rgba(51, 40, 28, 0.11);
+}
+
+[data-temperament='den'][data-theme='night'] {
+  /* dark rooms step surface values; shadows stay faint */
+  --bg: #171310;
+  --bg-raised: #211c16;
+  --bg-sunken: #110e0b;
+  --ink: #e9e2d5;
+  --ink-2: #97897a;
+  --ink-3: #5c5346;
+  --line: #2b251d;
+  --line-strong: #3b332a;
+  --accent: #a06a3f;
+  --accent-ink: #c08d5e;
+  --glass-tint: rgba(33, 28, 22, 0.82);
+  --glass-rim: rgba(233, 226, 213, 0.09);
+  --glass-light: rgba(255, 240, 220, 0.06);
+
+  --shadow-contact: 0 1px 2px rgba(0, 0, 0, 0.32);
+  --shadow-ambient: 0 8px 24px rgba(0, 0, 0, 0.36);
+}
+
+/* ---------- lab · paper ---------- */
+[data-temperament='lab'],
+[data-temperament='lab'][data-theme='paper'] {
+  --bg: #f3f0e7;
+  --bg-raised: #faf8f0;
+  --bg-sunken: #eae6d9;
+  --ink: #2a2529;
+  --ink-2: #625d62;
+  --ink-3: #9b959b;
+  --line: #e0dbcd;
+  --line-strong: #ccc5b4;
+  --accent: #2a2529;          /* lab's authority is ink, not hue */
+  --accent-ink: #2a2529;
+  --glass-tint: rgba(250, 248, 240, 0.86);
+  --glass-rim: rgba(42, 37, 41, 0.09);
+  --glass-light: rgba(255, 254, 250, 0.5);
+
+  --shadow-contact: 0 1px 2px rgba(42, 37, 41, 0.09);
+  --shadow-ambient: 0 8px 24px rgba(42, 37, 41, 0.09);
+}
+
+[data-temperament='lab'][data-theme='sepia'] {
+  --bg: #efeade;
+  --bg-raised: #f6f3e7;
+  --bg-sunken: #e6e1cf;
+  --ink: #2f2a24;
+  --ink-2: #655f55;
+  --ink-3: #9c958a;
+  --line: #ddd6c2;
+  --line-strong: #c8c0aa;
+  --accent: #2a2529;
+  --accent-ink: #2a2529;
+  --glass-tint: rgba(246, 243, 231, 0.88);
+  --glass-rim: rgba(47, 42, 36, 0.1);
+  --glass-light: rgba(255, 253, 246, 0.5);
+
+  --shadow-contact: 0 1px 2px rgba(47, 42, 36, 0.1);
+  --shadow-ambient: 0 8px 24px rgba(47, 42, 36, 0.1);
+}
+
+[data-temperament='lab'][data-theme='night'] {
+  --bg: #131313;
+  --bg-raised: #1d1c1c;
+  --bg-sunken: #0d0d0c;
+  --ink: #e9e8e6;
+  --ink-2: #939290;
+  --ink-3: #575553;
+  --line: #282726;
+  --line-strong: #393836;
+  --accent: #e9e8e6;
+  --accent-ink: #e9e8e6;
+  --glass-tint: rgba(29, 28, 28, 0.82);
+  --glass-rim: rgba(233, 232, 230, 0.08);
+  --glass-light: rgba(255, 255, 255, 0.05);
+
+  --shadow-contact: 0 1px 2px rgba(0, 0, 0, 0.34);
+  --shadow-ambient: 0 8px 24px rgba(0, 0, 0, 0.38);
+}
+
+/* default lighting when only temperament is set is paper — covered by the
+   plain temperament blocks above. */
+
+/* legacy theme selectors (lighting without temperament) fall back to den
+   values — the existing data-theme attr keeps working. */
 [data-theme='paper'] {
-  --bg: #f6f3ec;
-  --bg-raised: #fdfbf6;
-  --bg-sunken: #efebe1;
-  --ink: #23201b;
-  --ink-2: #6e675e;
-  --ink-3: #a39b90;
-  --line: #e4dfd3;
-  --line-strong: #cfc8ba;
-  --shadow-1: 0 1px 2px rgba(35, 32, 27, 0.06);
-  --shadow-2: 0 2px 10px rgba(35, 32, 27, 0.09);
-  --shadow-3: 0 10px 32px rgba(35, 32, 27, 0.14);
-  --glass: rgba(253, 251, 246, 0.86);
-  --glass-line: rgba(35, 32, 27, 0.08);
+  --bg: #f4eee2;
+  --bg-raised: #fbf7ec;
+  --bg-sunken: #ece3d1;
+  --ink: #2b2118;
+  --ink-2: #6b5f4f;
+  --ink-3: #a2988a;
+  --line: #e2d9c6;
+  --line-strong: #cfc2a9;
+}
+[data-theme='sepia'] {
+  --bg: #f1e7d2;
+  --bg-raised: #f8f0dd;
+  --bg-sunken: #e7dbc0;
+  --ink: #33281c;
+  --ink-2: #74634c;
+  --ink-3: #a8977b;
+  --line: #ddcfae;
+  --line-strong: #c9b88f;
+}
+[data-theme='night'] {
+  --bg: #171310;
+  --bg-raised: #211c16;
+  --bg-sunken: #110e0b;
+  --ink: #e9e2d5;
+  --ink-2: #97897a;
+  --ink-3: #5c5346;
+  --line: #2b251d;
+  --line-strong: #3b332a;
+}
 
-  --hl-yellow: #eccf8f;
-  --hl-blue: #b7c9e6;
-  --hl-green: #bdd4b2;
-  --hl-pink: #e8c2cd;
-  --hl-gray: #d4cfc4;
+/* ======================= booklight (den) ======================== */
+/* the book tints the light, never the walls. the pipeline (shelf/desk)
+   writes the three aura slots + alpha from the current cover; the room
+   applies --aura ONLY to atmosphere surfaces. lab pins alpha to 0. */
 
-  --sel: rgba(35, 32, 27, 0.12);
+:root,
+[data-temperament='den'] {
+  --aura-h: 36;
+  --aura-s: 26%;
+  --aura-l: 52%;
+}
+
+[data-temperament='lab'] {
+  --aura-h: 36;
+  --aura-s: 0%;
+  --aura-l: 50%;
+}
+
+/* ======================= reading washes ======================== */
+/* derived legibility surfaces for the user's marks. the identity colors
+   above never change; the wash adapts to the light. */
+
+:root,
+[data-theme='paper'],
+[data-temperament='den'][data-theme='paper'] {
+  --wash-amber: rgba(220, 169, 59, 0.34);
+  --wash-sage: rgba(110, 153, 81, 0.30);
+  --wash-blue: rgba(78, 143, 196, 0.28);
+  --wash-rose: rgba(198, 106, 103, 0.28);
+  --wash-violet: rgba(144, 116, 194, 0.28);
+  --wash-gray: rgba(43, 33, 24, 0.12);   /* legacy pencil mark */
 }
 
 [data-theme='sepia'] {
-  --bg: #f1e7d4;
-  --bg-raised: #f9f1e1;
-  --bg-sunken: #e9dcc4;
-  --ink: #3a2f22;
-  --ink-2: #77664e;
-  --ink-3: #ab9a7d;
-  --line: #e0d2b6;
-  --line-strong: #cdbb98;
-  --shadow-1: 0 1px 2px rgba(58, 47, 34, 0.07);
-  --shadow-2: 0 2px 10px rgba(58, 47, 34, 0.10);
-  --shadow-3: 0 10px 32px rgba(58, 47, 34, 0.16);
-  --glass: rgba(249, 241, 225, 0.88);
-  --glass-line: rgba(58, 47, 34, 0.10);
-
-  --hl-yellow: #e2c483;
-  --hl-blue: #b3c0d6;
-  --hl-green: #b5c9a4;
-  --hl-pink: #e0b7c2;
-  --hl-gray: #cbc2ac;
-
-  --sel: rgba(58, 47, 34, 0.14);
+  --wash-amber: rgba(201, 150, 46, 0.34);
+  --wash-sage: rgba(96, 139, 68, 0.3);
+  --wash-blue: rgba(66, 125, 176, 0.28);
+  --wash-rose: rgba(180, 92, 89, 0.28);
+  --wash-violet: rgba(127, 99, 176, 0.28);
+  --wash-gray: rgba(51, 40, 28, 0.14);
 }
 
 [data-theme='night'] {
-  --bg: #141311;
-  --bg-raised: #1d1b18;
-  --bg-sunken: #0e0d0b;
-  --ink: #e9e4da;
-  --ink-2: #978f83;
-  --ink-3: #5c564d;
-  --line: #2a2723;
-  --line-strong: #3a362f;
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 2px 10px rgba(0, 0, 0, 0.45);
-  --shadow-3: 0 10px 32px rgba(0, 0, 0, 0.55);
-  --glass: rgba(29, 27, 24, 0.86);
-  --glass-line: rgba(233, 228, 218, 0.09);
-
-  --hl-yellow: #7a6428;
-  --hl-blue: #384a63;
-  --hl-green: #3c5038;
-  --hl-pink: #5f3e48;
-  --hl-gray: #3c3831;
-
-  --sel: rgba(233, 228, 218, 0.18);
+  --wash-amber: rgba(220, 169, 59, 0.3);
+  --wash-sage: rgba(110, 153, 81, 0.3);
+  --wash-blue: rgba(78, 143, 196, 0.32);
+  --wash-rose: rgba(198, 106, 103, 0.3);
+  --wash-violet: rgba(144, 116, 194, 0.32);
+  --wash-gray: rgba(233, 226, 213, 0.12);
 }
 
-/* ---------- reduced motion ---------- */
+/* ======================= reduced motion ======================== */
+/* every motion has a reduced-motion twin — law 34. */
+
 @media (prefers-reduced-motion: reduce) {
   :root {
+    --dur-state: 0ms;
+    --dur-micro-in: 0ms;
+    --dur-micro-out: 0ms;
+    --dur-comp-in: 0ms;
+    --dur-comp-out: 0ms;
+    --dur-surface-in: 0ms;
+    --dur-surface-out: 0ms;
+    --dur-spatial-in: 0ms;
+    --dur-spatial-out: 0ms;
+    --dur-turn: 0ms;
+    --dur-material: 0ms;
+    --dur-atmosphere: 0ms;
     --t-press: 0ms;
     --t-hover: 0ms;
     --t-turn: 0ms;
     --t-drawer: 0ms;
     --t-material: 0ms;
+    --paper-grain-opacity: 0.035;
   }
 }

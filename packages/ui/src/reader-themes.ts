@@ -1,7 +1,14 @@
 /**
  * the reading themes — injected INTO the book content via epub.js.
- * the reading surface has its own controlled typography:
- * literata, five size steps, lh 1.65, measure 520-760, independent of window width.
+ * the reading surface has its own controlled typography: literata, five
+ * size steps, lh 1.65, measure 520-760, independent of window width.
+ *
+ * the author's voice is literata only — book headings belong to the
+ * author (literata 600), never to the room's grotesque.
+ *
+ * highlight washes derive from the annotation identity colors (constant
+ * across modes — law 38); the wash adapts to the light for legibility.
+ * 'gray' is the legacy pencil mark, rendered but no longer offered.
  */
 import type { ReadingTheme, HighlightColor } from '@arivo/core';
 
@@ -25,7 +32,8 @@ p {
   font-variant-numeric: oldstyle-nums;
 }
 h1, h2, h3, h4 {
-  font-family: var(--font-display), Georgia, serif !important;
+  font-family: var(--font-read), Georgia, serif !important;
+  font-weight: 600;
   color: var(--read-ink) !important;
   line-height: 1.25 !important;
   page-break-after: avoid;
@@ -57,11 +65,11 @@ hr {
 em, i { font-style: italic; }
 strong, b { font-weight: 600; }
 
-/* the highlight materials */
+/* the highlight materials — washes of the identity colors */
 .ar-hl {
-  border-radius: 2px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: filter var(--t-hover) var(--ease);
+  transition: filter var(--dur-state) var(--ease-settle);
 }
 .ar-hl:hover { filter: brightness(0.97); }
 .ar-hl-yellow { background: var(--hl-yellow); }
@@ -77,7 +85,7 @@ strong, b { font-weight: 600; }
 
 /* drift repair flash */
 .ar-hl-flash {
-  animation: ar-hl-flash 1.2s var(--ease-out);
+  animation: ar-hl-flash 1.2s var(--ease-glide);
 }
 @keyframes ar-hl-flash {
   0% { filter: brightness(1.3); }
@@ -98,42 +106,44 @@ interface ReadPalette {
   gray: string;
 }
 
+/* the reading palettes track the lighting axis (den family — the author's
+   page is warm paper). washes = identity colors at legibility alpha. */
 const palettes: Record<ReadingTheme, ReadPalette> = {
   paper: {
-    bg: '#f6f3ec',
-    ink: '#23201b',
-    ink2: '#6e675e',
-    ink3: '#a39b90',
-    line: '#e4dfd3',
-    yellow: '#eccf8f',
-    blue: '#b7c9e6',
-    green: '#bdd4b2',
-    pink: '#e8c2cd',
-    gray: '#d4cfc4',
+    bg: '#f4eee2',
+    ink: '#2b2118',
+    ink2: '#6b5f4f',
+    ink3: '#a2988a',
+    line: '#e2d9c6',
+    yellow: 'rgba(220, 169, 59, 0.34)',
+    blue: 'rgba(78, 143, 196, 0.28)',
+    green: 'rgba(110, 153, 81, 0.30)',
+    pink: 'rgba(198, 106, 103, 0.28)',
+    gray: 'rgba(43, 33, 24, 0.12)',
   },
   sepia: {
-    bg: '#f1e7d4',
-    ink: '#3a2f22',
-    ink2: '#77664e',
-    ink3: '#ab9a7d',
-    line: '#e0d2b6',
-    yellow: '#e2c483',
-    blue: '#b3c0d6',
-    green: '#b5c9a4',
-    pink: '#e0b7c2',
-    gray: '#cbc2ac',
+    bg: '#f1e7d2',
+    ink: '#33281c',
+    ink2: '#74634c',
+    ink3: '#a8977b',
+    line: '#ddcfae',
+    yellow: 'rgba(201, 150, 46, 0.34)',
+    blue: 'rgba(66, 125, 176, 0.28)',
+    green: 'rgba(96, 139, 68, 0.30)',
+    pink: 'rgba(180, 92, 89, 0.28)',
+    gray: 'rgba(51, 40, 28, 0.14)',
   },
   night: {
-    bg: '#141311',
-    ink: '#e9e4da',
-    ink2: '#978f83',
-    ink3: '#5c564d',
-    line: '#2a2723',
-    yellow: '#7a6428',
-    blue: '#384a63',
-    green: '#3c5038',
-    pink: '#5f3e48',
-    gray: '#3c3831',
+    bg: '#171310',
+    ink: '#e9e2d5',
+    ink2: '#97897a',
+    ink3: '#5c5346',
+    line: '#2b251d',
+    yellow: 'rgba(220, 169, 59, 0.30)',
+    blue: 'rgba(78, 143, 196, 0.32)',
+    green: 'rgba(110, 153, 81, 0.30)',
+    pink: 'rgba(198, 106, 103, 0.30)',
+    gray: 'rgba(233, 226, 213, 0.12)',
   },
 };
 
@@ -141,7 +151,6 @@ export function readThemeVars(theme: ReadingTheme): string {
   const p = palettes[theme];
   return `:root {
     --font-read: 'Literata';
-    --font-display: 'Instrument Serif';
     --read-bg: ${p.bg};
     --read-ink: ${p.ink};
     --read-ink-2: ${p.ink2};

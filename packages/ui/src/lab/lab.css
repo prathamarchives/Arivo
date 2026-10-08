@@ -1,0 +1,325 @@
+/* the design lab — where visual claims are isolated from product state.
+   every specimen shows token names. experiments live here; production
+   never consumes an unproven effect. styles use ONLY tokens. */
+
+.lab {
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+.lab-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--s16) var(--s8) var(--s32);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s16);
+}
+
+.lab-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--s4);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--s6);
+}
+
+.lab-title {
+  font-size: var(--text-hero);
+}
+
+.lab-controls {
+  display: flex;
+  gap: var(--s2);
+  align-items: center;
+}
+
+.lab-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+.lab-h {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+}
+
+.lab-h .type-title {
+  font-size: var(--text-lg);
+}
+
+.lab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--s4);
+}
+
+.lab-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  min-width: 0;
+}
+
+/* ---------- typography specimens ---------- */
+
+.lab-type-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s4);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--s2);
+}
+
+.lab-type-sample {
+  min-width: 0;
+  flex: 1;
+  /* display specimens wrap gracefully — truncation on a type specimen
+     is a defect, not a squeeze */
+  overflow-wrap: break-word;
+}
+
+.lab-read-sample {
+  font-family: var(--font-read);
+  font-size: var(--text-md);
+  line-height: var(--lh-loose);
+  color: var(--ink);
+  max-width: 68ch;
+}
+
+.lab-mono-sample {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* ---------- color specimens ---------- */
+
+.lab-swatch {
+  border-radius: var(--r-surface);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.lab-swatch-chip {
+  height: var(--s12);
+  display: flex;
+  align-items: flex-end;
+  padding: var(--s2);
+}
+
+.lab-swatch-label {
+  padding: var(--s2) var(--s3);
+  background: var(--bg-raised);
+  border-top: 1px solid var(--line);
+}
+
+/* ---------- annotation ---------- */
+
+.lab-anno-grid {
+  display: flex;
+  gap: var(--s3);
+  flex-wrap: wrap;
+}
+
+.lab-anno {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  align-items: center;
+}
+
+.lab-anno-dot {
+  width: var(--s8);
+  height: var(--s8);
+  border-radius: var(--r-instrument);
+  border: 1px solid var(--glass-rim);
+}
+
+.lab-wash-row {
+  max-width: 68ch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  font-family: var(--font-read);
+  font-size: var(--text-sm);
+  line-height: var(--lh-loose);
+}
+
+/* ---------- material stack ---------- */
+
+.lab-material-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--s4);
+}
+
+.lab-panel {
+  padding: var(--s4);
+  border-radius: var(--r-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.lab-glass-backdrop {
+  position: relative;
+  padding: var(--s4);
+  border-radius: var(--r-surface);
+  overflow: hidden;
+  background:
+    linear-gradient(
+      120deg,
+      var(--anno-amber),
+      var(--anno-rose),
+      var(--anno-blue),
+      var(--anno-sage)
+    );
+}
+
+.lab-glass-backdrop .glass {
+  position: relative;
+}
+
+/* ---------- elevation ---------- */
+
+.lab-elev-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s4);
+}
+
+.lab-elev {
+  padding: var(--s4);
+  border-radius: var(--r-surface);
+  background: var(--bg-raised);
+}
+
+.lab-elev-1 { box-shadow: var(--elevation-1); }
+.lab-elev-2 { box-shadow: var(--elevation-2); }
+.lab-elev-3 { box-shadow: var(--elevation-3); }
+
+/* ---------- spacing ladder ---------- */
+
+.lab-space-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  border-bottom: 1px solid var(--line);
+  padding: var(--s1) 0;
+}
+
+.lab-space-bar {
+  height: var(--s2);
+  background: var(--ink-2);
+  border-radius: var(--r-instrument);
+}
+
+/* ---------- radius ---------- */
+
+.lab-radius-grid {
+  display: flex;
+  gap: var(--s3);
+  flex-wrap: wrap;
+}
+
+.lab-radius-tile {
+  width: var(--s16);
+  height: var(--s16);
+  background: var(--bg-raised);
+  border: 1px solid var(--line-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* ---------- states & controls ---------- */
+
+.lab-controls-row {
+  display: flex;
+  gap: var(--s2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.lab-booklight {
+  padding: var(--s8);
+  border-radius: var(--r-generous);
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.lab-booklight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 90% 70% at 50% 0%,
+    hsl(var(--aura-h) var(--aura-s) var(--aura-l) / var(--aura-alpha)),
+    transparent 70%
+  );
+}
+
+.lab-booklight-content {
+  position: relative;
+}
+
+/* ---------- motion specimens ---------- */
+
+.lab-motion-row {
+  display: flex;
+  gap: var(--s3);
+  flex-wrap: wrap;
+}
+
+.lab-motion-chip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  align-items: center;
+  width: 180px;
+}
+
+.lab-motion-track {
+  width: 180px;
+  height: var(--s4);
+  background: var(--bg-sunken);
+  border-radius: var(--r-instrument);
+  position: relative;
+}
+
+.lab-motion-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--s4);
+  height: var(--s4);
+  border-radius: var(--r-instrument);
+  background: var(--ink-2);
+}
+
+.lab-motion-track:hover .lab-motion-dot {
+  transform: translateX(calc(180px - var(--s4)));
+}
+
+.lab-m-glide .lab-motion-dot { transition: transform var(--dur-comp-in) var(--ease-glide); }
+.lab-m-retreat .lab-motion-dot { transition: transform var(--dur-micro-out) var(--ease-retreat); }
+.lab-m-shift .lab-motion-dot { transition: transform var(--dur-surface-in) var(--ease-shift); }
+.lab-m-settle .lab-motion-dot { transition: transform var(--dur-comp-in) var(--ease-settle); }
+
+@media (prefers-reduced-motion: reduce) {
+  .lab-motion-dot {
+    transition-duration: 0ms;
+  }
+}
