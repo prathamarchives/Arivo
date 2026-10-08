@@ -15,6 +15,8 @@ let services: Services | null = null;
 
 const isSmoke = process.argv.includes('--smoke');
 const isRebuild = process.argv.includes('--rebuild-index');
+const isLab = process.argv.includes('--lab');
+const isReaderShot = process.argv.includes('--reader');
 
 // the arivo:// protocol must be privileged before ready (fetch + img + stream)
 protocol.registerSchemesAsPrivileged([
@@ -90,7 +92,7 @@ async function createWindow(): Promise<BrowserWindow> {
     height: isSmoke ? 900 : 820,
     minWidth: 960,
     minHeight: 600,
-    backgroundColor: '#f6f3ec',
+    backgroundColor: '#f4eee2',
     title: 'Arivo',
     show: !isSmoke,
     autoHideMenuBar: true,
@@ -123,12 +125,99 @@ async function createWindow(): Promise<BrowserWindow> {
         // the probe's regression coverage runs wherever a book exists.
         let fetchOk: boolean | null = null;
         try {
-          const image = await win.webContents.capturePage();
-          const out = path.resolve(process.cwd(), 'smoke.png');
-          fs.writeFileSync(out, image.toPNG());
-          console.warn(`[arivo] smoke screenshot → ${out}`);
+          if (isLab) {
+            // the design lab is taller than the viewport: capture the
+            // page section by section (scroll + shoot) so the whole
+            // specimen record lands as smoke-lab-*.png
+            const scrollHeight = (await win.webContents.executeJavaScript(
+              `(() => {
+                const scroller = document.querySelector('.lab');
+                return scroller ? scroller.scrollHeight : Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0);
+              })()`,
+            )) as number;
+            const view = win.getContentSize()[1] ?? 900;
+            const step = Math.max(400, view - 40);
+            let i = 0;
+            for (let y = 0; y < scrollHeight; y += step, i += 1) {
+              await win.webContents.executeJavaScript(
+                `(() => {
+                  const scroller = document.querySelector('.lab');
+                  if (scroller) { scroller.scrollTop = ${y}; } else { window.scrollTo(0, ${y}); }
+                })()`,
+              );
+              await new Promise((r) => setTimeout(r, 250));
+              const image = await win.webContents.capturePage();
+              const out = path.resolve(process.cwd(), `smoke-lab-${i}.png`);
+              fs.writeFileSync(out, image.toPNG());
+              console.warn(`[arivo] lab section capture → ${out}`);
+            }
+          } else {
+            const image = await win.webContents.capturePage();
+            const out = path.resolve(process.cwd(), 'smoke.png');
+            fs.writeFileSync(out, image.toPNG());
+            console.warn(`[arivo] smoke screenshot → ${out}`);
+          }
         } catch {
           console.warn('[arivo] smoke capture failed');
+        }
+        // the font gate (Gate B): typography must render from the intended
+        // bundled assets, not silent system fallbacks. a dead @font-face
+        // fails the smoke run.
+        try {
+          const fonts = (await win.webContents.executeJavaScript(
+            `(async () => {
+              // force-load the faces first: css fonts load lazily, and a
+              // not-yet-used face would false-negative the check
+              await Promise.all([
+                document.fonts.load('400 15px "Helvetica"'),
+                document.fonts.load('700 15px "Helvetica"'),
+                document.fonts.load('400 16px "Literata"'),
+                document.fonts.load('400 12px "JetBrains Mono"'),
+              ]).catch(() => undefined);
+              return {
+                helvetica400: document.fonts.check('400 15px "Helvetica"'),
+                helvetica700: document.fonts.check('700 15px "Helvetica"'),
+                literata: document.fonts.check('400 16px "Literata"'),
+                mono: document.fonts.check('400 12px "JetBrains Mono"'),
+              };
+            })()`,
+          )) as Record<string, boolean>;
+          fs.writeFileSync(path.resolve(process.cwd(), 'smoke-fonts.json'), JSON.stringify(fonts, null, 2));
+          console.warn(`[arivo] font gate → ${JSON.stringify(fonts)}`);
+          if (!fonts['helvetica400'] || !fonts['helvetica700'] || !fonts['literata']) {
+            console.warn('[arivo] font gate FAILED — intended assets not loaded');
+            exitWith(1);
+            return;
+          }
+        } catch (err) {
+          console.warn('[arivo] font gate crashed', err);
+        }
+        // the reader capture: open the first book through the real ui —
+        // the golden path (library → open → read) end-to-end, and the
+        // reading typography rendered from intended assets
+        if (isReaderShot) {
+          try {
+            const opened = (await win.webContents.executeJavaScript(
+              `(() => {
+                const card = document.querySelector('.continue-card') || document.querySelector('.book-card') || document.querySelector('.book-row');
+                if (card) { card.click(); return true; }
+                return false;
+              })()`,
+            )) as boolean;
+            // paginate into the body text — the cover is page one
+            for (let i = 0; i < 3; i += 1) {
+              await win.webContents.executeJavaScript(
+                `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))`,
+              );
+              await new Promise((r) => setTimeout(r, 900));
+            }
+            await new Promise((r) => setTimeout(r, 2500));
+            const image = await win.webContents.capturePage();
+            fs.writeFileSync(path.resolve(process.cwd(), 'smoke-reader.png'), image.toPNG());
+            console.warn(`[arivo] reader capture → ${opened ? 'opened + captured' : 'NO BOOK — captured library only'}`);
+          } catch (err) {
+            console.warn('[arivo] reader capture failed', err);
+          }
         }
         // the fetch regression probe: the renderer page (origin app://arivo)
         // must be able to fetch book bytes over arivo:// — the exact chain
@@ -165,20 +254,20 @@ async function createWindow(): Promise<BrowserWindow> {
       }, 3500);
     });
     // hard fallback: never hang the smoke run (failure — a hung run proves
-    // nothing)
+    // nothing); the lab's section captures need more runway
     setTimeout(
       () => {
         exitWith(1);
       },
-      20000,
+      isLab || isReaderShot ? 45000 : 20000,
     );
   }
 
   const devUrl = process.env['ELECTRON_RENDERER_URL'];
   if (devUrl && !app.isPackaged) {
-    await win.loadURL(devUrl);
+    await win.loadURL(isLab ? `${devUrl}#lab` : devUrl);
   } else {
-    await win.loadURL('app://arivo/index.html');
+    await win.loadURL(isLab ? 'app://arivo/index.html#lab' : 'app://arivo/index.html');
   }
 
   return win;

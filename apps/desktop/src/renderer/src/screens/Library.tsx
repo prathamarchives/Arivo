@@ -243,7 +243,7 @@ function EmptyState(): ReactNode {
       <div className="empty-glyph">
         <IconBook />
       </div>
-      <h1 className="display">point me at your books</h1>
+      <h1 className="type-title">point me at your books</h1>
       <p className="empty-sub">
         drop epubs or pdfs anywhere on this page, or pick a folder.
         <br />
@@ -279,7 +279,7 @@ function Toolbar(): ReactNode {
 
   return (
     <header className="library-toolbar">
-      <div className="brand display">arivo</div>
+      <div className="brand">arivo.</div>
       <div className="toolbar-search">
         <IconSearch />
         <input
@@ -550,7 +550,7 @@ export function LibraryScreen(): ReactNode {
         <div className="dropzone-overlay fade-in">
           <div className="dropzone-card glass">
             <IconBook />
-            <div className="display">drop your books</div>
+            <div className="type-wordmark">drop your books</div>
             <div className="meta-label">epub · pdf</div>
           </div>
         </div>

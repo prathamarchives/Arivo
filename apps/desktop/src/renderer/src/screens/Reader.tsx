@@ -168,7 +168,7 @@ function Notebook({
       <div className="drawer-body">
         {sorted.length === 0 && bookmarks.length === 0 && (
           <div className="drawer-empty">
-            <div className="display">nothing marked yet</div>
+            <div className="type-title">nothing marked yet</div>
             <p className="meta-label">select a passage while reading — it lands here</p>
           </div>
         )}
@@ -694,7 +694,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
   if (error) {
     return (
       <div className="reader-error fade-in">
-        <div className="display">this book won't open</div>
+        <div className="type-title">this book won't open</div>
         <p className="meta-label">{error}</p>
         <Button onClick={backToLibrary}>
           <IconBack />

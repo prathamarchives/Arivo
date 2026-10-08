@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { DesignLab } from '@arivo/ui';
 import { useSettings } from './stores/settings.ts';
 import { useLibrary } from './stores/library.ts';
 import { useUi } from './stores/ui.ts';
@@ -38,11 +39,18 @@ export function App(): ReactNode {
   const setPaletteOpen = useUi((s) => s.setPaletteOpen);
   const initSettings = useSettings((s) => s.init);
   const refresh = useLibrary((s) => s.refresh);
+  const labMode = window.location.hash === '#lab';
 
   useEffect(() => {
+    if (labMode) {
+      /* the lab is isolated from product state — no settings/library boot */
+      document.documentElement.dataset.temperament ??= 'den';
+      document.documentElement.dataset.theme ??= 'paper';
+      return;
+    }
     void initSettings();
     void refresh();
-  }, [initSettings, refresh]);
+  }, [labMode, initSettings, refresh]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -57,10 +65,10 @@ export function App(): ReactNode {
 
   return (
     <>
-      {view.kind === 'library' ? <LibraryScreen /> : <ReaderScreen bookId={view.bookId} />}
-      <CommandPalette />
-      <Toaster />
-      <RecoveryBanner />
+      {labMode ? <DesignLab /> : view.kind === 'library' ? <LibraryScreen /> : <ReaderScreen bookId={view.bookId} />}
+      {labMode ? null : <CommandPalette />}
+      {labMode ? null : <Toaster />}
+      {labMode ? null : <RecoveryBanner />}
     </>
   );
 }
