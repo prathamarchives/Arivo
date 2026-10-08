@@ -463,3 +463,19 @@ status: PLAN MODE. awaiting fire.
   yield identically. VLM-verified clean. 447/2 green. session log:
   docs/SESSIONS/0014-the-perceptual-pass.md
 - next: L18 — final art direction.
+
+## execution log — L18 (the new user's judgment)
+
+- **L18: DONE** (this commit) — the new-user walkthrough (VLM, blind
+  to implementation): one place, furniture, text breathing, "swiss
+  discipline with warm literary restraint — a tool for thinkers."
+  the removal test passed: identity survives the wordmark's removal
+  (character lives in typography/material/layout); no decorative
+  graphics exist to remove (L12's registry); motion's removal is the
+  tested twin. the one removal candidate — the mode rail — judged
+  and kept: it withdraws with the chrome (a static capture cannot
+  show it) and the keyboard reaches every mode without it. nothing
+  ships merely to fill space.
+- **L0–L18 COMPLETE.** next: the final campaign set (deep debug,
+  security, migrations, packaging, golden paths, visual matrix,
+  permanent documentation, release verification).
