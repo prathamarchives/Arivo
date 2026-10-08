@@ -21,6 +21,10 @@ import {
   IconCollection,
   IconBook,
   IconCheck,
+  IconSettings,
+  IconInfo,
+  IconTag,
+  IconPencil,
 } from '../components/icons.tsx';
 
 function fmtDate(ts: number): string {
@@ -138,6 +142,7 @@ function BookMenu({
 }): ReactNode {
   const { collections, assign, removeBook } = useLibrary();
   const toast = useRoom((s) => s.toast);
+  const openBookDetail = useRoom((s) => s.openBookDetail);
   const [confirm, setConfirm] = useState(false);
   const style = {
     left: Math.min(x, window.innerWidth - 260),
@@ -147,6 +152,17 @@ function BookMenu({
     <>
       <div className="menu-scrim" onClick={onClose} />
       <div className="menu glass rise" style={style} role="menu">
+        <button
+          className="menu-item"
+          onClick={() => {
+            openBookDetail(book.id);
+            onClose();
+          }}
+        >
+          <IconInfo />
+          about this book
+        </button>
+        <div className="menu-sep" />
         <div className="meta-label menu-head">add to</div>
         {collections.length === 0 && <div className="menu-empty">no collections yet</div>}
         {collections.map(({ collection, count }) => (
@@ -251,6 +267,7 @@ function Toolbar({
   const { query, setQuery, sort, setSort } = useLibrary();
   const { settings, set } = useSettings();
   const importDialog = useLibrary((s) => s.importDialog);
+  const setSettingsOpen = useRoom((s) => s.setSettingsOpen);
   const toast = useRoom((s) => s.toast);
   const themes = [
     { key: 'paper', icon: <IconSun />, label: 'paper' },
@@ -323,6 +340,9 @@ function Toolbar({
             </span>
           </IconButton>
         )}
+        <IconButton label="settings" onClick={() => setSettingsOpen(true)}>
+          <IconSettings />
+        </IconButton>
         <Button
           onClick={async () => {
             const results = await importDialog();
@@ -343,9 +363,21 @@ function Toolbar({
 }
 
 function CollectionsBar(): ReactNode {
-  const { collections, activeCollection, setActiveCollection, createCollection } = useLibrary();
+  const { collections, activeCollection, setActiveCollection, createCollection, renameCollection, removeCollection } =
+    useLibrary();
+  const toast = useRoom((s) => s.toast);
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState('');
+  const [managing, setManaging] = useState<{ id: string; name: string; x: number; y: number } | null>(null);
+  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
+
+  const chipEvents = (id: string, cname: string) => ({
+    onContextMenu: (e: { preventDefault: () => void; clientX: number; clientY: number }) => {
+      e.preventDefault();
+      setManaging({ id, name: cname, x: e.clientX, y: e.clientY });
+    },
+  });
+
   return (
     <div className="collections-bar">
       <button
@@ -354,16 +386,43 @@ function CollectionsBar(): ReactNode {
       >
         all books
       </button>
-      {collections.map(({ collection, count }) => (
-        <button
-          key={collection.id}
-          className={`chip ${activeCollection === collection.id ? 'chip-active' : ''}`}
-          onClick={() => setActiveCollection(collection.id)}
+      {renaming ? (
+        <form
+          className="chip-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const next = renaming.name.trim();
+            if (next) {
+              void renameCollection(renaming.id, next).catch(() => toast('that name is taken'));
+            }
+            setRenaming(null);
+          }}
         >
-          {collection.name}
-          <span className="chip-count">{count}</span>
-        </button>
-      ))}
+          <Input
+            autoFocus
+            value={renaming.name}
+            placeholder="list name"
+            onChange={(e) => setRenaming({ ...renaming, name: e.target.value })}
+            onBlur={() => setRenaming(null)}
+            onKeyDown={(e) => e.key === 'Escape' && setRenaming(null)}
+            aria-label="rename list"
+          />
+        </form>
+      ) : (
+        collections.map(({ collection, count }) => (
+          <button
+            key={collection.id}
+            className={`chip ${activeCollection === collection.id ? 'chip-active' : ''}`}
+            onClick={() => setActiveCollection(collection.id)}
+            onDoubleClick={() => setRenaming({ id: collection.id, name: collection.name })}
+            title="double-click to rename · right-click to manage"
+            {...chipEvents(collection.id, collection.name)}
+          >
+            {collection.name}
+            <span className="chip-count">{count}</span>
+          </button>
+        ))
+      )}
       {naming ? (
         <form
           className="chip-form"
@@ -390,6 +449,69 @@ function CollectionsBar(): ReactNode {
           new list
         </button>
       )}
+
+      {managing && (
+        <>
+          <div className="menu-scrim" onClick={() => setManaging(null)} />
+          <div
+            className="menu glass rise"
+            style={{
+              left: Math.min(managing.x, window.innerWidth - 240),
+              top: Math.min(managing.y, window.innerHeight - 160),
+            }}
+            role="menu"
+          >
+            <button
+              className="menu-item"
+              onClick={() => {
+                setRenaming({ id: managing.id, name: managing.name });
+                setManaging(null);
+              }}
+            >
+              <IconPencil />
+              rename
+            </button>
+            <button
+              className="menu-item danger"
+              onClick={() => {
+                void removeCollection(managing.id);
+                toast('list deleted — the books stay');
+                setManaging(null);
+              }}
+            >
+              <IconTrash />
+              delete list
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** the tag row: tags only appear once someone has tagged something */
+function TagsBar({ books }: { books: BookWithProgress[] }): ReactNode {
+  const { activeTag, setActiveTag } = useLibrary();
+  const tags = useMemo(() => {
+    const seen = new Map<string, number>();
+    for (const b of books) for (const t of b.tags) seen.set(t, (seen.get(t) ?? 0) + 1);
+    return [...seen.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [books]);
+  if (tags.length === 0) return null;
+  return (
+    <div className="collections-bar tags-bar" aria-label="tags">
+      <IconTag />
+      {tags.map(([t, n]) => (
+        <button
+          key={t}
+          className={`chip chip-tag ${activeTag === t ? 'chip-active' : ''}`}
+          aria-pressed={activeTag === t}
+          onClick={() => setActiveTag(activeTag === t ? null : t)}
+        >
+          {t}
+          <span className="chip-count">{n}</span>
+        </button>
+      ))}
     </div>
   );
 }
@@ -509,6 +631,7 @@ export function LibraryScreen(): ReactNode {
     collections,
     query,
     activeCollection,
+    activeTag,
     sort,
     loading,
     refresh,
@@ -555,6 +678,7 @@ export function LibraryScreen(): ReactNode {
   const visible = useMemo(() => {
     let list = books;
     if (collectionIds) list = list.filter((b) => collectionIds.includes(b.id));
+    if (activeTag) list = list.filter((b) => b.tags.includes(activeTag));
     const q = query.trim().toLowerCase();
     if (q.length > 0) {
       list = list.filter(
@@ -578,7 +702,7 @@ export function LibraryScreen(): ReactNode {
       }
     });
     return sorted;
-  }, [books, query, sort, collectionIds]);
+  }, [books, query, sort, collectionIds, activeTag]);
 
   const continueList = useMemo(
     () =>
@@ -751,6 +875,7 @@ export function LibraryScreen(): ReactNode {
         ) : (
           <>
             <CollectionsBar />
+            <TagsBar books={books} />
             <ContinueReading
               books={continueList}
               currentId={currentBookId}

@@ -30,6 +30,8 @@ export interface Services {
   saveNotes(bookId: string): string | null;
   getSettings(): AppSettings;
   setSettings(s: AppSettings): void;
+  /** main-side directory picker: validated path or null (cancelled) */
+  pickBooksDir(): string | null;
   rebuildIndex(): Promise<{ books: number; highlights: number; bookmarks: number }>;
   reconcile(): ReconciliationReport | null;
   startupNote(): string | null;
@@ -45,7 +47,9 @@ export function createServices(): Services {
   const settingsDir = path.join(homeArivo, 'config');
   let settings = readSettings(settingsDir, { ...DEFAULT_SETTINGS }) as unknown as AppSettings;
 
-  let root = settings.booksDir ?? homeArivo;
+  // the root is fixed for the process lifetime — a booksDir change is
+  // validated + persisted, then honored at next launch (no live split-brain)
+  const root = settings.booksDir ?? homeArivo;
   fs.mkdirSync(path.join(root, 'library'), { recursive: true });
 
   // the index lives in app data — never inside the synced library folder.
@@ -133,16 +137,28 @@ export function createServices(): Services {
     },
     getSettings: () => settings,
     setSettings(s) {
-      // the library root is guarded: absolute, real, not a filesystem root
+      // the library root is guarded: absolute, real, not a filesystem root.
+      // the new folder is validated + materialized now, but the STORE stays
+      // bound to the root it opened with for this process — switching roots
+      // live would split imports (new root) from the index (old root).
+      // the setting takes effect on the next launch.
       if (s.booksDir !== null && s.booksDir !== root) {
         validateLibraryRoot(s.booksDir);
         fs.mkdirSync(path.join(s.booksDir, 'library'), { recursive: true });
       }
       settings = s;
       writeSettings(settingsDir, s as unknown as Record<string, unknown>);
-      if (s.booksDir && s.booksDir !== root) {
-        root = s.booksDir;
-      }
+    },
+    pickBooksDir() {
+      const picked = dialog.showOpenDialogSync({
+        title: 'Choose your arivo library folder',
+        properties: ['openDirectory', 'createDirectory'],
+      });
+      const dir = picked?.[0];
+      if (!dir) return null;
+      // honest at pick time: an unusable root errors now, not at next launch
+      validateLibraryRoot(dir);
+      return dir;
     },
     rebuildIndex: async () => {
       const r = await writer.runExclusive('rebuild', () => Promise.resolve(store.rebuildIndex()));

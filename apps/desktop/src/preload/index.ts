@@ -4,7 +4,7 @@
  * error envelopes; unwrap here so codes survive into the renderer.
  */
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-import { unwrapEnvelope, type ArivoApi, type AppSettings, type ArchiveEntry, type Bookmark, type Highlight, type ImportResult, type SearchHit, type ReconciliationReport, type DiagnosticsReport } from '@arivo/core';
+import { unwrapEnvelope, type ArivoApi, type AppSettings, type ArchiveEntry, type Bookmark, type Highlight, type Note, type ImportResult, type SearchHit, type ReconciliationReport, type DiagnosticsReport, type SessionStats } from '@arivo/core';
 import type { BookWithProgress, Collection } from '@arivo/core';
 
 const invoke = async <T>(name: string, arg?: unknown): Promise<T> =>
@@ -22,6 +22,7 @@ const api: ArivoApi = {
     openUrl: (id) => `arivo://book/${id}`,
     coverUrl: (id) => `arivo://cover/${id}`,
     get: (id) => invoke<BookWithProgress | null>('book:get', id),
+    setTags: (id, tags) => invoke<void>('book:set-tags', { id, tags }),
   },
   progress: {
     save: (bookId, progress) => invoke<void>('progress:save', { bookId, progress }),
@@ -29,14 +30,18 @@ const api: ArivoApi = {
   sessions: {
     begin: (bookId, startPercent) => invoke<string>('session:begin', { bookId, startPercent }),
     end: (sessionId, endPercent) => invoke<void>('session:end', { sessionId, endPercent }),
+    stats: () => invoke<SessionStats>('sessions:stats'),
   },
   annotations: {
-    list: (bookId) => invoke<{ highlights: Highlight[]; bookmarks: Bookmark[] }>('annotations:list', bookId),
+    list: (bookId) => invoke<{ highlights: Highlight[]; bookmarks: Bookmark[]; notes: Note[] }>('annotations:list', bookId),
     createHighlight: (bookId, h) => invoke<void>('highlight:create', { bookId, h }),
     updateHighlight: (bookId, h) => invoke<void>('highlight:update', { bookId, h }),
     deleteHighlight: (bookId, id) => invoke<void>('highlight:delete', { bookId, id }),
     createBookmark: (bookId, b) => invoke<void>('bookmark:create', { bookId, b }),
     deleteBookmark: (bookId, id) => invoke<void>('bookmark:delete', { bookId, id }),
+    createNote: (bookId, n) => invoke<void>('note:create', { bookId, n }),
+    updateNote: (bookId, n) => invoke<void>('note:update', { bookId, n }),
+    deleteNote: (bookId, id) => invoke<void>('note:delete', { bookId, id }),
   },
   archive: {
     marks: () => invoke<ArchiveEntry[]>('archive:marks'),
@@ -45,6 +50,7 @@ const api: ArivoApi = {
     list: () => invoke<{ collection: Collection; count: number }[]>('collections:list'),
     create: (name, description) => invoke<Collection>('collections:create', { name, description }),
     remove: (id) => invoke<void>('collections:remove', id),
+    rename: (id, name) => invoke<void>('collections:rename', { id, name }),
     assign: (collectionId, bookId) => invoke<void>('collections:assign', { collectionId, bookId }),
     unassign: (collectionId, bookId) => invoke<void>('collections:unassign', { collectionId, bookId }),
     books: (collectionId) => invoke<string[]>('collections:books', collectionId),
@@ -55,6 +61,7 @@ const api: ArivoApi = {
   settings: {
     get: () => invoke<AppSettings>('settings:get'),
     set: (s) => invoke<void>('settings:set', s),
+    pickBooksDir: () => invoke<string | null>('settings:pick-dir'),
   },
   exportNotes: {
     save: (bookId) => invoke<string | null>('export:save-notes', bookId),

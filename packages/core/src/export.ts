@@ -1,17 +1,18 @@
 /** markdown reading-notes export — the portability law's friendly face. */
-import type { Book, Highlight, Bookmark, ReadingProgress } from './types.ts';
+import type { Book, Highlight, Bookmark, Note, ReadingProgress } from './types.ts';
 
 export function exportReadingNotes(
   book: Book,
   highlights: Highlight[],
   bookmarks: Bookmark[],
   progress: ReadingProgress | null,
+  notes: Note[] = [],
 ): string {
   const lines: string[] = [];
   const by = book.authors.length > 0 ? ` — ${book.authors.join(', ')}` : '';
   lines.push(`# ${book.title}${book.subtitle ? `: ${book.subtitle}` : ''}${by}`);
   lines.push('');
-  lines.push(`> exported from arivo · ${new Date().toISOString().slice(0, 10)} · ${highlights.length} highlights, ${bookmarks.length} bookmarks`);
+  lines.push(`> exported from arivo · ${new Date().toISOString().slice(0, 10)} · ${highlights.length} highlights, ${bookmarks.length} bookmarks, ${notes.length} notes`);
   if (progress) {
     const pct = Math.round(progress.percent * 100);
     lines.push(`> progress: ${pct}%${progress.completedAt ? ' · finished' : ''}`);
@@ -44,6 +45,17 @@ export function exportReadingNotes(
       lines.push(`- ${where} · \`${b.anchor.primary}\``);
     }
     lines.push('');
+  }
+
+  if (notes.length > 0) {
+    lines.push('## notes');
+    lines.push('');
+    for (const n of notes) {
+      const where = n.chapter ? `*${n.chapter}* · ` : '';
+      lines.push(`- ${where}\`${n.anchor.primary}\``);
+      lines.push(`  > ${n.body.replace(/\n+/g, ' ')}`);
+      lines.push('');
+    }
   }
 
   return lines.join('\n');

@@ -7,6 +7,7 @@ import type {
   FormatReaderHooks,
   Highlight,
   HighlightColor,
+  Note,
   RelocatedEvent,
   SelectionInfo,
   FormatReader,
@@ -35,6 +36,7 @@ import {
   IconChevronRight,
   IconFitWidth,
   IconFitPage,
+  IconPencil,
 } from '../components/icons.tsx';
 
 const COLORS: HighlightColor[] = ['yellow', 'blue', 'green', 'pink', 'gray'];
@@ -109,25 +111,38 @@ function Notebook({
   book,
   highlights,
   bookmarks,
+  notes,
   onJump,
+  onJumpNote,
   onUpdate,
   onDelete,
   onDeleteBookmark,
+  onCreateNote,
+  onUpdateNote,
+  onDeleteNote,
   onClose,
   focusId,
 }: {
   book: BookWithProgress;
   highlights: Highlight[];
   bookmarks: Bookmark[];
+  notes: Note[];
   onJump: (h: Highlight) => void;
+  onJumpNote: (n: Note) => void;
   onUpdate: (h: Highlight) => void;
   onDelete: (id: string) => void;
   onDeleteBookmark: (id: string) => void;
+  onCreateNote: (body: string) => void;
+  onUpdateNote: (n: Note) => void;
+  onDeleteNote: (id: string) => void;
   onClose: () => void;
   focusId: string | null;
 }): ReactNode {
   const toast = useRoom((s) => s.toast);
   const [noteDraft, setNoteDraft] = useState<{ id: string; body: string } | null>(null);
+  const [newNoteOpen, setNewNoteOpen] = useState(false);
+  const [newNoteBody, setNewNoteBody] = useState('');
+  const [noteEdit, setNoteEdit] = useState<{ id: string; body: string } | null>(null);
   const focusRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -147,11 +162,19 @@ function Notebook({
     return [...highlights].sort(byPos);
   }, [highlights]);
 
+  const sortedNotes = useMemo(
+    () =>
+      [...notes].sort(
+        (a, b) => (a.anchor.position?.percent ?? 0) - (b.anchor.position?.percent ?? 0),
+      ),
+    [notes],
+  );
+
   return (
     <aside className="drawer drawer-right rise" aria-label="notebook">
       <header className="drawer-head">
         <span className="meta-label">
-          notebook · {highlights.length} highlights · {bookmarks.length} bookmarks
+          notebook · {highlights.length} highlights · {bookmarks.length} bookmarks · {notes.length} notes
         </span>
         <div className="row">
           <IconButton label="export reading notes" onClick={async () => {
@@ -166,7 +189,55 @@ function Notebook({
         </div>
       </header>
       <div className="drawer-body">
-        {sorted.length === 0 && bookmarks.length === 0 && (
+        {/* the margin-note composer — thinking attached to where you are */}
+        {newNoteOpen ? (
+          <div className="note-card note-composer-card">
+            <div className="meta-label">note at this position</div>
+            <textarea
+              className="note-input"
+              autoFocus
+              value={newNoteBody}
+              placeholder="what are you thinking?"
+              onChange={(e) => setNewNoteBody(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                  if (newNoteBody.trim()) onCreateNote(newNoteBody.trim());
+                  setNewNoteBody('');
+                  setNewNoteOpen(false);
+                }
+                if (e.key === 'Escape') {
+                  setNewNoteBody('');
+                  setNewNoteOpen(false);
+                }
+              }}
+              rows={4}
+            />
+            <div className="note-composer-actions">
+              <span className="meta-label">
+                <Kbd>Ctrl</Kbd>
+                <Kbd>↵</Kbd> save
+              </span>
+              <span className="meta-label">esc cancels</span>
+              <Button
+                variant="solid"
+                onClick={() => {
+                  if (newNoteBody.trim()) onCreateNote(newNoteBody.trim());
+                  setNewNoteBody('');
+                  setNewNoteOpen(false);
+                }}
+              >
+                save note
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <button className="chip chip-add note-new" onClick={() => setNewNoteOpen(true)}>
+            <IconNote />
+            write a note here
+          </button>
+        )}
+
+        {sorted.length === 0 && bookmarks.length === 0 && sortedNotes.length === 0 && (
           <div className="drawer-empty">
             <div className="type-title">nothing marked yet</div>
             <p className="meta-label">select a passage while reading — it lands here</p>
@@ -244,6 +315,61 @@ function Notebook({
                 jump
               </button>
               <button className="sel-action danger" onClick={() => onDeleteBookmark(b.id)}>
+                <IconTrash />
+                remove
+              </button>
+            </div>
+          </div>
+        ))}
+
+        {sortedNotes.map((n) => (
+          <div
+            key={n.id}
+            className="note-card note-margin"
+            data-note-id={n.id}
+            onClick={() => onJumpNote(n)}
+          >
+            <div className="note-card-head">
+              <IconNote />
+              <span className="meta-label note-chapter">
+                {n.chapter ?? `${Math.round((n.anchor.position?.percent ?? 0) * 100)}%`}
+              </span>
+            </div>
+            {noteEdit?.id === n.id ? (
+              <div onClick={(e) => e.stopPropagation()}>
+                <textarea
+                  className="note-input"
+                  autoFocus
+                  value={noteEdit.body}
+                  onChange={(e) => setNoteEdit({ id: n.id, body: e.target.value })}
+                  onBlur={() => {
+                    if (noteEdit.body.trim() && noteEdit.body.trim() !== n.body) {
+                      onUpdateNote({ ...n, body: noteEdit.body.trim(), updatedAt: Date.now() });
+                    }
+                    setNoteEdit(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                      if (noteEdit.body.trim() && noteEdit.body.trim() !== n.body) {
+                        onUpdateNote({ ...n, body: noteEdit.body.trim(), updatedAt: Date.now() });
+                      }
+                      setNoteEdit(null);
+                    }
+                    if (e.key === 'Escape') setNoteEdit(null);
+                  }}
+                  rows={3}
+                />
+                <div className="meta-label">ctrl+enter saves · esc cancels</div>
+              </div>
+            ) : (
+              <p className="note-body note-body-own">{n.body}</p>
+            )}
+            <div className="note-actions" onClick={(e) => e.stopPropagation()}>
+              <button className="sel-action" onClick={() => setNoteEdit({ id: n.id, body: n.body })}>
+                <IconPencil />
+                edit
+              </button>
+              <button className="sel-action danger" onClick={() => onDeleteNote(n.id)}>
                 <IconTrash />
                 remove
               </button>
@@ -366,6 +492,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
   const [noteMode, setNoteMode] = useState(false);
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [tocOpen, setTocOpen] = useState(false);
   const [notebookOpen, setNotebookOpen] = useState(false);
   const [typeOpen, setTypeOpen] = useState(false);
@@ -464,14 +591,16 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
             : new EpubAdapter(hooks);
         adapterRef.current = adapter;
         adapter.setFontFace(BOOK_FONT_FACE_CSS);
+        // settings land BEFORE the first render: the persisted flow is honored
+        // at renderTo time, not patched in after (the toggle is real)
+        adapter.applySettings(readerSettingsRef.current);
 
         await adapter.open(host, bytes);
         if (disposed) return;
-        adapter.applySettings(readerSettingsRef.current);
         setChapters(adapter.getChapters().map((c) => ({ label: c.label, target: c.target })));
 
         // annotations + the drift pass
-        const { highlights, bookmarks } = await api.annotations.list(bookId);
+        const { highlights, bookmarks, notes } = await api.annotations.list(bookId);
         if (disposed) return;
 
         const final: Highlight[] = [];
@@ -506,6 +635,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
         if (disposed) return;
         setHighlights(final);
         setBookmarks(bookmarks);
+        setNotes(notes);
         rerenderAnnotations(final);
 
         const startPercent = book.progress?.percent ?? 0;
@@ -693,6 +823,51 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
     toast('bookmarked');
   }, [book, toast]);
 
+  // ---- margin notes: thinking attached to the current place ----
+
+  const createNoteAt = useCallback(
+    async (body: string): Promise<void> => {
+      const ev = progressRef.current;
+      if (!book || !ev) return;
+      const n: Note = {
+        id: uuidv7(),
+        bookId: book.id,
+        anchor: {
+          format: book.format,
+          primary: ev.locator,
+          textRange: null,
+          position: { percent: ev.percent, chapter: ev.chapter ?? undefined },
+        },
+        body,
+        chapter: ev.chapter ?? null,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      await api.annotations.createNote(book.id, n);
+      setNotes((prev) => [n, ...prev]);
+      toast('note saved');
+    },
+    [book, toast],
+  );
+
+  const updateNote = useCallback(
+    async (n: Note): Promise<void> => {
+      if (!book) return;
+      await api.annotations.updateNote(book.id, n);
+      setNotes((prev) => prev.map((x) => (x.id === n.id ? n : x)));
+    },
+    [book],
+  );
+
+  const deleteNote = useCallback(
+    async (id: string): Promise<void> => {
+      if (!book) return;
+      await api.annotations.deleteNote(book.id, id);
+      setNotes((prev) => prev.filter((n) => n.id !== id));
+    },
+    [book],
+  );
+
   if (error) {
     return (
       <div className="reader-error fade-in">
@@ -762,8 +937,12 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
           book={book}
           highlights={highlights}
           bookmarks={bookmarks}
+          notes={notes}
           onJump={(h) => {
             if (h.anchor) void adapterRef.current?.jumpTo(h.anchor.primary);
+          }}
+          onJumpNote={(n) => {
+            void adapterRef.current?.jumpTo(n.anchor.primary);
           }}
           onUpdate={(h) => void updateHighlight(h)}
           onDelete={(id) => void deleteHighlight(id)}
@@ -772,6 +951,9 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
             void api.annotations.deleteBookmark(book.id, id);
             setBookmarks((prev) => prev.filter((b) => b.id !== id));
           }}
+          onCreateNote={(body) => void createNoteAt(body)}
+          onUpdateNote={(n) => void updateNote(n)}
+          onDeleteNote={(id) => void deleteNote(id)}
           onClose={() => setNotebookOpen(false)}
           focusId={focusId}
         />

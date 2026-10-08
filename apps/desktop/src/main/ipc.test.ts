@@ -185,6 +185,74 @@ describe('structured channels reject malformed structures', () => {
       expectAccept(schemas.collectionsCreate, { name: 'philosophy', description: null }),
     ).not.toThrow();
   });
+
+  it('book:set-tags — tags are bounded, non-empty strings in a bounded array', () => {
+    for (const input of HOSTILE) {
+      expectReject(schemas.bookSetTags, input);
+    }
+    expectReject(schemas.bookSetTags, { id: 'bk-1', tags: 'philosophy' });
+    expectReject(schemas.bookSetTags, { id: 'bk-1', tags: [''] });
+    expectReject(schemas.bookSetTags, { id: 'bk-1', tags: ['ok', 42] });
+    expectReject(schemas.bookSetTags, { id: 'bk-1', tags: ['x'.repeat(101)] });
+    expectReject(schemas.bookSetTags, { id: '', tags: ['ok'] });
+    expectReject(schemas.bookSetTags, { tags: ['ok'] });
+    expectReject(
+      schemas.bookSetTags,
+      { id: 'bk-1', tags: Array.from({ length: 51 }, (_, i) => `t${i}`) },
+    );
+    // empty tags = clearing them — legal, honest
+    expect(() => expectAccept(schemas.bookSetTags, { id: 'bk-1', tags: [] })).not.toThrow();
+    expect(() =>
+      expectAccept(schemas.bookSetTags, { id: 'bk-1', tags: ['philosophy', 'to-reread'] }),
+    ).not.toThrow();
+  });
+
+  it('collections:rename — {id, name} with the same bounds as create', () => {
+    for (const input of HOSTILE) {
+      expectReject(schemas.collectionsRename, input);
+    }
+    expectReject(schemas.collectionsRename, { id: 'c-1', name: '' });
+    expectReject(schemas.collectionsRename, { id: 'c-1', name: 'x'.repeat(201) });
+    expectReject(schemas.collectionsRename, { id: '', name: 'ok' });
+    expectReject(schemas.collectionsRename, { name: 'ok' });
+    expectReject(schemas.collectionsRename, { id: 'c-1' });
+    expect(() => expectAccept(schemas.collectionsRename, { id: 'c-1', name: 'renamed' })).not.toThrow();
+  });
+
+  it('note:create — the full note contract (body is never empty, never huge)', () => {
+    const noteBase = {
+      id: 'n-1',
+      bookId: 'bk-1',
+      anchor: {
+        format: 'epub',
+        primary: 'epubcfi(/6/8)',
+        textRange: null,
+        position: { percent: 0.4 },
+      },
+      body: 'a thought worth keeping',
+      chapter: 'Chapter Two',
+      createdAt: 1,
+      updatedAt: 2,
+    };
+    expect(() => expectAccept(schemas.noteCreate, { bookId: 'bk-1', n: noteBase })).not.toThrow();
+    // an empty body is not a note — the schema refuses it
+    expectReject(schemas.noteCreate, { bookId: 'bk-1', n: { ...noteBase, body: '' } });
+    expectReject(schemas.noteCreate, {
+      bookId: 'bk-1',
+      n: { ...noteBase, body: 'x'.repeat(20_001) },
+    });
+    expectReject(schemas.noteCreate, { bookId: 'bk-1', n: { ...noteBase, chapter: 'x'.repeat(501) } });
+    expectReject(schemas.noteCreate, { bookId: 'bk-1', n: { ...noteBase, anchor: null } });
+    for (const input of HOSTILE) {
+      expectReject(schemas.noteCreate, input);
+    }
+  });
+
+  it('note:delete — {bookId, id} strings only', () => {
+    expectReject(schemas.noteDelete, { bookId: 'bk-1', id: 42 });
+    expectReject(schemas.noteDelete, { bookId: '', id: 'n-1' });
+    expect(() => expectAccept(schemas.noteDelete, { bookId: 'bk-1', id: 'n-1' })).not.toThrow();
+  });
 });
 
 describe('fuzz: arbitrary json never slips through object schemas', () => {

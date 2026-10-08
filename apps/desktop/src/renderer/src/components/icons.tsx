@@ -29,4 +29,10 @@ export {
   IconFitPage,
   IconShelf,
   IconArchive,
+  IconSettings,
+  IconInfo,
+  IconTag,
+  IconPencil,
+  IconFolder,
+  IconPulse,
 } from '@arivo/ui';

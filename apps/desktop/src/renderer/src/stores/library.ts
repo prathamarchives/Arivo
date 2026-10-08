@@ -10,6 +10,8 @@ interface LibraryState {
   collections: { collection: Collection; count: number }[];
   query: string;
   activeCollection: string | null;
+  /** the tag the library is filtered to (null = no filter) */
+  activeTag: string | null;
   sort: SortMode;
   loading: boolean;
   refresh: () => Promise<void>;
@@ -17,12 +19,15 @@ interface LibraryState {
   importDropped: (files: File[]) => Promise<ImportResult[]>;
   removeBook: (id: string, deleteFiles: boolean) => Promise<void>;
   createCollection: (name: string) => Promise<void>;
+  renameCollection: (id: string, name: string) => Promise<void>;
   removeCollection: (id: string) => Promise<void>;
   assign: (collectionId: string, bookId: string) => Promise<void>;
   unassign: (collectionId: string, bookId: string) => Promise<void>;
+  setBookTags: (bookId: string, tags: string[]) => Promise<void>;
   setQuery: (q: string) => void;
   setSort: (s: SortMode) => void;
   setActiveCollection: (id: string | null) => void;
+  setActiveTag: (tag: string | null) => void;
 }
 
 export const useLibrary = create<LibraryState>((set, get) => ({
@@ -30,6 +35,7 @@ export const useLibrary = create<LibraryState>((set, get) => ({
   collections: [],
   query: '',
   activeCollection: null,
+  activeTag: null,
   sort: 'recent',
   loading: false,
 
@@ -72,6 +78,11 @@ export const useLibrary = create<LibraryState>((set, get) => ({
     await get().refresh();
   },
 
+  renameCollection: async (id, name) => {
+    await api.collections.rename(id, name);
+    await get().refresh();
+  },
+
   removeCollection: async (id) => {
     await api.collections.remove(id);
     set({ activeCollection: null });
@@ -88,7 +99,13 @@ export const useLibrary = create<LibraryState>((set, get) => ({
     await get().refresh();
   },
 
+  setBookTags: async (bookId, tags) => {
+    await api.book.setTags(bookId, tags);
+    await get().refresh();
+  },
+
   setQuery: (q) => set({ query: q }),
   setSort: (s) => set({ sort: s }),
   setActiveCollection: (id) => set({ activeCollection: id }),
+  setActiveTag: (tag) => set({ activeTag: tag }),
 }));

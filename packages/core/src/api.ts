@@ -10,8 +10,10 @@ import type {
   Collection,
   Highlight,
   ImportResult,
+  Note,
   ReadingProgress,
   SearchHit,
+  SessionStats,
 } from './types.ts';
 import type { SerializedArivoError } from './errors.ts';
 import type { DiagnosticsReport } from './diagnostics.ts';
@@ -69,6 +71,8 @@ export interface ArivoApi {
     openUrl(id: string): string;
     coverUrl(id: string): string;
     get(id: string): Promise<BookWithProgress | null>;
+    /** tags are user-owned truth — written to metadata.json first, then the index */
+    setTags(id: string, tags: string[]): Promise<void>;
   };
   progress: {
     save(bookId: string, progress: ReadingProgress): Promise<void>;
@@ -76,14 +80,20 @@ export interface ArivoApi {
   sessions: {
     begin(bookId: string, startPercent: number): Promise<string>;
     end(sessionId: string, endPercent: number): Promise<void>;
+    /** the reading-life numbers (quiet, honest, index-derived) */
+    stats(): Promise<SessionStats>;
   };
   annotations: {
-    list(bookId: string): Promise<{ highlights: Highlight[]; bookmarks: Bookmark[] }>;
+    list(bookId: string): Promise<{ highlights: Highlight[]; bookmarks: Bookmark[]; notes: Note[] }>;
     createHighlight(bookId: string, h: Highlight): Promise<void>;
     updateHighlight(bookId: string, h: Highlight): Promise<void>;
     deleteHighlight(bookId: string, id: string): Promise<void>;
     createBookmark(bookId: string, b: Bookmark): Promise<void>;
     deleteBookmark(bookId: string, id: string): Promise<void>;
+    /** margin notes — thinking attached to a place */
+    createNote(bookId: string, n: Note): Promise<void>;
+    updateNote(bookId: string, n: Note): Promise<void>;
+    deleteNote(bookId: string, id: string): Promise<void>;
   };
   archive: {
     /** every mark across every book, newest first — the archive's ledger.
@@ -94,6 +104,7 @@ export interface ArivoApi {
     list(): Promise<{ collection: Collection; count: number }[]>;
     create(name: string, description: string | null): Promise<Collection>;
     remove(id: string): Promise<void>;
+    rename(id: string, name: string): Promise<void>;
     assign(collectionId: string, bookId: string): Promise<void>;
     unassign(collectionId: string, bookId: string): Promise<void>;
     books(collectionId: string): Promise<string[]>;
@@ -104,6 +115,8 @@ export interface ArivoApi {
   settings: {
     get(): Promise<AppSettings>;
     set(s: AppSettings): Promise<void>;
+    /** main-side directory picker; returns the chosen path or null (nothing applied yet) */
+    pickBooksDir(): Promise<string | null>;
   };
   exportNotes: {
     save(bookId: string): Promise<string | null>;

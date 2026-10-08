@@ -59,6 +59,9 @@ export function registerIpc(getServices: () => Services): void {
   );
 
   handleArg('book:get', schemas.bookGet, (bookId) => s().store.getBook(bookId));
+  handleArg('book:set-tags', schemas.bookSetTags, ({ id: bookId, tags }) =>
+    s().store.setBookTags(bookId, tags),
+  );
 
   handleArg('progress:save', schemas.progressSave, ({ bookId, progress }) =>
     s().store.saveProgress(bookId, progress as import('@arivo/core').ReadingProgress),
@@ -70,10 +73,12 @@ export function registerIpc(getServices: () => Services): void {
   handleArg('session:end', schemas.sessionEnd, ({ sessionId, endPercent }) =>
     s().store.endSession(sessionId, endPercent),
   );
+  handle('sessions:stats', () => s().store.sessionStats());
 
   handleArg('annotations:list', schemas.annotationsList, (bookId) => ({
     highlights: s().store.listHighlights(bookId),
     bookmarks: s().store.listBookmarks(bookId),
+    notes: s().store.listNotes(bookId),
   }));
   handle('archive:marks', () => s().store.listArchiveMarks());
   handleArg('highlight:create', schemas.highlightCreate, ({ bookId, h }) =>
@@ -91,6 +96,15 @@ export function registerIpc(getServices: () => Services): void {
   handleArg('bookmark:delete', schemas.bookmarkDelete, ({ bookId, id: bid }) =>
     s().store.deleteBookmark(bookId, bid),
   );
+  handleArg('note:create', schemas.noteCreate, ({ bookId, n }) =>
+    s().store.createNote(bookId, n as import('@arivo/core').Note),
+  );
+  handleArg('note:update', schemas.noteUpdate, ({ bookId, n }) =>
+    s().store.updateNote(bookId, n as import('@arivo/core').Note),
+  );
+  handleArg('note:delete', schemas.noteDelete, ({ bookId, id: nid }) =>
+    s().store.deleteNote(bookId, nid),
+  );
 
   handle('collections:list', () => s().store.listCollections());
   handleArg('collections:create', schemas.collectionsCreate, ({ name, description }) =>
@@ -98,6 +112,9 @@ export function registerIpc(getServices: () => Services): void {
   );
   handleArg('collections:remove', schemas.collectionsRemove, (collectionId) =>
     s().store.deleteCollection(collectionId),
+  );
+  handleArg('collections:rename', schemas.collectionsRename, ({ id, name }) =>
+    s().store.renameCollection(id, name),
   );
   handleArg('collections:assign', schemas.collectionsAssign, ({ collectionId, bookId }) =>
     s().store.assignToCollection(collectionId, bookId),
@@ -115,6 +132,7 @@ export function registerIpc(getServices: () => Services): void {
   handleArg('settings:set', schemas.settingsSet, (next) =>
     s().setSettings(next as unknown as import('@arivo/core').AppSettings),
   );
+  handle('settings:pick-dir', () => s().pickBooksDir());
 
   handleArg('export:save-notes', schemas.exportNotes, (bookId) => s().saveNotes(bookId));
 

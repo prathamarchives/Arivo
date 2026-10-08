@@ -5,6 +5,8 @@ import { useSettings } from './stores/settings.ts';
 import { useLibrary } from './stores/library.ts';
 import { useRoom } from './stores/room.ts';
 import { Shell } from './shell/Shell.tsx';
+import { BookDetail } from './screens/BookDetail.tsx';
+import { SettingsScreen } from './screens/Settings.tsx';
 import { CommandPalette } from './features/palette/CommandPalette.tsx';
 import { api } from './services/api.ts';
 
@@ -91,6 +93,8 @@ export function App(): ReactNode {
   return (
     <>
       {labMode ? <DesignLab /> : <Shell />}
+      {labMode ? null : <BookDetail />}
+      {labMode ? null : <SettingsScreen />}
       {labMode ? null : <CommandPalette />}
       {labMode ? null : <Toaster />}
       {labMode ? null : <RecoveryBanner />}

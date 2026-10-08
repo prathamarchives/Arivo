@@ -41,6 +41,11 @@ interface RoomState {
   /** desk engagement (selection, drawers) — chrome cannot hide mid-work */
   engaged: boolean;
 
+  /** the settings drawer (wave 1's settings surface, room-owned) */
+  settingsOpen: boolean;
+  /** the book whose detail drawer is open (library-side, bookId-keyed) */
+  detailBookId: string | null;
+
   goShelf: () => void;
   goDesk: (bookId: string, locator?: string | null, focusId?: string | null) => void;
   goArchive: () => void;
@@ -56,6 +61,9 @@ interface RoomState {
   clearDeskPending: () => void;
 
   setPaletteOpen: (open: boolean) => void;
+  setSettingsOpen: (open: boolean) => void;
+  openBookDetail: (bookId: string) => void;
+  closeBookDetail: () => void;
   toast: (text: string) => void;
 }
 
@@ -84,6 +92,8 @@ export const useRoom = create<RoomState>((set, get) => ({
   shelfScroll: 0,
   archiveScroll: 0,
   engaged: false,
+  settingsOpen: false,
+  detailBookId: null,
 
   goShelf: () => set({ place: 'shelf', attention: 'active' }),
 
@@ -135,6 +145,14 @@ export const useRoom = create<RoomState>((set, get) => ({
   },
 
   setPaletteOpen: (open) => set({ paletteOpen: open }),
+
+  /* drawers are engagement: the chrome cannot withdraw mid-work */
+  setSettingsOpen: (open) => {
+    set({ settingsOpen: open });
+    if (open) set({ engaged: true });
+  },
+  openBookDetail: (bookId) => set({ detailBookId: bookId, engaged: true }),
+  closeBookDetail: () => set({ detailBookId: null }),
 
   toast: (text) => {
     const id = ++toastSeq;

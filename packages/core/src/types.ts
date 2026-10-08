@@ -132,6 +132,20 @@ export interface Bookmark {
   createdAt: number;
 }
 
+/**
+ * a margin note — thinking attached to a place, no highlight required.
+ * where highlights keep what the author said, notes keep what YOU thought.
+ */
+export interface Note {
+  id: string;
+  bookId: string;
+  anchor: Anchor;
+  body: string;
+  chapter: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface Book {
   id: string;
   title: string;
@@ -175,6 +189,37 @@ export interface ReadingSession {
   endPercent: number | null;
 }
 
+// ---------- reading life (quiet numbers — sessions are index telemetry) ----------
+
+export interface SessionDayStat {
+  /** local-midnight epoch ms of the day bucket */
+  day: number;
+  /** total ms read that day */
+  ms: number;
+}
+
+export interface BookTimeStat {
+  bookId: string;
+  title: string;
+  /** total ms spent in this book */
+  ms: number;
+  lastReadAt: number | null;
+}
+
+export interface SessionStats {
+  totalMs: number;
+  /** the last 7 days, ms */
+  weekMs: number;
+  /** consecutive reading days ending today or yesterday; 0 = none yet */
+  streakDays: number;
+  /** finished sessions, all time */
+  sessions: number;
+  /** the last 14 days, sparse (absent = no reading that day) */
+  days: SessionDayStat[];
+  /** where the time went, most-first, capped */
+  books: BookTimeStat[];
+}
+
 export interface Collection {
   id: string;
   name: string;
@@ -187,7 +232,7 @@ export interface CollectionItem {
   bookId: string;
 }
 
-export type SearchHitKind = 'book' | 'highlight' | 'collection' | 'tag';
+export type SearchHitKind = 'book' | 'highlight' | 'note' | 'collection' | 'tag';
 
 export interface SearchHit {
   kind: SearchHitKind;

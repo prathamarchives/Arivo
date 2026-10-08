@@ -6,7 +6,7 @@
 import { readFileSync, mkdirSync, existsSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { writeFileSyncAtomic } from '@arivo/persistence';
-import type { Highlight, Bookmark, ReadingProgress } from '@arivo/core';
+import type { Highlight, Bookmark, Note, ReadingProgress } from '@arivo/core';
 
 export interface BookTruth {
   version: 1;
@@ -14,6 +14,8 @@ export interface BookTruth {
   progress: ReadingProgress | null;
   highlights: Highlight[];
   bookmarks: Bookmark[];
+  /** margin notes since schema 003 — absent in older files, tolerated on read */
+  notes: Note[];
 }
 
 const empty = (bookId: string): BookTruth => ({
@@ -22,6 +24,7 @@ const empty = (bookId: string): BookTruth => ({
   progress: null,
   highlights: [],
   bookmarks: [],
+  notes: [],
 });
 
 export function readTruth(bookDir: string, bookId: string): BookTruth {
@@ -36,6 +39,7 @@ export function readTruth(bookDir: string, bookId: string): BookTruth {
       progress: raw.progress ?? null,
       highlights: raw.highlights,
       bookmarks: raw.bookmarks,
+      notes: Array.isArray(raw.notes) ? raw.notes : [],
     };
   } catch {
     // corrupted truth file: salvage via .bak, else start empty — never crash the library
@@ -46,7 +50,7 @@ export function readTruth(bookDir: string, bookId: string): BookTruth {
         if (Array.isArray(salvaged.highlights)) {
           // the .bak is good — write it back as the live truth, atomically
           writeFileSyncAtomic(file, JSON.stringify({ ...salvaged, bookId }, null, 2));
-          return { ...salvaged, bookId };
+          return { ...salvaged, bookId, notes: salvaged.notes ?? [] };
         }
       } catch {
         /* fall through */

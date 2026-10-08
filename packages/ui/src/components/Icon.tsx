@@ -41,6 +41,14 @@ export const ICON_PATHS = {
      same grid, same stroke, same round caps — the language stays one. */
   shelf: 'M2.5 13.5h11M5 13.5V7.5M8 13.5V4.5M11 13.5V8.5',
   archive: 'M2.5 5.5h11v8h-11v-8ZM2.5 9h11M6.5 11.5h3',
+  /* the wave-1 surfaces (library tools + settings): settings gear, info,
+     tag, pencil, folder, pulse — the reading life's line. */
+  settings: 'M8 10.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5ZM8 1.75l.9 1.5 1.7-.4.4 1.7 1.5.9-.9 1.55.9 1.55-1.5.9-.4 1.7-1.7-.4L8 14.25l-.9-1.5-1.7.4-.4-1.7-1.5-.9.9-1.55-.9-1.55 1.5-.9.4-1.7 1.7.4L8 1.75Z',
+  info: 'M8 14.25a6.25 6.25 0 1 0 0-12.5 6.25 6.25 0 0 0 0 12.5ZM8 7.25v4M8 4.6v.01',
+  tag: 'M2.5 3.5h5l5.5 5.5-5 5L2.5 8.5v-5ZM5 6v.01',
+  pencil: 'M10.5 2.5 13.5 5.5 5.5 13.5 2.5 13.5 2.5 10.5 10.5 2.5Z',
+  folder: 'M2 4.5h4l1.5 2H14v7H2v-9Z',
+  pulse: 'M2.5 8.5 5 8.5 6.5 4.5 9 12 10.5 8.5 13.5 8.5',
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;
@@ -108,3 +116,9 @@ export const IconFitWidth = named('fitWidth');
 export const IconFitPage = named('fitPage');
 export const IconShelf = named('shelf');
 export const IconArchive = named('archive');
+export const IconSettings = named('settings');
+export const IconInfo = named('info');
+export const IconTag = named('tag');
+export const IconPencil = named('pencil');
+export const IconFolder = named('folder');
+export const IconPulse = named('pulse');

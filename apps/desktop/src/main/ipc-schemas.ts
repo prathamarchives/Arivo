@@ -13,6 +13,7 @@ import {
   type HighlightColor,
   type ResolutionStatus,
   type Bookmark,
+  type Note,
   type ReadingProgress,
   type AppSettings,
 } from '@arivo/core';
@@ -62,6 +63,16 @@ const bookmark: Validator<Bookmark> = v.object({
   createdAt: v.number({ min: 0 }),
 });
 
+const note: Validator<Note> = v.object({
+  id,
+  bookId: id,
+  anchor,
+  body: v.string({ min: 1, max: 20_000 }),
+  chapter: chapterName,
+  createdAt: v.number({ min: 0 }),
+  updatedAt: v.number({ min: 0 }),
+});
+
 const progress: Validator<ReadingProgress> = v.object({
   bookId: id,
   locator: v.string({ min: 1, max: 4096 }),
@@ -87,6 +98,10 @@ export const schemas = {
   importPaths: v.array(v.string({ min: 1, max: 2048 }), { max: 50 }),
   remove: v.object({ id, deleteFiles: v.boolean() }),
   bookGet: id,
+  bookSetTags: v.object({
+    id,
+    tags: v.array(v.string({ min: 1, max: 100 }), { max: 50 }),
+  }),
   progressSave: v.object({ bookId: id, progress }),
   sessionBegin: v.object({ bookId: id, startPercent: v.number({ min: 0, max: 1 }) }),
   sessionEnd: v.object({ sessionId: id, endPercent: v.number({ min: 0, max: 1 }) }),
@@ -96,11 +111,15 @@ export const schemas = {
   highlightDelete: v.object({ bookId: id, id: v.id() }),
   bookmarkCreate: v.object({ bookId: id, b: bookmark }),
   bookmarkDelete: v.object({ bookId: id, id: v.id() }),
+  noteCreate: v.object({ bookId: id, n: note }),
+  noteUpdate: v.object({ bookId: id, n: note }),
+  noteDelete: v.object({ bookId: id, id: v.id() }),
   collectionsCreate: v.object({
     name: v.string({ min: 1, max: 200 }),
     description: v.nullable(v.string({ max: 2000 })),
   }),
   collectionsRemove: id,
+  collectionsRename: v.object({ id, name: v.string({ min: 1, max: 200 }) }),
   collectionsAssign: v.object({ collectionId: id, bookId: id }),
   collectionsUnassign: v.object({ collectionId: id, bookId: id }),
   collectionsBooks: id,

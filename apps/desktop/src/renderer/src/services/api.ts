@@ -11,7 +11,9 @@ import type {
   Collection,
   Highlight,
   ImportResult,
+  Note,
   SearchHit,
+  SessionStats,
 } from '@arivo/core';
 import { DEFAULT_SETTINGS } from '@arivo/core';
 
@@ -41,6 +43,7 @@ export function createMockApi(): ArivoApi {
     books: (BookWithProgress & { blobUrl?: string })[];
     highlights: Highlight[];
     bookmarks: Bookmark[];
+    notes: Note[];
     collections: { collection: Collection; count: number }[];
     settings: AppSettings;
   }
@@ -75,6 +78,7 @@ export function createMockApi(): ArivoApi {
       ],
       highlights: [],
       bookmarks: [],
+      notes: [],
       collections: [{ collection: { id: 'mock-col-1', name: 'philosophy', description: null, createdAt: Date.now() }, count: 1 }],
       settings: { ...DEFAULT_SETTINGS },
     };
@@ -137,6 +141,13 @@ export function createMockApi(): ArivoApi {
       openUrl: (id) => mockBlobs.get(id) ?? `/seed/${state.books.find((b) => b.id === id)?.fileName ?? ''}`,
       coverUrl: () => '',
       get: async (id) => state.books.find((b) => b.id === id) ?? null,
+      setTags: async (id, tags) => {
+        state = {
+          ...state,
+          books: state.books.map((b) => (b.id === id ? { ...b, tags } : b)),
+        };
+        save();
+      },
     },
     progress: {
       save: async (bookId, progress) => {
@@ -150,11 +161,21 @@ export function createMockApi(): ArivoApi {
     sessions: {
       begin: async () => 'mock-session',
       end: async () => undefined,
+      stats: async () =>
+        ({
+          totalMs: 0,
+          weekMs: 0,
+          streakDays: 0,
+          sessions: 0,
+          days: [],
+          books: [],
+        }) as SessionStats,
     },
     annotations: {
       list: async (bookId) => ({
         highlights: state.highlights.filter((h) => h.bookId === bookId),
         bookmarks: state.bookmarks.filter((b) => b.bookId === bookId),
+        notes: state.notes.filter((n) => n.bookId === bookId),
       }),
       createHighlight: async (bookId, h) => {
         state = { ...state, highlights: [...state.highlights, h] };
@@ -177,6 +198,18 @@ export function createMockApi(): ArivoApi {
       },
       deleteBookmark: async (bookId, id) => {
         state = { ...state, bookmarks: state.bookmarks.filter((b) => b.id !== id) };
+        save();
+      },
+      createNote: async (bookId, n) => {
+        state = { ...state, notes: [...state.notes, n] };
+        save();
+      },
+      updateNote: async (bookId, n) => {
+        state = { ...state, notes: state.notes.map((x) => (x.id === n.id ? n : x)) };
+        save();
+      },
+      deleteNote: async (bookId, id) => {
+        state = { ...state, notes: state.notes.filter((n) => n.id !== id) };
         save();
       },
     },
@@ -237,6 +270,15 @@ export function createMockApi(): ArivoApi {
         state = { ...state, collections: state.collections.filter((c) => c.collection.id !== id) };
         save();
       },
+      rename: async (id, name) => {
+        state = {
+          ...state,
+          collections: state.collections.map((c) =>
+            c.collection.id === id ? { collection: { ...c.collection, name }, count: c.count } : c,
+          ),
+        };
+        save();
+      },
       assign: async () => undefined,
       unassign: async () => undefined,
       books: async () => [],
@@ -255,6 +297,11 @@ export function createMockApi(): ArivoApi {
             hits.push({ kind: 'highlight', id: h.id, title: h.text.slice(0, 80), context: h.note ?? h.chapter, bookId: h.bookId, locator: h.anchor.primary, highlightId: h.id });
           }
         }
+        for (const n of state.notes) {
+          if (n.body.toLowerCase().includes(ql)) {
+            hits.push({ kind: 'note', id: n.id, title: n.body.slice(0, 80), context: n.chapter, bookId: n.bookId, locator: n.anchor.primary, highlightId: null });
+          }
+        }
         return hits;
       },
     },
@@ -264,6 +311,7 @@ export function createMockApi(): ArivoApi {
         state = { ...state, settings: s };
         save();
       },
+      pickBooksDir: async () => null,
     },
     exportNotes: {
       save: async () => null,

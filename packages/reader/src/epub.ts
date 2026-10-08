@@ -57,6 +57,10 @@ export class EpubAdapter implements FormatReader {
   private rendition: LooseRendition | null = null;
   private container: HTMLElement | null = null;
   private settings: ReaderSettings | null = null;
+  /** the flow the live rendition was built with ('scrolled-doc' = epub.js's honest scrolled) */
+  private flow: 'paginated' | 'scrolled-doc' = 'paginated';
+  /** the last relocated cfi — the rendition is recreated at this exact spot on flow change */
+  private currentLocator: string | null = null;
   private annotations = new Map<string, AnnotationView>();
   private chapterByHref = new Map<string, string>();
   private cfiBaseByIndex = new Map<number, string>();
@@ -71,6 +75,11 @@ export class EpubAdapter implements FormatReader {
     this.hooks = hooks;
   }
 
+  /** settings.flow → the epub.js flow string (format knowledge stays here) */
+  private epubFlow(flow: 'paginated' | 'scrolled'): 'paginated' | 'scrolled-doc' {
+    return flow === 'scrolled' ? 'scrolled-doc' : 'paginated';
+  }
+
   async open(container: HTMLElement, source: ArrayBuffer): Promise<void> {
     this.container = container;
     const book = ePub(source);
@@ -78,15 +87,6 @@ export class EpubAdapter implements FormatReader {
 
     await (book as Book & { loaded: { navigation: Promise<{ toc: NavItem[] }> } }).loaded
       .navigation as unknown as Promise<{ toc: NavItem[] }>;
-
-    const rendition = book.renderTo(container, {
-      width: '100%',
-      height: '100%',
-      flow: 'paginated',
-      spread: 'none',
-      manager: 'default',
-    }) as LooseRendition;
-    this.rendition = rendition;
 
     // chapter labels by href (for annotations + the notebook)
     const nav = await (book as Book & { loaded: { navigation: Promise<{ toc: NavItem[] }> } }).loaded
@@ -114,7 +114,32 @@ export class EpubAdapter implements FormatReader {
       this.chapterByHref.set(`__spine:${i}`, lastLabel || `Section ${i + 1}`);
     }
 
-    // theme
+    this.createRendition();
+
+    // resize
+    window.addEventListener('resize', this.onResize);
+  }
+
+  /** (re)build the rendition on the live container — the flow change recreates here */
+  private createRendition(): void {
+    const book = this.book;
+    const container = this.container;
+    if (!book || !container) return;
+    this.flow = this.epubFlow(this.settings?.flow ?? 'paginated');
+    const rendition = book.renderTo(container, {
+      width: '100%',
+      height: '100%',
+      flow: this.flow,
+      spread: 'none',
+      manager: 'default',
+    }) as LooseRendition;
+    this.rendition = rendition;
+    this.attachHandlers(rendition);
+  }
+
+  private attachHandlers(rendition: LooseRendition): void {
+    const spineItems = ((this.book as unknown as { spine?: { items?: LooseSection[] } }).spine
+      ?.items ?? []) as LooseSection[];
 
     // relocated → progress
     rendition.on('relocated', (location: unknown) => {
@@ -122,6 +147,7 @@ export class EpubAdapter implements FormatReader {
         start?: { cfi: string; index?: number; percentage?: number; href?: string };
       } | undefined;
       if (!loc?.start?.cfi) return;
+      this.currentLocator = loc.start.cfi;
       const spineIdx = new EpubCFI(loc.start.cfi).spinePos;
       const chapter = this.chapterLabelFor(spineIdx, loc.start.href);
       this.currentChapter = chapter;
@@ -146,9 +172,36 @@ export class EpubAdapter implements FormatReader {
     rendition.on('rendered', (_section: unknown, contents: Contents) => {
       this.injectStyleInto(contents as Contents & { document: Document });
     });
+  }
 
-    // resize
-    window.addEventListener('resize', this.onResize);
+  /** the flow switch: same book, same spot, same marks — a different way of moving */
+  private async recreateRendition(): Promise<void> {
+    const locator = this.currentLocator;
+    const views = [...this.annotations.values()];
+    try {
+      this.rendition?.destroy();
+    } catch {
+      /* teardown best-effort */
+    }
+    this.rendition = null;
+    this.lastContents = null;
+    this.createRendition();
+    // ts cannot see createRendition's assignment — read it back typed
+    const rendition = this.rendition as LooseRendition | null;
+    if (!rendition) return;
+    await rendition
+      .display(locator ?? undefined)
+      .catch(() => rendition?.display());
+    void this.generateLocations();
+    if (this.settings) {
+      // font size + theme for the fresh view (flow already matches — no loop)
+      try {
+        rendition.themes.fontSize?.(`${[16, 18, 20, 22, 24][this.settings.fontStep] ?? 20}px`);
+      } catch {
+        /* size applies on the next render — honest */
+      }
+    }
+    if (views.length > 0) this.renderAnnotations(views);
   }
 
   async display(target?: string): Promise<void> {
@@ -204,7 +257,13 @@ export class EpubAdapter implements FormatReader {
   }
 
   applySettings(settings: ReaderSettings): void {
+    const flowChanged =
+      this.rendition !== null && this.epubFlow(settings.flow) !== this.flow;
     this.settings = settings;
+    if (flowChanged) {
+      void this.recreateRendition();
+      return;
+    }
     const r = this.rendition;
     if (!r) return;
     try {
@@ -300,10 +359,19 @@ export class EpubAdapter implements FormatReader {
   private renderOne(view: AnnotationView, flash: boolean): void {
     const r = this.rendition;
     if (!r) return;
-    const cls = `ar-hl ar-hl-${view.color}${flash ? ' ar-hl-flash' : ''}${
-      view.anchor.primary === '' ? ' ar-hl-orphaned' : ''
-    }`;
-    const data = { id: view.id, color: view.color, note: view.note };
+    // marks-pane applies the class via classList.add — a SINGLE token, no
+    // spaces (multi-class strings throw InvalidCharacterError and the mark
+    // never paints). the color IS the token; the svg fill comes from
+    // READ_CSS — css rules override the presentation attributes epub.js
+    // sets as defaults, and the rects inherit from the group.
+    const cls =
+      view.anchor.primary === '' ? 'ar-hl-orphaned' : `ar-hl-${view.color}`;
+    const data: Record<string, string> = {
+      id: view.id,
+      color: view.color,
+      note: view.note ?? '',
+    };
+    if (flash) data.flash = '1';
     const click = (e: unknown, d: Record<string, unknown>) => {
       if (typeof e === 'object' && e && 'preventDefault' in (e as object)) {
         (e as { preventDefault: () => void }).preventDefault();
