@@ -83,13 +83,13 @@ jobs:
             **provenance**
             - commit: ${{ github.sha }}
             - built by CI on a fresh runner after the full gate passed
-            (typecheck, lint, 158+ tests incl. the destroy suite, build)
+            (typecheck, lint, 460+ tests incl. the destroy suite, build)
 
             **upgrade note**
             the index database migrates automatically on first launch
-            (schema 1 → 2: foreign keys + reconciliation state). your
-            library folder is untouched; deleting the index never loses
-            annotations.
+            (this release: schema 2 → 4 — notes, desk docs + FTS, tested
+            against the v2/v3 migration matrix). your library folder is
+            untouched; deleting the index never loses annotations.
 
       # the closing assertion: the release this workflow just published is
       # actually a working update feed — version, assets, and sha512 verified
