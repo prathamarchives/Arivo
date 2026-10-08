@@ -365,19 +365,33 @@ export interface ImportResult {
  * the archive is downstream of the desk: these are real objects with real
  * provenance, never invented. every entry carries what source return
  * needs: bookId + the anchor of the passage it came from (golden 5).
+ * L11 grows the family beyond marks: margin notes (their questions
+ * flagged) and desk documents (the workbench's papers, collected quotes
+ * riding along as the provenance chain).
  */
 export interface ArchiveEntry {
   id: string;
-  kind: 'highlight' | 'bookmark';
+  kind: 'highlight' | 'bookmark' | 'note' | 'deskdoc';
   bookId: string;
   bookTitle: string;
   bookAuthors: string[];
   bookFormat: BookFormat;
-  /** the passage — the quote for highlights, the label for bookmarks */
+  /** the passage — the quote for highlights, the label for bookmarks, the thought for notes */
   text: string;
   note: string | null;
   color: HighlightColor | null;
   chapter: string | null;
+  /** L11 — a margin note that asks */
+  question: boolean;
+  /** L11 — the desk document's own kind, when the entry is a document */
+  deskKind: DeskDocKind | null;
+  /** L11 — the document's title (research collections, artifacts, reflections) */
+  deskTitle: string | null;
+  /** L11 — the document's body, capped to an honest snippet */
+  deskBody: string | null;
+  /** L11 — the document's collected passages: quote + locator + origin.
+   *  provenance's deepest link: artifact → note → selection → chapter → book. */
+  sourceRefs: SourceRef[];
   /** provenance: the anchor to return to the exact passage */
   anchor: Anchor;
   createdAt: number;
