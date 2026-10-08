@@ -2,7 +2,7 @@
   "name": "@arivo/desktop",
   "version": "0.2.2",
   "private": true,
-  "description": "arivo — a reading environment",
+  "description": "arivo \u2014 a reading environment",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -22,8 +22,6 @@
     "@arivo/persistence": "workspace:*",
     "@arivo/reader": "workspace:*",
     "@arivo/ui": "workspace:*",
-    "@fontsource-variable/inter": "^5.2.0",
-    "@fontsource/instrument-serif": "^5.1.0",
     "@fontsource/jetbrains-mono": "^5.1.0",
     "@fontsource/literata": "^5.1.0",
     "better-sqlite3": "^13.0.3",
