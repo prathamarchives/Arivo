@@ -427,3 +427,16 @@ status: PLAN MODE. awaiting fire.
   identity verified (labels leave, furniture persists); 6 a11y laws.
   436/2 green. session log: docs/SESSIONS/0011-keyboard-first.md
 - next: L15 — performance/reliability at scale.
+
+## execution log — L15 (measured, not vibes)
+
+- **L15: DONE** (this commit) — the bench extended with the new
+  surfaces: desk doc write 0.6ms, the archive ledger 312ms @10k-scale
+  (50,100 objects, budget 2s — green with headroom); the renderer at
+  5,000 objects: 61fps scrolling, the containment law's extreme proof
+  (8 cards render at the bottom of a 709k-px ledger). the leak sweep
+  found one: mock blob urls on removal — revoked now. the 5k mount
+  cost is measured + documented (virtualization deferred until real
+  libraries justify it). 436/2 green; REPORT.md regenerated.
+  session log: docs/SESSIONS/0012-measured-not-vibes.md
+- next: L16 — design QA.
