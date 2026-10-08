@@ -1,0 +1,303 @@
+/* layout — the spatial runtime's stylesheet (L4).
+   every value here comes from tokens.css. the class vocabulary is closed:
+   steps (s1..s32), surface backgrounds, radius grammar, elevation,
+   region roles, grid tracks (D-015). generated ladder classes are grouped.
+   density is inherited: regions multiply by var(--density), which
+   [data-temperament] set on the root — never multiplied per component. */
+
+/* --------------------------- box --------------------------- */
+
+.box {
+  position: relative;
+  min-width: 0;
+}
+
+.box.bg-transparent {
+  background: transparent;
+}
+.box.bg-raised {
+  background: var(--bg-raised);
+}
+.box.bg-sunken {
+  background: var(--bg-sunken);
+}
+.box.bg-ink {
+  background: var(--ink);
+  color: var(--bg-raised);
+}
+
+.box.box-bordered {
+  border: 1px solid var(--line);
+}
+
+.box.radius-structural { border-radius: var(--r-structural); }
+.box.radius-surface { border-radius: var(--r-surface); }
+.box.radius-interactive { border-radius: var(--r-interactive); }
+.box.radius-object { border-radius: var(--r-object); }
+.box.radius-generous { border-radius: var(--r-generous); }
+.box.radius-instrument { border-radius: var(--r-instrument); }
+
+.box.elev-1 { box-shadow: var(--elevation-1); }
+.box.elev-2 { box-shadow: var(--elevation-2); }
+.box.elev-3 { box-shadow: var(--elevation-3); }
+
+.box.pad-gap-s1 { padding: var(--s1); }
+.box.pad-gap-s2 { padding: var(--s2); }
+.box.pad-gap-s3 { padding: var(--s3); }
+.box.pad-gap-s4 { padding: var(--s4); }
+.box.pad-gap-s6 { padding: var(--s6); }
+.box.pad-gap-s8 { padding: var(--s8); }
+.box.pad-gap-s12 { padding: var(--s12); }
+.box.pad-gap-s16 { padding: var(--s16); }
+.box.pad-gap-s24 { padding: var(--s24); }
+.box.pad-gap-s32 { padding: var(--s32); }
+
+.box.padb-gap-s1 { padding-block: var(--s1); }
+.box.padb-gap-s2 { padding-block: var(--s2); }
+.box.padb-gap-s3 { padding-block: var(--s3); }
+.box.padb-gap-s4 { padding-block: var(--s4); }
+.box.padb-gap-s6 { padding-block: var(--s6); }
+.box.padb-gap-s8 { padding-block: var(--s8); }
+.box.padb-gap-s12 { padding-block: var(--s12); }
+.box.padb-gap-s16 { padding-block: var(--s16); }
+.box.padb-gap-s24 { padding-block: var(--s24); }
+.box.padb-gap-s32 { padding-block: var(--s32); }
+
+.box.padi-gap-s1 { padding-inline: var(--s1); }
+.box.padi-gap-s2 { padding-inline: var(--s2); }
+.box.padi-gap-s3 { padding-inline: var(--s3); }
+.box.padi-gap-s4 { padding-inline: var(--s4); }
+.box.padi-gap-s6 { padding-inline: var(--s6); }
+.box.padi-gap-s8 { padding-inline: var(--s8); }
+.box.padi-gap-s12 { padding-inline: var(--s12); }
+.box.padi-gap-s16 { padding-inline: var(--s16); }
+.box.padi-gap-s24 { padding-inline: var(--s24); }
+.box.padi-gap-s32 { padding-inline: var(--s32); }
+
+/* --------------------------- stack --------------------------- */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stack.stack-gap-s1 { gap: var(--s1); }
+.stack.stack-gap-s2 { gap: var(--s2); }
+.stack.stack-gap-s3 { gap: var(--s3); }
+.stack.stack-gap-s4 { gap: var(--s4); }
+.stack.stack-gap-s6 { gap: var(--s6); }
+.stack.stack-gap-s8 { gap: var(--s8); }
+.stack.stack-gap-s12 { gap: var(--s12); }
+.stack.stack-gap-s16 { gap: var(--s16); }
+.stack.stack-gap-s24 { gap: var(--s24); }
+.stack.stack-gap-s32 { gap: var(--s32); }
+
+/* collapse: the children own their rhythm (divided lists, wells) — the
+   stack's gap steps aside. declared after the ladder so it wins. */
+.stack.stack-collapse {
+  gap: 0;
+}
+
+/* --------------------------- inline --------------------------- */
+
+.inline {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.inline.inline-nowrap {
+  flex-wrap: nowrap;
+}
+
+.inline-inline-baseline { align-items: baseline; }
+.inline-inline-center { align-items: center; }
+.inline-inline-start { align-items: flex-start; }
+.inline-inline-end { align-items: flex-end; }
+.inline-inline-stretch { align-items: stretch; }
+
+.inline.inline-gap-s1 { gap: var(--s1); }
+.inline.inline-gap-s2 { gap: var(--s2); }
+.inline.inline-gap-s3 { gap: var(--s3); }
+.inline.inline-gap-s4 { gap: var(--s4); }
+.inline.inline-gap-s6 { gap: var(--s6); }
+.inline.inline-gap-s8 { gap: var(--s8); }
+.inline.inline-gap-s12 { gap: var(--s12); }
+.inline.inline-gap-s16 { gap: var(--s16); }
+.inline.inline-gap-s24 { gap: var(--s24); }
+.inline.inline-gap-s32 { gap: var(--s32); }
+
+/* --------------------------- grid --------------------------- */
+
+.grid {
+  display: grid;
+  min-width: 0;
+}
+
+.grid.grid-min-narrow {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+.grid.grid-min-wide {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.grid.grid-min-object {
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+.grid.grid-gap-s1 { gap: var(--s1); }
+.grid.grid-gap-s2 { gap: var(--s2); }
+.grid.grid-gap-s3 { gap: var(--s3); }
+.grid.grid-gap-s4 { gap: var(--s4); }
+.grid.grid-gap-s6 { gap: var(--s6); }
+.grid.grid-gap-s8 { gap: var(--s8); }
+.grid.grid-gap-s12 { gap: var(--s12); }
+.grid.grid-gap-s16 { gap: var(--s16); }
+.grid.grid-gap-s24 { gap: var(--s24); }
+.grid.grid-gap-s32 { gap: var(--s32); }
+
+/* --------------------------- region --------------------------- */
+
+/* the shell's structural vocabulary (L8 will compose these, not invent) */
+.region {
+  min-width: 0;
+  min-height: 0;
+}
+
+.region-orientation {
+  /* place, navigation, memory — the quiet left */
+  flex: 0 0 auto;
+}
+
+.region-work {
+  /* the source — the sovereign center; the room grows around it */
+  flex: 1 1 0%;
+}
+
+.region-context {
+  /* instruments for the current mode — the right workbench */
+  flex: 0 0 auto;
+}
+
+.region-overlay {
+  position: fixed;
+  inset: 0;
+}
+
+.region-scroll {
+  overflow-y: auto; /* the region owns its scroll, never the page */
+  overflow-x: hidden;
+}
+
+.region-pad-gap-s1 { padding: calc(var(--s1) * var(--density)); }
+.region-pad-gap-s2 { padding: calc(var(--s2) * var(--density)); }
+.region-pad-gap-s3 { padding: calc(var(--s3) * var(--density)); }
+.region-pad-gap-s4 { padding: calc(var(--s4) * var(--density)); }
+.region-pad-gap-s6 { padding: calc(var(--s6) * var(--density)); }
+.region-pad-gap-s8 { padding: calc(var(--s8) * var(--density)); }
+.region-pad-gap-s12 { padding: calc(var(--s12) * var(--density)); }
+.region-pad-gap-s16 { padding: calc(var(--s16) * var(--density)); }
+.region-pad-gap-s24 { padding: calc(var(--s24) * var(--density)); }
+.region-pad-gap-s32 { padding: calc(var(--s32) * var(--density)); }
+
+/* --------------------------- container --------------------------- */
+
+.container {
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.container-pad-gap-s1 { padding: calc(var(--s1) * var(--density)); }
+.container-pad-gap-s2 { padding: calc(var(--s2) * var(--density)); }
+.container-pad-gap-s3 { padding: calc(var(--s3) * var(--density)); }
+.container-pad-gap-s4 { padding: calc(var(--s4) * var(--density)); }
+.container-pad-gap-s6 { padding: calc(var(--s6) * var(--density)); }
+.container-pad-gap-s8 { padding: calc(var(--s8) * var(--density)); }
+.container-pad-gap-s12 { padding: calc(var(--s12) * var(--density)); }
+.container-pad-gap-s16 { padding: calc(var(--s16) * var(--density)); }
+.container-pad-gap-s24 { padding: calc(var(--s24) * var(--density)); }
+.container-pad-gap-s32 { padding: calc(var(--s32) * var(--density)); }
+
+/* ----------------------- reading measure ----------------------- */
+
+.reading-measure {
+  /* 68ch maximum (law 45) — resolved against the reading font in context.
+     the px approximation bridge (gate 15) clamps to the authored range:
+     whichever is tighter wins, so the column never stretches with the
+     monitor and never exceeds the author's comfort. */
+  width: 100%;
+  max-width: min(68ch, 760px);
+  min-width: min(100%, 520px);
+  margin-inline: auto;
+}
+
+/* --------------------------- overlay --------------------------- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  background: var(--img-scrim); /* theme-independent reclusion — D-016 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: arivo-fade-in var(--dur-micro-in) var(--ease-settle) both;
+}
+
+.overlay-sheet {
+  background: var(--bg-raised);
+  border-radius: var(--r-generous);
+  box-shadow: var(--elevation-3);
+  max-width: min(100% - var(--s8), 560px);
+  max-height: calc(100% - var(--s16));
+  overflow-y: auto;
+  animation: arivo-rise var(--dur-surface-in) var(--ease-glide) both;
+}
+
+.overlay-pad-gap-s1 { padding: var(--s1); }
+.overlay-pad-gap-s2 { padding: var(--s2); }
+.overlay-pad-gap-s3 { padding: var(--s3); }
+.overlay-pad-gap-s4 { padding: var(--s4); }
+.overlay-pad-gap-s6 { padding: var(--s6); }
+.overlay-pad-gap-s8 { padding: var(--s8); }
+.overlay-pad-gap-s12 { padding: var(--s12); }
+.overlay-pad-gap-s16 { padding: var(--s16); }
+.overlay-pad-gap-s24 { padding: var(--s24); }
+.overlay-pad-gap-s32 { padding: var(--s32); }
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .overlay-sheet {
+    animation-duration: 0ms;
+  }
+}
+
+/* --------------------------- spacer --------------------------- */
+
+.spacer {
+  flex: 0 0 auto;
+  display: block;
+}
+
+.spacer-block.spacer-gap-s1 { height: var(--s1); }
+.spacer-block.spacer-gap-s2 { height: var(--s2); }
+.spacer-block.spacer-gap-s3 { height: var(--s3); }
+.spacer-block.spacer-gap-s4 { height: var(--s4); }
+.spacer-block.spacer-gap-s6 { height: var(--s6); }
+.spacer-block.spacer-gap-s8 { height: var(--s8); }
+.spacer-block.spacer-gap-s12 { height: var(--s12); }
+.spacer-block.spacer-gap-s16 { height: var(--s16); }
+.spacer-block.spacer-gap-s24 { height: var(--s24); }
+.spacer-block.spacer-gap-s32 { height: var(--s32); }
+
+.spacer-inline.spacer-gap-s1 { width: var(--s1); }
+.spacer-inline.spacer-gap-s2 { width: var(--s2); }
+.spacer-inline.spacer-gap-s3 { width: var(--s3); }
+.spacer-inline.spacer-gap-s4 { width: var(--s4); }
+.spacer-inline.spacer-gap-s6 { width: var(--s6); }
+.spacer-inline.spacer-gap-s8 { width: var(--s8); }
+.spacer-inline.spacer-gap-s12 { width: var(--s12); }
+.spacer-inline.spacer-gap-s16 { width: var(--s16); }
+.spacer-inline.spacer-gap-s24 { width: var(--s24); }
+.spacer-inline.spacer-gap-s32 { width: var(--s32); }

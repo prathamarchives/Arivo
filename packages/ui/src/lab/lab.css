@@ -526,3 +526,71 @@
   transition-duration: 0ms !important;
 }
 
+/* ---------- 14 · the spatial runtime ---------- */
+
+.lab-spatial-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
+}
+
+.lab-spatial-slider {
+  width: var(--s24);
+  accent-color: var(--ink);
+}
+
+.lab-spatial-stage {
+  border: 1px solid var(--line);
+  border-radius: var(--r-surface);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* the frame is a width harness; the room inside is primitives only */
+.lab-spatial-frame {
+  height: 340px;
+  overflow: hidden;
+  position: relative;
+  background: var(--bg);
+}
+
+.lab-spatial-room {
+  height: 100%;
+  overflow: hidden;
+}
+
+.lab-spatial-regions {
+  height: 100%;
+  align-items: stretch;
+}
+
+.lab-spatial-rail {
+  width: var(--s24);
+  border-inline-end: 1px solid var(--line);
+}
+
+.lab-spatial-context {
+  width: var(--s32);
+  border-inline-start: 1px solid var(--line);
+}
+
+.lab-spatial-work {
+  background: var(--bg-sunken);
+}
+
+.lab-spatial-nav-item {
+  list-style: none;
+}
+
+.lab-spatial-nav-item.is-active {
+  border-left: 2px solid var(--ink);
+}
+
+.lab-spatial-nav-item .meta-label {
+  color: var(--ink);
+}
+
+.lab-spatial-notes {
+  display: flex;
+}

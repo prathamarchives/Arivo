@@ -16,6 +16,7 @@
     ".": "./src/index.ts",
     "./tokens.css": "./src/tokens.css",
     "./base.css": "./src/base.css",
+    "./layout.css": "./src/layout/layout.css",
     "./lab.css": "./src/lab/lab.css"
   }
 }

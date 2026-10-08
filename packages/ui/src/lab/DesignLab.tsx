@@ -16,6 +16,7 @@ import {
   ANNOTATION,
 } from './lab-data.ts';
 import { MotionRuntimeLab } from './MotionLab.tsx';
+import { SpatialRuntimeLab } from './SpatialLab.tsx';
 
 type Temperament = 'den' | 'lab';
 type Lighting = 'paper' | 'sepia' | 'night';
@@ -293,6 +294,9 @@ export function DesignLab(): ReactNode {
 
         {/* ---------------- motion runtime (L3 — the engine) ---------------- */}
         <MotionRuntimeLab />
+
+        {/* ---------------- spatial runtime (L4 — the room) ---------------- */}
+        <SpatialRuntimeLab />
 
         <footer className="lab-header" style={{ borderBottom: 'none', borderTop: '1px solid var(--line)', paddingTop: 'var(--s6)' }}>
           <span className="meta-label">
