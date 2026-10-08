@@ -56,3 +56,39 @@ shows press. error beats everything visible except disabled.
 - keyboard focus is never removed for aesthetics: the ink ring is a
   first-class element of the room.
 - reduced-motion twins apply to every state transition.
+
+## the runtime (L5.1) — the contract as code
+
+`packages/ui/src/state/` makes this document executable:
+
+```ts
+import { resolveState, behaviorFor, ariaForState } from '@arivo/ui';
+const resolved = resolveState({ disabled, loading, focus, selected, hover });
+```
+
+- **state.ts** — the closed vocabulary: the canonical nine + the arivo
+  machinery (saving / saved / processing / modified / needs-attention /
+  recovering). origins are typed: pointer / keyboard / semantics / data.
+- **precedence.ts** — the order above as data. `resolveState` is the only
+  interpreter; `suppresses` encodes the doc laws (disabled never shows
+  hover/press; async never shows press; focus survives all but disabled).
+  the arivo extension is D-017.
+- **interaction.ts** — `useInteraction({ disabled, loading, state })` →
+  the lawful hover/press/focus truth + bind props. the decision core is
+  pure and node-tested. focus renders only for `:focus-visible`.
+- **accessibility.ts** — one aria surface: busy/invalid/selected/pressed
+  flags, live-region rank (error+recovering assertive; receipts polite),
+  and the human phrase per state — voice and state cannot drift.
+
+### the render contract
+
+primitives take a single `state` prop (data-driven states) + native attrs
+(disabled, :hover, :active, :focus-visible for device truth). rendering
+decides what loading LOOKS like; precedence decides what it MEANS. no
+component encodes state entirely in css selectors (law 40).
+
+### the spinner exception (D-018)
+
+the async spinner rotates at constant angular velocity — `linear`, the
+honest curve for pure rotation, recorded as the single sanctioned
+non-easing keyword. transform only; reduced-motion twin zeroes it.

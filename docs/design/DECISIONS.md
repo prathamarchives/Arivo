@@ -140,3 +140,23 @@ the lab root). production code never sets it; the physics runtime consults
 the real preference on every follow().
 **reason:** you cannot review what you cannot force on; but the user's os
 setting is the only production truth.
+
+## D-017 · the arivo state extension slots lawfully
+
+**decision:** the async family slots under loading, urgency-ordered
+(recovering > saving > processing); needs-attention defers to error but
+outranks focus; the quiet receipts (saved, modified) rank below
+interaction but above rest. error/needs-attention keep the pointer LIVE —
+retry is the whole point of an attention control.
+**reason:** the documented core order stays byte-identical; the extension
+is a total order (compile-enforced via the exhaustive Record) so no
+component can invent a contradictory precedence.
+
+## D-018 · spinners rotate linear
+
+**decision:** the async spinner's rotation uses `linear` — the one
+sanctioned non-easing keyword — at transform only, zeroed by the
+reduced-motion twin.
+**reason:** the easing vocabulary governs TRANSITIONS between states;
+constant angular velocity is not a transition. linear is the physically
+honest curve for pure rotation.

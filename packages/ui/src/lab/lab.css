@@ -594,3 +594,132 @@
 .lab-spatial-notes {
   display: flex;
 }
+
+/* ---------- 15 · the state runtime ---------- */
+
+.lab-state-playground {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
+  gap: var(--s3);
+}
+
+.lab-state-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  align-content: flex-start;
+}
+
+.lab-state-verdict {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s4);
+}
+
+.lab-state-resolved {
+  font-size: var(--text-xl);
+}
+
+.lab-state-facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--line);
+}
+
+.lab-state-matrix {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.lab-state-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--s2);
+}
+
+.lab-state-cell {
+  min-width: 0;
+}
+
+.lab-state-btn {
+  width: 100%;
+}
+
+/* the forced-state vocabulary: semantic, tokenized, from the state law */
+.lab-state-btn[data-state='hover'] {
+  border-color: var(--ink-3);
+}
+.lab-state-btn[data-state='press'] {
+  transform: scale(0.985);
+  background: var(--bg-sunken);
+}
+.lab-state-btn[data-state='focus'] {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+.lab-state-btn[data-state='selected'] {
+  background: var(--ink);
+  color: var(--bg-raised);
+  border-color: var(--ink);
+  font-weight: 700;
+}
+.lab-state-btn[data-state='disabled'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.lab-state-btn[data-state='loading'],
+.lab-state-btn[data-state='saving'],
+.lab-state-btn[data-state='processing'],
+.lab-state-btn[data-state='recovering'] {
+  color: var(--ink-2);
+  cursor: progress;
+}
+.lab-state-btn[data-state='error'] {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.lab-state-btn[data-state='empty'] {
+  border-style: dashed;
+}
+.lab-state-btn[data-state='modified'] {
+  border-color: var(--accent-ink);
+}
+.lab-state-btn[data-state='needs-attention'] {
+  border-color: var(--accent);
+}
+
+.lab-state-input[data-state='error'] {
+  border-color: var(--accent);
+}
+.lab-state-input[data-state='empty'] {
+  border-style: dashed;
+}
+.lab-state-input[data-state='modified'] {
+  border-color: var(--accent-ink);
+}
+
+/* the spinner: transform only, one rotation, reduced-motion honored */
+.lab-state-spinner {
+  width: var(--s3);
+  height: var(--s3);
+  border-radius: var(--r-instrument);
+  border: 1.5px solid var(--line-strong);
+  border-top-color: var(--ink-2);
+  animation: lab-spin var(--dur-spatial-in) linear infinite;
+}
+
+@keyframes lab-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lab-state-spinner {
+    animation-duration: 0ms;
+  }
+}
