@@ -310,3 +310,11 @@ status: PLAN MODE. awaiting fire.
     full check green at 170 passed / 2 skipped
 - next: wave 2 (reader depth: PDF quality, reading profiles, measure law,
   motion pass, reader test layer, standalone margin notes)
+- **W2.7 margin notes: DONE** (4d27319) — migration 003, dual-write,
+  search, export, notebook composer; live-verified compose→reload
+- **W2.6 (partial) the repagination proof: DONE live** (65413b8) — and
+  it found a real shipped bug: highlights never painted (marks-pane
+  classList.add rejects multi-class strings; our catch swallowed it).
+  fixed: single-token classes + svg fill via READ_CSS; pdf colors too.
+  proof: font 18→24, flow switch, reload — mark + cfi stable.
+  session log: docs/SESSIONS/0002-wave-one-and-notes.md
