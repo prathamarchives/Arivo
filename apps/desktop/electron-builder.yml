@@ -5,6 +5,12 @@ directories:
 files:
   - out/**
   - package.json
+  # dev-only files never ship: the workspace packages ride node_modules
+  # as raw ts (the type-stripping contract), but their tests and bench
+  # harnesses are development weight, not product
+  - '!**/node_modules/@arivo/**/*.test.ts'
+  - '!**/node_modules/@arivo/**/bench/**'
+  - '!**/node_modules/@arivo/**/*.test.js'
 asarUnpack:
   - node_modules/better-sqlite3/**
 win:
