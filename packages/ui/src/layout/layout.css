@@ -7,6 +7,9 @@
 
 /* --------------------------- box --------------------------- */
 
+/* the utility classes below (radius-*, elev-*, pad-gap-*) are shared by
+   Box, Surface, and the composites — one grammar, every surface. */
+
 .box {
   position: relative;
   min-width: 0;
@@ -30,49 +33,49 @@
   border: 1px solid var(--line);
 }
 
-.box.radius-structural { border-radius: var(--r-structural); }
-.box.radius-surface { border-radius: var(--r-surface); }
-.box.radius-interactive { border-radius: var(--r-interactive); }
-.box.radius-object { border-radius: var(--r-object); }
-.box.radius-generous { border-radius: var(--r-generous); }
-.box.radius-instrument { border-radius: var(--r-instrument); }
+.radius-structural { border-radius: var(--r-structural); }
+.radius-surface { border-radius: var(--r-surface); }
+.radius-interactive { border-radius: var(--r-interactive); }
+.radius-object { border-radius: var(--r-object); }
+.radius-generous { border-radius: var(--r-generous); }
+.radius-instrument { border-radius: var(--r-instrument); }
 
-.box.elev-1 { box-shadow: var(--elevation-1); }
-.box.elev-2 { box-shadow: var(--elevation-2); }
-.box.elev-3 { box-shadow: var(--elevation-3); }
+.elev-1 { box-shadow: var(--elevation-1); }
+.elev-2 { box-shadow: var(--elevation-2); }
+.elev-3 { box-shadow: var(--elevation-3); }
 
-.box.pad-gap-s1 { padding: var(--s1); }
-.box.pad-gap-s2 { padding: var(--s2); }
-.box.pad-gap-s3 { padding: var(--s3); }
-.box.pad-gap-s4 { padding: var(--s4); }
-.box.pad-gap-s6 { padding: var(--s6); }
-.box.pad-gap-s8 { padding: var(--s8); }
-.box.pad-gap-s12 { padding: var(--s12); }
-.box.pad-gap-s16 { padding: var(--s16); }
-.box.pad-gap-s24 { padding: var(--s24); }
-.box.pad-gap-s32 { padding: var(--s32); }
+.pad-gap-s1 { padding: var(--s1); }
+.pad-gap-s2 { padding: var(--s2); }
+.pad-gap-s3 { padding: var(--s3); }
+.pad-gap-s4 { padding: var(--s4); }
+.pad-gap-s6 { padding: var(--s6); }
+.pad-gap-s8 { padding: var(--s8); }
+.pad-gap-s12 { padding: var(--s12); }
+.pad-gap-s16 { padding: var(--s16); }
+.pad-gap-s24 { padding: var(--s24); }
+.pad-gap-s32 { padding: var(--s32); }
 
-.box.padb-gap-s1 { padding-block: var(--s1); }
-.box.padb-gap-s2 { padding-block: var(--s2); }
-.box.padb-gap-s3 { padding-block: var(--s3); }
-.box.padb-gap-s4 { padding-block: var(--s4); }
-.box.padb-gap-s6 { padding-block: var(--s6); }
-.box.padb-gap-s8 { padding-block: var(--s8); }
-.box.padb-gap-s12 { padding-block: var(--s12); }
-.box.padb-gap-s16 { padding-block: var(--s16); }
-.box.padb-gap-s24 { padding-block: var(--s24); }
-.box.padb-gap-s32 { padding-block: var(--s32); }
+.padb-gap-s1 { padding-block: var(--s1); }
+.padb-gap-s2 { padding-block: var(--s2); }
+.padb-gap-s3 { padding-block: var(--s3); }
+.padb-gap-s4 { padding-block: var(--s4); }
+.padb-gap-s6 { padding-block: var(--s6); }
+.padb-gap-s8 { padding-block: var(--s8); }
+.padb-gap-s12 { padding-block: var(--s12); }
+.padb-gap-s16 { padding-block: var(--s16); }
+.padb-gap-s24 { padding-block: var(--s24); }
+.padb-gap-s32 { padding-block: var(--s32); }
 
-.box.padi-gap-s1 { padding-inline: var(--s1); }
-.box.padi-gap-s2 { padding-inline: var(--s2); }
-.box.padi-gap-s3 { padding-inline: var(--s3); }
-.box.padi-gap-s4 { padding-inline: var(--s4); }
-.box.padi-gap-s6 { padding-inline: var(--s6); }
-.box.padi-gap-s8 { padding-inline: var(--s8); }
-.box.padi-gap-s12 { padding-inline: var(--s12); }
-.box.padi-gap-s16 { padding-inline: var(--s16); }
-.box.padi-gap-s24 { padding-inline: var(--s24); }
-.box.padi-gap-s32 { padding-inline: var(--s32); }
+.padi-gap-s1 { padding-inline: var(--s1); }
+.padi-gap-s2 { padding-inline: var(--s2); }
+.padi-gap-s3 { padding-inline: var(--s3); }
+.padi-gap-s4 { padding-inline: var(--s4); }
+.padi-gap-s6 { padding-inline: var(--s6); }
+.padi-gap-s8 { padding-inline: var(--s8); }
+.padi-gap-s12 { padding-inline: var(--s12); }
+.padi-gap-s16 { padding-inline: var(--s16); }
+.padi-gap-s24 { padding-inline: var(--s24); }
+.padi-gap-s32 { padding-inline: var(--s32); }
 
 /* --------------------------- stack --------------------------- */
 
