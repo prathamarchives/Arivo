@@ -1105,6 +1105,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
       className="reader"
       data-format={book?.format ?? 'epub'}
       data-page-mode={settings.pageMode}
+      data-workbench={workMode ? 'open' : 'closed'}
       style={{ '--ar-measure': `${settings.measure}px` } as CSSProperties}
     >
       <div className={`reader-chrome reader-chrome-top${chromeShown ? '' : ' chrome-faded'}`}>

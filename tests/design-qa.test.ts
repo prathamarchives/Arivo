@@ -126,4 +126,17 @@ describe('L16 — the state audit (device truths + authored states)', () => {
     expect(ARCHIVE_TSX).toContain('reading the ledger');
     expect(WORKBENCH_TSX).toContain('opening the workbench');
   });
+
+  it('L17 — the source yields to the workbench: a transform, never a reflow', () => {
+    // the reader declares the workbench state
+    expect(READER_TSX).toContain("data-workbench={workMode ? 'open' : 'closed'}");
+    // the yield rule moves the column; it must never resize it
+    const yieldRule = APP_CSS.match(/\.reader\[data-workbench='open'\]\[data-format='epub'\] \.epub-container\s*\{[^}]*\}/)?.[0] ?? '';
+    expect(yieldRule).toContain('translateX');
+    expect(yieldRule).not.toMatch(/max-width|min-width|width\s*:/);
+    // the pdf pages yield by padding — canvases never resize
+    const pdfYield = APP_CSS.match(/\.reader\[data-workbench='open'\] \.pdf-scroll\s*\{[^}]*\}/)?.[0] ?? '';
+    expect(pdfYield).toContain('padding-right');
+    expect(pdfYield).not.toMatch(/width\s*:/);
+  });
 });

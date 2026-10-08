@@ -452,3 +452,14 @@ status: PLAN MODE. awaiting fire.
   capture matrix (den×3 lights + lab×2) VLM-read clean. 446/2 green.
   session log: docs/SESSIONS/0013-attack-the-system.md
 - next: L17 — optical correction.
+
+## execution log — L17 (the perceptual pass)
+
+- **L17: DONE** (this commit) — measured geometry (icons perfectly
+  centered; the rail was 2px into the bottom chrome — fixed to 12px
+  clear) + the real correction: the reading column YIELDS to the
+  workbench (a 200px transform slide, never a reflow — the place is
+  sacred, lawed) and the documented sub-1306px exception. pdf pages
+  yield identically. VLM-verified clean. 447/2 green. session log:
+  docs/SESSIONS/0014-the-perceptual-pass.md
+- next: L18 — final art direction.
