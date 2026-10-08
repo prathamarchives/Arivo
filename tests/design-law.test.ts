@@ -213,6 +213,10 @@ describe('the design law — components speak only tokens', () => {
     expect(rawHexViolations(LAYOUT_CSS)).toEqual([]);
     expect(rawHexViolations(LAB_CSS)).toEqual([]);
     expect(rawHexViolations(SHELL_CSS)).toEqual([]);
+    /* the final campaign's P10 attack found app.css outside this law's
+     * reach — the reader's own skin file. it joins the scan; the pdf
+     * #fff/#000 pair stays documented-allowlisted. */
+    expect(rawHexViolations(APP_CSS)).toEqual([]);
   });
 
   it('z-index is semantic everywhere (law 47)', () => {

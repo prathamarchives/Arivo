@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { readFile, writeFile, mkdtemp } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,11 +12,24 @@ const ROOT = join(HERE, '../../..');
 // the committed deterministic fixtures — run everywhere (fresh clones, CI)
 const FIXTURE_EPUB = join(ROOT, 'test-fixtures/fixture.epub');
 const FIXTURE_PDF = join(ROOT, 'test-fixtures/fixture.pdf');
-// the owner's real book — present on the dev machine, gitignored, skipped elsewhere
+// the owner's real book — present on the dev machine, gitignored, skipped
+// elsewhere. a stand-in at the same path (a dev seed, a fixture copy)
+// must never falsely arm this suite: the guard is the fixture's own
+// hash, so only the genuinely different file runs (regression-5's law)
 const REAL_EPUB = join(
   ROOT,
   'apps/desktop/public/seed/The Burnout Society.epub',
 );
+const sha256 = (p: string): string =>
+  createHash('sha256').update(readFileSync(p)).digest('hex');
+const isStandIn = (): boolean => {
+  if (!existsSync(REAL_EPUB)) return true;
+  try {
+    return sha256(REAL_EPUB) === sha256(FIXTURE_EPUB);
+  } catch {
+    return true;
+  }
+};
 
 let tmp: string;
 beforeAll(async () => {
@@ -56,7 +70,7 @@ describe('inspectEpub — on the committed fixture (runs everywhere, incl. CI)',
   });
 });
 
-describe.skipIf(!existsSync(REAL_EPUB))('inspectEpub — on the owner\u2019s real book', () => {
+describe.skipIf(isStandIn())('inspectEpub — on the owner\u2019s real book', () => {
   it('extracts metadata, cover, and a stable hash', async () => {
     const result = await inspectEpub(REAL_EPUB);
     expect(result.format).toBe('epub');

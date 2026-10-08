@@ -253,6 +253,15 @@
   --aura-alpha: 0;            /* lab never responds to booklight */
 }
 
+/* the lighting previews: fixed reference swatches so each theme looks
+   like itself under any current theme. VALUES, not copies of --bg: the
+   tokens file is the one home for raw color. */
+:root {
+  --preview-paper-bg: #f4eee2; --preview-paper-ink: #2b2118;
+  --preview-sepia-bg: #f1e7d2; --preview-sepia-ink: #33281c;
+  --preview-night-bg: #171310; --preview-night-ink: #e9e2d5;
+}
+
 /* ======================= lighting axis ======================= */
 /* lighting conditions, not alternate identities. values are per
    temperament where the rooms genuinely differ. */

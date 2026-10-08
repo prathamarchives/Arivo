@@ -1,3 +1,4 @@
+
 /* arivo — the app. paper and ink, covers as the color, text is the interface.
    the screens below render inside the shell's work region — they fill
    the region (100%), never the viewport (the rail is furniture). */
@@ -1078,10 +1079,11 @@
 }
 
 /* lighting previews are fixed reference swatches — they must look like
-   their target under any current theme (documented exception). */
-.type-theme[data-preview='paper'] { background: #f4eee2; color: #2b2118; }
-.type-theme[data-preview='sepia'] { background: #f1e7d2; color: #33281c; }
-.type-theme[data-preview='night'] { background: #171310; color: #e9e2d5; }
+   their target under any current theme. the values live in the tokens
+   file (--preview-*); the swatches speak only tokens. */
+.type-theme[data-preview='paper'] { background: var(--preview-paper-bg); color: var(--preview-paper-ink); }
+.type-theme[data-preview='sepia'] { background: var(--preview-sepia-bg); color: var(--preview-sepia-ink); }
+.type-theme[data-preview='night'] { background: var(--preview-night-bg); color: var(--preview-night-ink); }
 
 .type-theme-active {
   border-color: var(--ink);
