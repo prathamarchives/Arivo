@@ -65,21 +65,24 @@ export interface NavItemProps {
   icon: IconName;
   label: string;
   selected?: boolean;
+  disabled?: boolean;
   onSelect?: () => void;
   /** the nav's id — aria-current is place memory, not just styling */
   id?: string;
   badge?: number;
 }
 
-export function NavItem({ icon, label, selected, onSelect, id, badge }: NavItemProps): ReactNode {
+export function NavItem({ icon, label, selected, disabled, onSelect, id, badge }: NavItemProps): ReactNode {
   return (
     <button
       id={id}
       type="button"
       className={`nav-item ${selected ? 'is-selected' : ''}`.trim()}
       aria-current={selected ? 'page' : undefined}
+      aria-disabled={disabled || undefined}
+      disabled={disabled}
       onClick={onSelect}
-      data-state={selected ? 'selected' : 'rest'}
+      data-state={disabled ? 'disabled' : selected ? 'selected' : 'rest'}
     >
       <Icon name={icon} />
       <span className="nav-item-label">{label}</span>

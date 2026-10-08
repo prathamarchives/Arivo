@@ -10,13 +10,13 @@ interface SettingsState {
   set: (partial: Partial<AppSettings>) => void;
 }
 
-function applyTheme(theme: AppSettings['theme']): void {
-  document.documentElement.dataset.theme = theme;
-  /* the temperament axis — den is the living default; lab is opt-in.
-     persistence + picker land with the L8 shell work (GATES.md). */
-  if (!document.documentElement.dataset.temperament) {
-    document.documentElement.dataset.temperament = 'den';
-  }
+/** both axes apply to the root, always: temperament (den/lab) and
+ *  lighting (paper/sepia/night). persistence is settings.json — gate 13
+ *  closed: the picker is the rail's furniture, the boot applies the
+ *  saved room, den is the living default (D-003). */
+function applyRoom(s: AppSettings): void {
+  document.documentElement.dataset.temperament = s.temperament;
+  document.documentElement.dataset.theme = s.theme;
 }
 
 export const useSettings = create<SettingsState>((set, get) => ({
@@ -24,12 +24,12 @@ export const useSettings = create<SettingsState>((set, get) => ({
   loaded: false,
   init: async () => {
     const s = await api.settings.get();
-    applyTheme(s.theme);
+    applyRoom(s);
     set({ settings: s, loaded: true });
   },
   set: (partial) => {
     const next = { ...get().settings, ...partial };
-    applyTheme(next.theme);
+    applyRoom(next);
     set({ settings: next });
     void api.settings.set(next);
   },

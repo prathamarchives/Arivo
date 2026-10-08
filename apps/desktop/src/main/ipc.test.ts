@@ -155,18 +155,22 @@ describe('structured channels reject malformed structures', () => {
     expect(() => expectAccept(schemas.searchQuery, 'burnout')).not.toThrow();
   });
 
-  it('settings:set — enum fields + guarded booksDir', () => {
+  it('settings:set — enum fields + guarded booksDir + temperament', () => {
     const good = {
       theme: 'night',
       fontStep: 2,
       flow: 'scrolled',
       libraryView: 'list',
       librarySize: 'l',
+      temperament: 'lab',
       booksDir: null,
     };
     expect(() => expectAccept(schemas.settingsSet, good)).not.toThrow();
+    expect(() => expectAccept(schemas.settingsSet, { ...good, temperament: 'den' })).not.toThrow();
     expectReject(schemas.settingsSet, { ...good, theme: 'neon' });
     expectReject(schemas.settingsSet, { ...good, fontStep: 9 });
+    expectReject(schemas.settingsSet, { ...good, temperament: 'study' });
+    expectReject(schemas.settingsSet, { ...good, temperament: undefined });
     expectReject(schemas.settingsSet, { ...good, booksDir: '' });
     expect(() =>
       expectAccept(schemas.settingsSet, { ...good, booksDir: 'C:\\Users\\me\\Arivo' }),

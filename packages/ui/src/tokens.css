@@ -109,6 +109,8 @@
   --r-instrument: 999px; /* pills, floating instruments */
 
   --cover-w: 200px;      /* 2:3 book object */
+  --rail-w: 224px;       /* the shell's orientation rail (L8 furniture) */
+  --rail-w-slim: 64px;   /* the rail's icon form below the measured 1044 boundary */
   --control-h: 32px;
   --control-h-lg: 40px;
   --hit: 32px;           /* minimum touch target */
@@ -174,6 +176,9 @@
 :root {
   --img-scrim: rgba(0, 0, 0, 0.32);
   --img-scrim-strong: rgba(0, 0, 0, 0.5);
+  /* the spine fold — covers are physical: they curl toward the binding.
+     one ink-based gradient, matte, part of the cover's material. */
+  --spine-fold: linear-gradient(to right, rgba(43, 33, 24, 0.09), rgba(43, 33, 24, 0) 16px);
 }
 
 /* legacy aliases — deprecated, swept during surface waves */

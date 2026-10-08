@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DragEvent, ReactNode } from 'react';
 import type { BookWithProgress } from '@arivo/core';
 import { platform, api } from '../services/api.ts';
 import { useLibrary, type SortMode } from '../stores/library.ts';
 import { useSettings } from '../stores/settings.ts';
-import { useUi } from '../stores/ui.ts';
-import { IconButton, Button, Input, Kbd } from '@arivo/ui';
+import { useRoom } from '../stores/room.ts';
+import { IconButton, Button, Input, Kbd, BookObject, type BookAura } from '@arivo/ui';
+import { computeAura, applyRoomAura } from '../lib/booklight.ts';
 import {
   IconSearch,
   IconPlus,
@@ -19,99 +20,64 @@ import {
   IconDownload,
   IconCollection,
   IconBook,
+  IconCheck,
 } from '../components/icons.tsx';
-
-const COVER_SIZES: Record<'s' | 'm' | 'l', number> = { s: 160, m: 200, l: 240 };
-
-function coverStyle(size: number): Record<string, string> {
-  return { width: `${size}px`, height: `${Math.round(size * 1.5)}px` };
-}
 
 function fmtDate(ts: number): string {
   const d = new Date(ts);
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-function Cover({ book, size }: { book: BookWithProgress; size: number }): ReactNode {
-  const [broken, setBroken] = useState(false);
-  const showImg = platform === 'electron' && book.coverPath && !broken;
-  return (
-    <div className="book-cover" style={coverStyle(size)} aria-hidden="true">
-      {showImg ? (
-        <img
-          src={api.book.coverUrl(book.id)}
-          alt=""
-          loading="lazy"
-          onError={() => setBroken(true)}
-        />
-      ) : (
-        <div className="book-cover-fallback">
-          <span className="book-cover-title">{book.title}</span>
-          <span className="book-cover-author">{book.authors[0] ?? ''}</span>
-        </div>
-      )}
-      {book.format === 'pdf' && <span className="format-badge">PDF</span>}
-    </div>
-  );
-}
-
-function BookCard({
+/** the shelf's canonical object — the book as an object, never a card.
+ *  one system (BookObject), the grid's zoom is recorded geometry. */
+function ShelfObject({
   book,
-  size,
+  current,
+  aura,
+  openingId,
+  selectionMode,
+  selected,
+  onOpen,
   onMenu,
+  size = 'md',
 }: {
   book: BookWithProgress;
-  size: number;
+  current?: boolean;
+  aura?: BookAura;
+  openingId: string | null;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onOpen: (
+    book: BookWithProgress,
+    e?: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean },
+  ) => void;
   onMenu: (book: BookWithProgress, x: number, y: number) => void;
+  size?: 'md' | 'sm';
 }): ReactNode {
-  const openReader = useUi((s) => s.openReader);
-  const pct = book.progress ? Math.round(book.progress.percent * 100) : 0;
   return (
-    <div
-      className="book-card"
-      style={{ width: `${size}px` }}
-      role="button"
-      tabIndex={0}
-      aria-label={`${book.title} by ${book.authors.join(', ')}`}
-      onClick={() => openReader(book.id)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          openReader(book.id);
-        }
-      }}
-    >
-      <Cover book={book} size={size} />
-      {book.fileMissing && (
-        <div className="book-flag book-flag-missing" title="the book file is missing — annotations are safe">
-          missing file
-        </div>
-      )}
-      <div className="book-meta">
-        <div className="book-title" title={book.title}>
-          {book.title}
-        </div>
-        <div className="book-author">{book.authors.join(', ') || '—'}</div>
-        {pct > 0 && (
-          <div className="book-progress" aria-label={`${pct}% read`}>
-            <div className="book-progress-fill" style={{ width: `${pct}%` }} />
-          </div>
-        )}
-      </div>
-      <button
-        className="book-menu"
-        aria-label="book actions"
-        onClick={(e) => {
-          e.stopPropagation();
-          onMenu(book, e.clientX, e.clientY);
-        }}
-      >
-        <IconDots />
-      </button>
-    </div>
+    <BookObject
+      title={book.title}
+      author={book.authors.join(', ') || undefined}
+      cover={
+        platform === 'electron' && book.coverPath ? api.book.coverUrl(book.id) : undefined
+      }
+      progress={book.progress?.percent ?? undefined}
+      format={book.format}
+      missing={book.fileMissing}
+      current={current}
+      aura={aura}
+      opening={openingId === book.id}
+      selectionMode={selectionMode}
+      selected={selected}
+      size={size}
+      onOpen={(e) => onOpen(book, e)}
+      onActions={(x, y) => onMenu(book, x, y)}
+    />
   );
 }
 
+/** the list view: a ledger camera over the same library — the spine,
+ *  not a second card system. same identity inks, same states. */
 function BookRow({
   book,
   onMenu,
@@ -119,19 +85,27 @@ function BookRow({
   book: BookWithProgress;
   onMenu: (book: BookWithProgress, x: number, y: number) => void;
 }): ReactNode {
-  const openReader = useUi((s) => s.openReader);
+  const goDesk = useRoom((s) => s.goDesk);
+  const [broken, setBroken] = useState(false);
+  const showImg = platform === 'electron' && book.coverPath && !broken;
   const pct = book.progress ? Math.round(book.progress.percent * 100) : 0;
   return (
     <div
       className="book-row"
       role="button"
       tabIndex={0}
-      onClick={() => openReader(book.id)}
+      onClick={() => goDesk(book.id)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') openReader(book.id);
+        if (e.key === 'Enter') goDesk(book.id);
       }}
     >
-      <Cover book={book} size={32} />
+      <span className="row-cover" aria-hidden="true">
+        {showImg ? (
+          <img src={api.book.coverUrl(book.id)} alt="" loading="lazy" onError={() => setBroken(true)} />
+        ) : null}
+        {book.format === 'pdf' && <span className="bo-badge">PDF</span>}
+        {book.fileMissing && <span className="bo-badge bo-badge-missing">missing</span>}
+      </span>
       <div className="book-row-title">
         <span className="book-title">{book.title}</span>
         <span className="book-author">{book.authors.join(', ') || '—'}</span>
@@ -163,7 +137,7 @@ function BookMenu({
   onClose: () => void;
 }): ReactNode {
   const { collections, assign, removeBook } = useLibrary();
-  const toast = useUi((s) => s.toast);
+  const toast = useRoom((s) => s.toast);
   const [confirm, setConfirm] = useState(false);
   const style = {
     left: Math.min(x, window.innerWidth - 260),
@@ -237,13 +211,15 @@ function BookMenu({
 
 function EmptyState(): ReactNode {
   const importDialog = useLibrary((s) => s.importDialog);
-  const toast = useUi((s) => s.toast);
+  const toast = useRoom((s) => s.toast);
   return (
     <div className="empty-state fade-in">
-      <div className="empty-glyph">
-        <IconBook />
+      {/* the room is waiting: the shelf line exists, one object's place
+       * is sunken into it — absence with a shape, not "no items found" */}
+      <div className="empty-shelf" aria-hidden="true">
+        <span className="empty-shelf-ghost" />
       </div>
-      <h1 className="type-title">point me at your books</h1>
+      <h1 className="type-title">your shelf is waiting</h1>
       <p className="empty-sub">
         drop epubs or pdfs anywhere on this page, or pick a folder.
         <br />
@@ -265,11 +241,17 @@ function EmptyState(): ReactNode {
   );
 }
 
-function Toolbar(): ReactNode {
+function Toolbar({
+  selectionMode,
+  onToggleSelection,
+}: {
+  selectionMode: boolean;
+  onToggleSelection: () => void;
+}): ReactNode {
   const { query, setQuery, sort, setSort } = useLibrary();
   const { settings, set } = useSettings();
   const importDialog = useLibrary((s) => s.importDialog);
-  const toast = useUi((s) => s.toast);
+  const toast = useRoom((s) => s.toast);
   const themes = [
     { key: 'paper', icon: <IconSun />, label: 'paper' },
     { key: 'sepia', icon: <IconLamp />, label: 'sepia' },
@@ -279,7 +261,8 @@ function Toolbar(): ReactNode {
 
   return (
     <header className="library-toolbar">
-      <div className="brand">arivo.</div>
+      {/* the room's mark lives in the orientation rail — the toolbar is
+          the shelf's working surface, not the brand bar */}
       <div className="toolbar-search">
         <IconSearch />
         <input
@@ -302,6 +285,14 @@ function Toolbar(): ReactNode {
           <option value="author">author</option>
           <option value="progress">progress</option>
         </select>
+        {settings.libraryView === 'grid' && (
+          <IconButton
+            label={selectionMode ? 'leave selection' : 'select books'}
+            onClick={onToggleSelection}
+          >
+            <IconCheck />
+          </IconButton>
+        )}
         <IconButton
           label="reading theme"
           onClick={() => {
@@ -403,37 +394,112 @@ function CollectionsBar(): ReactNode {
   );
 }
 
-function ContinueReading({ books }: { books: BookWithProgress[] }): ReactNode {
-  const openReader = useUi((s) => s.openReader);
+function ContinueReading({
+  books,
+  currentId,
+  aura,
+  openingId,
+  onOpen,
+}: {
+  books: BookWithProgress[];
+  currentId: string | null;
+  aura: BookAura | null;
+  openingId: string | null;
+  onOpen: (
+    book: BookWithProgress,
+    e?: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean },
+  ) => void;
+}): ReactNode {
   if (books.length === 0) return null;
   return (
-    <section className="continue-reading" aria-label="continue reading">
-      <div className="meta-label section-label">continue reading</div>
+    <section className="continue-reading" aria-label="in progress">
+      <div className="meta-label section-label">in progress</div>
       <div className="continue-row">
-        {books.map((b) => {
-          const pct = Math.round((b.progress?.percent ?? 0) * 100);
-          return (
-            <button
-              key={b.id}
-              className="continue-card"
-              onClick={() => openReader(b.id)}
-              aria-label={`continue ${b.title}`}
-            >
-              <Cover book={b} size={110} />
-              <div className="continue-meta">
-                <span className="continue-title">{b.title}</span>
-                <span className="meta-label">
-                  {b.progress?.chapter ?? `${pct}%`}
-                </span>
-                <div className="book-progress">
-                  <div className="book-progress-fill" style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            </button>
-          );
-        })}
+        {books.map((b) => (
+          <ShelfObject
+            key={b.id}
+            book={b}
+            size="sm"
+            current={b.id === currentId}
+            aura={b.id === currentId ? (aura ?? undefined) : undefined}
+            openingId={openingId}
+            onOpen={onOpen}
+            onMenu={() => undefined}
+          />
+        ))}
       </div>
     </section>
+  );
+}
+
+/** the bulk bar — objects in hand. quiet structure: count, the two
+ *  real actions (gather into a list, remove), and the door out. */
+function SelectionBar({
+  count,
+  collections,
+  onAssign,
+  onRemove,
+  onDone,
+}: {
+  count: number;
+  collections: { collection: { id: string; name: string }; count: number }[];
+  onAssign: (collectionId: string) => void;
+  onRemove: (deleteFiles: boolean) => void;
+  onDone: () => void;
+}): ReactNode {
+  const [listOpen, setListOpen] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  return (
+    <div className="select-bar rise" role="toolbar" aria-label="selected books">
+      <span className="meta-label">
+        {count} {count === 1 ? 'book' : 'books'} selected
+      </span>
+      <div className="select-bar-actions">
+        <div className="select-bar-menu">
+          <button type="button" className="chip" onClick={() => setListOpen((v) => !v)}>
+            <IconCollection />
+            add to list
+          </button>
+          {listOpen && (
+            <div className="menu glass rise" role="menu">
+              {collections.length === 0 && <div className="menu-empty">no lists yet</div>}
+              {collections.map(({ collection }) => (
+                <button
+                  key={collection.id}
+                  type="button"
+                  className="menu-item"
+                  onClick={() => {
+                    onAssign(collection.id);
+                    setListOpen(false);
+                  }}
+                >
+                  <IconCollection />
+                  {collection.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {!confirm ? (
+          <button type="button" className="chip" onClick={() => setConfirm(true)}>
+            <IconTrash />
+            remove…
+          </button>
+        ) : (
+          <>
+            <button type="button" className="chip" onClick={() => onRemove(false)}>
+              remove, keep files
+            </button>
+            <button type="button" className="chip" onClick={() => onRemove(true)}>
+              remove with files
+            </button>
+          </>
+        )}
+        <button type="button" className="chip chip-add" onClick={onDone}>
+          done
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -447,15 +513,27 @@ export function LibraryScreen(): ReactNode {
     loading,
     refresh,
     importDropped,
+    removeBook,
+    assign,
   } = useLibrary();
   const { settings } = useSettings();
-  const toast = useUi((s) => s.toast);
+  const toast = useRoom((s) => s.toast);
+  const shelfScroll = useRoom((s) => s.shelfScroll);
+  const setShelfScroll = useRoom((s) => s.setShelfScroll);
+  const bodyRef = useRef<HTMLElement | null>(null);
   const [dragging, setDragging] = useState(false);
   const [menu, setMenu] = useState<{ book: BookWithProgress; x: number; y: number } | null>(null);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  /* spatial memory: the shelf restores its exact scroll — leaving and
+   * returning is one continuous place, never a reset (golden 6) */
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (body && shelfScroll > 0) body.scrollTop = shelfScroll;
+  }, [shelfScroll]);
 
   const [collectionIds, setCollectionIds] = useState<string[] | null>(null);
   useEffect(() => {
@@ -511,6 +589,38 @@ export function LibraryScreen(): ReactNode {
     [books],
   );
 
+  /* the current book: the one object that owns the desk's memory —
+   * the desk context if it exists, else the most recently read */
+  const currentBookId = useRoom((s) => (s.desk ? s.desk.bookId : null)) ??
+    continueList[0]?.id ?? null;
+  const currentBook = books.find((b) => b.id === currentBookId) ?? null;
+
+  /* booklight: the current book tints the light (den only, gate 8).
+   * the cover is sampled once per current book; the room's aura slots
+   * follow it; identity never moves (golden 7). */
+  const [aura, setAura] = useState<BookAura | null>(null);
+  const temperament = settings.temperament;
+  const currentCover =
+    platform === 'electron' && currentBook?.coverPath
+      ? api.book.coverUrl(currentBook.id)
+      : null;
+  useEffect(() => {
+    let disposed = false;
+    if (!currentCover) {
+      applyRoomAura(null, temperament);
+      setAura(null);
+      return;
+    }
+    void computeAura(currentCover).then((a) => {
+      if (disposed) return;
+      setAura(a);
+      applyRoomAura(a, temperament);
+    });
+    return () => {
+      disposed = true;
+    };
+  }, [currentCover, temperament]);
+
   const onDrop = async (e: DragEvent): Promise<void> => {
     e.preventDefault();
     setDragging(false);
@@ -531,7 +641,69 @@ export function LibraryScreen(): ReactNode {
     );
   };
 
-  const size = COVER_SIZES[settings.librarySize] ?? 200;
+  /* the pull-forward: the physical open. the object tips toward the
+   * hand (elevation-3, the launch state), then the desk opens — the
+   * seed of L10's shared-element flight (golden 6). ctrl/cmd+click is
+   * the selection shortcut: objects in hand, never an accidental open. */
+  const goDesk = useRoom((s) => s.goDesk);
+  const [openingId, setOpeningId] = useState<string | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
+
+  const openBook = (
+    book: BookWithProgress,
+    e?: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean },
+  ): void => {
+    if (selectionMode || e?.ctrlKey || e?.metaKey) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(book.id)) next.delete(book.id);
+        else next.add(book.id);
+        return next;
+      });
+      if (!selectionMode) setSelectionMode(true);
+      return;
+    }
+    if (openingId !== null) return;
+    setOpeningId(book.id);
+    window.setTimeout(() => {
+      setOpeningId(null);
+      goDesk(book.id);
+    }, 150);
+  };
+
+  /* Escape leaves selection mode — the door out is always one key away */
+  useEffect(() => {
+    if (!selectionMode) return;
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        setSelectionMode(false);
+        setSelectedIds(new Set());
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectionMode]);
+
+  const exitSelection = (): void => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const removeSelected = (deleteFiles: boolean): void => {
+    for (const id of selectedIds) void removeBook(id, deleteFiles);
+    toast(`removed ${selectedIds.size} ${selectedIds.size === 1 ? 'book' : 'books'}${deleteFiles ? ' with files' : ' — files kept'}`);
+    exitSelection();
+  };
+
+  const assignSelected = (collectionId: string): void => {
+    const name = collections.find((c) => c.collection.id === collectionId)?.collection.name ?? 'list';
+    for (const id of selectedIds) void assign(collectionId, id);
+    toast(`added ${selectedIds.size} ${selectedIds.size === 1 ? 'book' : 'books'} to ${name}`);
+    exitSelection();
+  };
+
+  const size = settings.librarySize;
 
   return (
     <div
@@ -545,7 +717,16 @@ export function LibraryScreen(): ReactNode {
       }}
       onDrop={(e) => void onDrop(e)}
     >
-      <Toolbar />
+      <Toolbar selectionMode={selectionMode} onToggleSelection={() => (selectionMode ? exitSelection() : setSelectionMode(true))} />
+      {selectionMode && (
+        <SelectionBar
+          count={selectedIds.size}
+          collections={collections}
+          onAssign={assignSelected}
+          onRemove={removeSelected}
+          onDone={exitSelection}
+        />
+      )}
       {dragging && (
         <div className="dropzone-overlay fade-in">
           <div className="dropzone-card glass">
@@ -555,7 +736,14 @@ export function LibraryScreen(): ReactNode {
           </div>
         </div>
       )}
-      <main className="library-body">
+      <main
+        className="library-body"
+        ref={bodyRef}
+        onScroll={() => {
+          const body = bodyRef.current;
+          if (body) setShelfScroll(body.scrollTop);
+        }}
+      >
         {loading && books.length === 0 ? (
           <div className="library-loading meta-label">opening the library…</div>
         ) : books.length === 0 ? (
@@ -563,7 +751,13 @@ export function LibraryScreen(): ReactNode {
         ) : (
           <>
             <CollectionsBar />
-            <ContinueReading books={continueList} />
+            <ContinueReading
+              books={continueList}
+              currentId={currentBookId}
+              aura={aura}
+              openingId={openingId}
+              onOpen={openBook}
+            />
             <section className="library-grid-section" aria-label="library">
               <div className="meta-label section-label">
                 {activeCollection
@@ -571,9 +765,19 @@ export function LibraryScreen(): ReactNode {
                   : `${visible.length} ${visible.length === 1 ? 'book' : 'books'}`}
               </div>
               {settings.libraryView === 'grid' ? (
-                <div className="book-grid">
+                <div className="book-grid" data-size={size}>
                   {visible.map((b) => (
-                    <BookCard key={b.id} book={b} size={size} onMenu={(book, x, y) => setMenu({ book, x, y })} />
+                    <ShelfObject
+                      key={b.id}
+                      book={b}
+                      current={b.id === currentBookId}
+                      aura={b.id === currentBookId ? (aura ?? undefined) : undefined}
+                      openingId={openingId}
+                      selectionMode={selectionMode}
+                      selected={selectedIds.has(b.id)}
+                      onOpen={openBook}
+                      onMenu={(book, x, y) => setMenu({ book, x, y })}
+                    />
                   ))}
                 </div>
               ) : (

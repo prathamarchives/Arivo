@@ -4,7 +4,7 @@
  * error envelopes; unwrap here so codes survive into the renderer.
  */
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-import { unwrapEnvelope, type ArivoApi, type AppSettings, type Bookmark, type Highlight, type ImportResult, type SearchHit, type ReconciliationReport, type DiagnosticsReport } from '@arivo/core';
+import { unwrapEnvelope, type ArivoApi, type AppSettings, type ArchiveEntry, type Bookmark, type Highlight, type ImportResult, type SearchHit, type ReconciliationReport, type DiagnosticsReport } from '@arivo/core';
 import type { BookWithProgress, Collection } from '@arivo/core';
 
 const invoke = async <T>(name: string, arg?: unknown): Promise<T> =>
@@ -37,6 +37,9 @@ const api: ArivoApi = {
     deleteHighlight: (bookId, id) => invoke<void>('highlight:delete', { bookId, id }),
     createBookmark: (bookId, b) => invoke<void>('bookmark:create', { bookId, b }),
     deleteBookmark: (bookId, id) => invoke<void>('bookmark:delete', { bookId, id }),
+  },
+  archive: {
+    marks: () => invoke<ArchiveEntry[]>('archive:marks'),
   },
   collections: {
     list: () => invoke<{ collection: Collection; count: number }[]>('collections:list'),

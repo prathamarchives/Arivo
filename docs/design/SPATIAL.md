@@ -36,7 +36,7 @@ the workspace stays fluid around the sovereign column.
 margins are useful space: tools, notes, references, and booklight
 breathe there. marginalia is not wasted paper.
 
-## regions (the shell contract, L8+)
+## regions (the shell contract, L8 — now live)
 
 ```
 left    orientation (place, navigation, memory)
@@ -47,6 +47,22 @@ right   contextual workbench (instruments for the current mode)
 navigation may become quiet or absent without changing spatial identity.
 the three places (shelf / desk / archive) are camera positions on one
 room, not separate pages.
+
+the shell (`shell/Shell.tsx`, D-022) implements this as behavior:
+
+- the **orientation rail** is persistent furniture: 224px (`--rail-w`),
+  matte paper, one border; it never remounts on place change. the three
+  places + the current book + the temperament live there. below the
+  measured 1044 boundary it collapses to a 64px icon rail — a structural
+  transformation, not a shrink (first specified responsive change, gate 6).
+- **visibility follows attention** (D-025): full (shelf, archive) →
+  quiet (desk at rest, the furniture dims) → absent (reading, opacity
+  only — the room never moves while you read, D-024).
+- **spatial memory**: the desk context survives navigation; the shelf
+  and archive restore their scroll; an exact source return is a one-shot
+  locator consumed at the reader's boot, then progress is truth.
+- the right **workbench region** is the desk's L10 future — structural
+  slot only; no empty furniture renders before its instruments exist.
 
 ## z-space
 

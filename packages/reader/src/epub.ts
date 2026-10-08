@@ -154,8 +154,16 @@ export class EpubAdapter implements FormatReader {
   async display(target?: string): Promise<void> {
     if (!this.rendition) return;
     await this.rendition.display(target || undefined).catch(() => this.rendition?.display());
+    /* the book is open: pagination is legal from here. before this,
+     * next/prev are honest no-ops - there is nothing to turn yet, and
+     * epub.js's own next() on an unstarted rendition throws. */
+    this.paged = true;
     void this.generateLocations();
   }
+
+  /** pagination before the first display is a no-op - the book is not
+   *  open yet; key presses during boot must never throw */
+  private paged = false;
 
   private locationsReady = false;
   private async generateLocations(): Promise<void> {
@@ -170,10 +178,12 @@ export class EpubAdapter implements FormatReader {
   }
 
   next(): void {
+    if (!this.paged) return;
     this.rendition?.next();
   }
 
   prev(): void {
+    if (!this.paged) return;
     this.rendition?.prev();
   }
 

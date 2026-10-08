@@ -252,6 +252,9 @@
 }
 
 .lab-booklight {
+  /* the specimen shows the CLAIM: the wash visible at gate 8's shipped
+   * alpha. the product's enabling path is the booklight pipeline. */
+  --aura-alpha: 0.12;
   padding: var(--s8);
   border-radius: var(--r-generous);
   position: relative;
@@ -841,6 +844,9 @@
 }
 
 .room-shelf {
+  /* the synthetic room lets the objects' auras breathe visibly — part of
+   * the L7 coexistence proof (the product pipeline gates the alpha) */
+  --aura-alpha: 0.1;
   display: flex;
   gap: var(--s4);
   flex-wrap: wrap;

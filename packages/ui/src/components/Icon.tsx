@@ -37,6 +37,10 @@ export const ICON_PATHS = {
   zoomOut: 'M7 12.5a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11ZM11.5 11.5 14 14M5 7h4',
   fitWidth: 'M2.5 5.5v5M13.5 5.5v5M4.5 8h7M4.5 8l2-2M4.5 8l2 2M11.5 8l-2-2M11.5 8l-2 2',
   fitPage: 'M4 2.5h8v11H4v-11ZM4 8h8',
+  /* the three places (L8): standing books on a shelf line, the archive box.
+     same grid, same stroke, same round caps — the language stays one. */
+  shelf: 'M2.5 13.5h11M5 13.5V7.5M8 13.5V4.5M11 13.5V8.5',
+  archive: 'M2.5 5.5h11v8h-11v-8ZM2.5 9h11M6.5 11.5h3',
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;
@@ -102,3 +106,5 @@ export const IconZoomIn = named('zoomIn');
 export const IconZoomOut = named('zoomOut');
 export const IconFitWidth = named('fitWidth');
 export const IconFitPage = named('fitPage');
+export const IconShelf = named('shelf');
+export const IconArchive = named('archive');

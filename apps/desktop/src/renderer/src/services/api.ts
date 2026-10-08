@@ -5,6 +5,7 @@
 import type {
   ArivoApi,
   AppSettings,
+  ArchiveEntry,
   Bookmark,
   BookWithProgress,
   Collection,
@@ -177,6 +178,51 @@ export function createMockApi(): ArivoApi {
       deleteBookmark: async (bookId, id) => {
         state = { ...state, bookmarks: state.bookmarks.filter((b) => b.id !== id) };
         save();
+      },
+    },
+    archive: {
+      marks: async () => {
+        const entries: ArchiveEntry[] = [];
+        for (const h of state.highlights) {
+          const book = state.books.find((b) => b.id === h.bookId);
+          if (!book) continue;
+          entries.push({
+            id: h.id,
+            kind: 'highlight',
+            bookId: book.id,
+            bookTitle: book.title,
+            bookAuthors: book.authors,
+            bookFormat: book.format,
+            text: h.text,
+            note: h.note,
+            color: h.color,
+            chapter: h.chapter,
+            anchor: h.anchor,
+            createdAt: h.createdAt,
+            updatedAt: h.updatedAt,
+          });
+        }
+        for (const b of state.bookmarks) {
+          const book = state.books.find((x) => x.id === b.bookId);
+          if (!book) continue;
+          entries.push({
+            id: b.id,
+            kind: 'bookmark',
+            bookId: book.id,
+            bookTitle: book.title,
+            bookAuthors: book.authors,
+            bookFormat: book.format,
+            text: b.label ?? b.chapter ?? 'bookmark',
+            note: null,
+            color: null,
+            chapter: b.chapter,
+            anchor: b.anchor,
+            createdAt: b.createdAt,
+            updatedAt: b.createdAt,
+          });
+        }
+        entries.sort((a, b) => b.updatedAt - a.updatedAt);
+        return entries;
       },
     },
     collections: {

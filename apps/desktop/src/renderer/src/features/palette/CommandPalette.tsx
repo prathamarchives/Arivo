@@ -5,25 +5,26 @@ import { Kbd } from '@arivo/ui';
 import { api, platform } from '../../services/api.ts';
 import { useLibrary } from '../../stores/library.ts';
 import { useSettings } from '../../stores/settings.ts';
-import { useUi } from '../../stores/ui.ts';
+import { useRoom, type Place } from '../../stores/room.ts';
 import {
   IconSearch,
   IconBook,
   IconNote,
   IconPlus,
   IconCollection,
+  IconShelf,
 } from '../../components/icons.tsx';
 
 interface Item {
   id: string;
-  kind: 'book' | 'highlight' | 'collection' | 'action';
+  kind: 'book' | 'highlight' | 'collection' | 'action' | 'place';
   title: string;
   context: string | null;
   run: () => void;
 }
 
 export function CommandPalette(): ReactNode {
-  const { paletteOpen, setPaletteOpen, openReader, toast, backToLibrary } = useUi();
+  const { paletteOpen, setPaletteOpen, goDesk, goShelf, goArchive, toast } = useRoom();
   const { books, importDialog, refresh } = useLibrary();
   const { settings, set } = useSettings();
   const [q, setQ] = useState('');
@@ -68,7 +69,7 @@ export function CommandPalette(): ReactNode {
           context: b.authors.join(', ') || null,
           run: () => {
             setPaletteOpen(false);
-            openReader(b.id);
+            goDesk(b.id);
           },
         });
       }
@@ -83,7 +84,9 @@ export function CommandPalette(): ReactNode {
         context: hit.context,
         run: () => {
           setPaletteOpen(false);
-          if (hit.bookId) openReader(hit.bookId);
+          /* exact source return: the hit carries the locator — the
+           * passage opens, not just the book */
+          if (hit.bookId) goDesk(hit.bookId, hit.locator, hit.highlightId);
         },
       });
     }
@@ -138,21 +141,61 @@ export function CommandPalette(): ReactNode {
       });
     }
 
-    if (ql.length === 0 || 'library'.includes(ql)) {
+    /* the three places — camera positions, not routes */
+    const places: [Place, string][] = [
+      ['shelf', 'go to the shelf'],
+      ['desk', 'go to the desk'],
+      ['archive', 'go to the archive'],
+    ];
+    for (const [place, label] of places) {
+      if (ql.length === 0 || label.includes(ql)) {
+        list.push({
+          id: `place-${place}`,
+          kind: 'place',
+          title: label,
+          context: place === 'desk' ? 'the current book' : null,
+          run: () => {
+            setPaletteOpen(false);
+            if (place === 'shelf') goShelf();
+            else if (place === 'archive') goArchive();
+            else useRoom.getState().returnToDesk();
+          },
+        });
+      }
+    }
+
+    /* temperament — the room's two modes (gate 13 surface) */
+    const nextTemperament = settings.temperament === 'den' ? 'lab' : 'den';
+    if (ql.length === 0 || 'temperament'.includes(ql)) {
       list.push({
-        id: 'action-library',
+        id: 'action-temperament',
         kind: 'action',
-        title: 'back to library',
-        context: null,
+        title: `temperament → ${nextTemperament}`,
+        context: 'den · lab',
+        run: () => {
+          set({ temperament: nextTemperament });
+          setPaletteOpen(false);
+        },
+      });
+    }
+
+    /* the lab door (L8 keyboard entry point) */
+    if (ql.length === 0 || 'design lab'.includes(ql)) {
+      list.push({
+        id: 'action-lab',
+        kind: 'action',
+        title: 'open the design lab',
+        context: 'the specimens, isolated from product state',
         run: () => {
           setPaletteOpen(false);
-          backToLibrary();
+          window.location.hash = 'lab';
+          window.location.reload();
         },
       });
     }
 
     return list.slice(0, 14);
-  }, [q, books, remoteHits, settings.theme, set, setPaletteOpen, openReader, importDialog, toast, refresh, backToLibrary, platform]);
+  }, [q, books, remoteHits, settings.theme, settings.temperament, set, setPaletteOpen, goDesk, goShelf, goArchive, importDialog, toast, refresh, platform]);
 
   useEffect(() => {
     setCursor((c) => Math.min(c, Math.max(0, items.length - 1)));
@@ -176,7 +219,7 @@ export function CommandPalette(): ReactNode {
   };
 
   const iconFor = (kind: Item['kind']): ReactNode =>
-    kind === 'book' ? <IconBook /> : kind === 'highlight' ? <IconNote /> : kind === 'collection' ? <IconCollection /> : <IconPlus />;
+    kind === 'book' ? <IconBook /> : kind === 'highlight' ? <IconNote /> : kind === 'collection' ? <IconCollection /> : kind === 'place' ? <IconShelf /> : <IconPlus />;
 
   return (
     <>

@@ -9,7 +9,8 @@ and fonts the app uses.
 - dev: `pnpm dev` then append `#lab` to the renderer url
 - production build: `pnpm --filter @arivo/desktop smoke -- --lab`
   (captured section-by-section to `apps/desktop/smoke-lab-*.png`)
-- a keyboard entry point ships with the L8 shell
+- from the product (L8): `ctrl+shift+l`, the palette's "open the design
+  lab", or the rail's lab door — the lab is a reload away, never a build
 
 ## what it proves
 
