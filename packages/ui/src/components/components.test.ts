@@ -55,11 +55,11 @@ describe('W5 gate: typography roles carry the composite tokens', () => {
     }
   });
 
-  it('weights are 400/700 only — bold is spent deliberately', () => {
+  it('weights are 400/500 only — emphasis is 500, bold is retired (v0.5.0)', () => {
     const roleBlocks = COMPONENTS_CSS.match(/\.t-[a-z-]+\s*\{[^}]*\}/g) ?? [];
     for (const block of roleBlocks) {
       const m = block.match(/font-weight\s*:\s*(\d{3})/);
-      if (m) expect(['400', '700']).toContain(m[1]);
+      if (m) expect(['400', '500']).toContain(m[1]);
     }
   });
 

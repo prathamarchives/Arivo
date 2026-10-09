@@ -83,7 +83,9 @@
 
 .wordmark-text {
   font-family: var(--font-wordmark);
-  font-weight: 300;
+  /* v0.5.0 — the catalyst port: the name speaks inter 500, the
+     statement's own voice */
+  font-weight: 500;
   font-size: var(--text-lg);
   letter-spacing: var(--tracking-tight);
   line-height: 1;
@@ -105,7 +107,7 @@
 
 .wordmark-compact-letter {
   font-family: var(--font-wordmark);
-  font-weight: 300;
+  font-weight: 500;
   font-size: var(--text-xl);
   letter-spacing: var(--tracking-tight);
   line-height: 1;
@@ -204,7 +206,7 @@
 
 .rail-book-title {
   font-size: var(--text-sm);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;

@@ -44,9 +44,12 @@ export function spacingViolations(css: string): string[] {
   return bad;
 }
 
-/** radius tokens must sit exactly on the radius grammar */
+/** radius tokens must sit exactly on the radius grammar.
+ *  v0.5.0 — the catalyst port: roundness is nearly retired. walls and
+ *  objects are square (2/3px, the hairline grammar), sheets carry 4,
+ *  instruments stay pills. */
 export function radiusViolations(css: string): string[] {
-  const grammar = new Set(['4px', '8px', '12px', '14px', '16px', '999px']);
+  const grammar = new Set(['2px', '3px', '4px', '999px']);
   const bad: string[] = [];
   for (const m of css.matchAll(/(--r-[a-z0-9-]+)\s*:\s*(\d+px|999px);/g)) {
     if (!grammar.has(m[2]!)) bad.push(`${m[1]}: ${m[2]}`);
@@ -69,13 +72,14 @@ export function annotationDrift(css: string): string[] {
   return bad;
 }
 
-/** only the four named easings exist in the token file */
+/** only the named easings exist in the token file.
+ *  v0.5.0 — the catalyst curves: the settle (enter/rest, one beat two
+ *  addresses), the retreat (arivo's brisk exit), the ink (moves). */
 export function easingViolations(css: string): string[] {
   const named = new Set([
-    'cubic-bezier(0.16, 1, 0.3, 1)',
+    'cubic-bezier(0.22, 1, 0.36, 1)',
     'cubic-bezier(0.4, 0, 1, 1)',
-    'cubic-bezier(0.3, 0, 0.2, 1)',
-    'cubic-bezier(0.2, 0, 0, 1)',
+    'cubic-bezier(0.4, 0, 0.2, 1)',
   ]);
   const bad: string[] = [];
   for (const m of css.matchAll(/cubic-bezier\([^)]*\)/g)) {
@@ -84,12 +88,13 @@ export function easingViolations(css: string): string[] {
   return bad;
 }
 
-/** helvetica ships 400 / 700 (300 wordmark-only): no 500/600 anywhere */
+/** inter ships 400 / 500 (the catalyst law: emphasis is 500, spent on
+ *  hover and emphasis — 700 is retired, never a rest state) */
 export function weightViolations(...css: string[]): string[] {
   const bad: string[] = [];
   for (const cssText of css) {
     for (const m of cssText.matchAll(/font-weight\s*:\s*(\d{3});/g)) {
-      if (!['300', '400', '700'].includes(m[1]!)) bad.push(`font-weight: ${m[1]}`);
+      if (!['400', '500'].includes(m[1]!)) bad.push(`font-weight: ${m[1]}`);
     }
   }
   return bad;
@@ -222,7 +227,7 @@ describe('the design law — components speak only tokens', () => {
     expect(zIndexViolations(BASE, COMPONENTS_CSS, OBJECTS_CSS, LAYOUT_CSS, APP_CSS, SHELL_CSS)).toEqual([]);
   });
 
-  it('weights are 400/700 only (300 wordmark) — the supplied cuts', () => {
+  it('weights are 400/500 only — the catalyst law: emphasis is 500, bold is retired', () => {
     expect(weightViolations(BASE, COMPONENTS_CSS, OBJECTS_CSS, LAYOUT_CSS, APP_CSS, SHELL_CSS)).toEqual([]);
   });
 
@@ -265,8 +270,8 @@ describe('the checkers work — seeded violations are caught', () => {
     expect(easingViolations('transition: all 200ms cubic-bezier(0.68, -0.55, 0.27, 1.55);')).toHaveLength(1);
   });
 
-  it('weight checker catches a 500', () => {
-    expect(weightViolations('.btn { font-weight: 500; }')).toHaveLength(1);
+  it('weight checker catches a 700 — bold is retired in the catalyst room', () => {
+    expect(weightViolations('.btn { font-weight: 700; }')).toHaveLength(1);
   });
 
   it('z-index checker catches a raw 9999', () => {

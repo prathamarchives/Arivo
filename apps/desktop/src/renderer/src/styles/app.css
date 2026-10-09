@@ -21,9 +21,10 @@
 }
 
 .brand {
-  /* the wordmark: lowercase, full stop attached, quiet. */
+  /* the wordmark: lowercase, full stop attached, quiet — inter 500,
+     the catalyst statement's own voice. */
   font-family: var(--font-wordmark);
-  font-weight: 300;
+  font-weight: 500;
   font-size: var(--text-xl);
   line-height: 1;
   letter-spacing: var(--tracking-tight);
@@ -679,7 +680,7 @@
 
 .toc-current {
   color: var(--ink);
-  font-weight: 700;
+  font-weight: 500;
   background: var(--bg-sunken);
 }
 
@@ -995,7 +996,7 @@
 /* the composer's honest state — the ink says where text lives */
 .note-composer-actions .meta-label[data-status='error'] {
   color: var(--ink);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .note-composer-actions .meta-label[data-status='recovered'] {
@@ -1262,7 +1263,7 @@
 .ink-tool-active {
   color: var(--ink);
   background: var(--bg-sunken);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .ink-highlighter-glyph {
@@ -1997,8 +1998,9 @@
   border: 1px solid var(--line-strong);
   border-radius: var(--r-generous);
   box-shadow: var(--elevation-2);
-  /* the closed book has a spine — the fold lives in its material */
-  background-image: linear-gradient(to right, rgba(43, 33, 24, 0.06), rgba(43, 33, 24, 0) 14px);
+  /* the closed book has a spine — the fold lives in its material
+     (neutral ink, the catalyst port) */
+  background-image: linear-gradient(to right, rgba(10, 10, 10, 0.06), rgba(10, 10, 10, 0) 14px);
   transition:
     box-shadow var(--dur-state) var(--ease-settle),
     transform var(--dur-state) var(--ease-settle);
@@ -2270,7 +2272,7 @@
 
 .notebook-card-book {
   font-size: var(--text-xs);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--ink-2);
 }
 

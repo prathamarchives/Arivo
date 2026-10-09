@@ -193,14 +193,14 @@ async function createWindow(): Promise<BrowserWindow> {
               // force-load the faces first: css fonts load lazily, and a
               // not-yet-used face would false-negative the check
               await Promise.all([
-                document.fonts.load('400 15px "Helvetica"'),
-                document.fonts.load('700 15px "Helvetica"'),
+                document.fonts.load('400 15px "Inter"'),
+                document.fonts.load('500 15px "Inter"'),
                 document.fonts.load('400 16px "Literata"'),
                 document.fonts.load('400 12px "JetBrains Mono"'),
               ]).catch(() => undefined);
               return {
-                helvetica400: document.fonts.check('400 15px "Helvetica"'),
-                helvetica700: document.fonts.check('700 15px "Helvetica"'),
+                inter400: document.fonts.check('400 15px "Inter"'),
+                inter500: document.fonts.check('500 15px "Inter"'),
                 literata: document.fonts.check('400 16px "Literata"'),
                 mono: document.fonts.check('400 12px "JetBrains Mono"'),
               };
@@ -208,7 +208,7 @@ async function createWindow(): Promise<BrowserWindow> {
           )) as Record<string, boolean>;
           fs.writeFileSync(path.resolve(process.cwd(), 'smoke-fonts.json'), JSON.stringify(fonts, null, 2));
           console.warn(`[arivo] font gate → ${JSON.stringify(fonts)}`);
-          if (!fonts['helvetica400'] || !fonts['helvetica700'] || !fonts['literata']) {
+          if (!fonts['inter400'] || !fonts['inter500'] || !fonts['literata']) {
             console.warn('[arivo] font gate FAILED — intended assets not loaded');
             exitWith(1);
             return;

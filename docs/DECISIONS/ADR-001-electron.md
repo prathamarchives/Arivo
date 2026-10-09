@@ -49,3 +49,34 @@ status: accepted
 
 the owner reads on windows. nsis installer via electron-builder; ci builds
 on windows-latest. mac/linux targets remain one flag away.
+
+## ADR-007 — the catalyst port: arivo speaks the catalyst.exe2 design system
+status: accepted (v0.5.0)
+
+pratham's site (catalyst.exe2) was rebuilt on a locked system — neutral
+paper #fafaf8, one ink #0a0a0a, inter 400/500 + jetbrains mono, hairline
+rules instead of elevation, near-flat radius, motion that settles. the
+owner asked for arivo's whole ui on the same system: one voice across the
+products.
+
+the port lands in the token layer, every variable name kept, so the
+component skins restyle by inheritance. helvetica (and its light
+wordmark) is retired for inter 400/500 — emphasis is 500, 700 is now the
+caught violation. radius collapses to {2,3,4,999}; hairlines do the work
+elevation used to do; paper grain is retired-at-zero; glass quiets to
+paper-tint with one rim; the motion ladder takes the catalyst beat
+(state 200ms, surface 400ms; enter/rest share the catalyst settle, moves
+speak the ink ease, exits keep arivo's retreat). --accent becomes the
+one spent color — a muted brick reserved for error/needs-attention; the
+leather is gone. the app icon becomes the white circle with punched
+holes on a hairline ring.
+
+untouched by law: the annotation identities (law 38), the reading
+washes, booklight, the reader themes, literata, the interaction model —
+the book's voice stays sovereign.
+
+the constitution is executable, so the laws changed with the port, not
+around it: radius grammar, weight law, focus ring 1px, grain-at-zero,
+the MOTION.md table, and the smoke font gate (inter 400/500 must load
+from the bundle) all carry the new grammar. full reasoning:
+docs/DECISIONS/ADR-007-catalyst-port.md.

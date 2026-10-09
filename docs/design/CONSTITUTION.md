@@ -1,5 +1,14 @@
 # arivo — the design constitution (L1)
 
+> **v0.5.0 — the catalyst port.** the room is rebuilt on the same system
+> pratham's catalyst.exe2 speaks: neutral paper (#fafaf8) and one ink
+> (#0a0a0a), inter 400/500 + jetbrains mono, hairline rules instead of
+> elevation, near-flat radius, motion that settles (200/400ms). the warm
+> den materials (helvetica, cream, leather, grain) are retired; the
+> reading surface (literata + the reader themes), the annotation identity
+> colors, and the booklight aura survive untouched. the laws below hold —
+> only their material names have changed.
+
 > the experience laws, encoded. like `docs/CONSTITUTION.md`, these are not
 > metaphors — they are enforced in tokens, tested in vitest, and checked in
 > review. a violation is a bug. the thesis behind these laws is
@@ -24,7 +33,7 @@
 
 ## typography
 
-11. ui typography is neutral and transparent — helvetica speaks for the
+11. ui typography is neutral and transparent — inter speaks for the
     room. personality never comes from the typeface.
 12. book typography is sovereign — literata speaks for the author. the book
     is never forced onto the ui grid.

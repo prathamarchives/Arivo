@@ -306,7 +306,8 @@ export function StickyLayer({
 function annoCss(color: InkColor): string {
   const root = getComputedStyle(document.documentElement);
   if (color === 'ink') {
-    return root.getPropertyValue('--ink').trim() || '#2b2118';
+    // the catalyst port: the room's ink is neutral #0a0a0a
+    return root.getPropertyValue('--ink').trim() || '#0a0a0a';
   }
   const v = root.getPropertyValue(`--anno-${color === 'yellow' ? 'amber' : color}`).trim();
   return v || '#DCA93B';

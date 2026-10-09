@@ -26,13 +26,16 @@ export interface DurationSpec {
 }
 
 const LADDER: Record<MotionMass, Record<Direction, number>> = {
-  micro: { enter: 120, exit: 90 }, // dots, checks, press receipts
-  component: { enter: 200, exit: 140 }, // buttons, chips, inputs
-  surface: { enter: 320, exit: 220 }, // drawers, panels, menus
-  spatial: { enter: 560, exit: 380 }, // rooms, mode transitions
-  state: { enter: 150, exit: 150 }, // hover / focus shifts — both ways equal
+  /* v0.5.0 — the catalyst beat ladder: the room answers at the same
+   * tempo pratham's site speaks (state 200, surface 400), and every
+   * mass still breathes in / brisk out (law 31). */
+  micro: { enter: 140, exit: 100 }, // dots, checks, press receipts
+  component: { enter: 240, exit: 160 }, // buttons, chips, inputs
+  surface: { enter: 400, exit: 260 }, // drawers, panels, menus — the catalyst settle
+  spatial: { enter: 480, exit: 320 }, // rooms, mode transitions
+  state: { enter: 200, exit: 200 }, // hover / focus shifts — the catalyst hover beat
   turn: { enter: 250, exit: 250 }, // the page turn — never delays reading
-  material: { enter: 700, exit: 700 }, // theme, glass
+  material: { enter: 600, exit: 600 }, // theme, glass
   atmosphere: { enter: 1400, exit: 1400 }, // booklight, room light
 };
 

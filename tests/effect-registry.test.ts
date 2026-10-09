@@ -70,13 +70,14 @@ describe('the effect registry (L12)', () => {
     expect(TOKENS).toMatch(/--scrim-blur:\s*6px/);
   });
 
-  it('paper grain is bounded — a whisper, never a texture', () => {
+  it('paper grain is retired — the token survives at zero (v0.5.0, the catalyst port)', () => {
     const m = TOKENS.match(/--paper-grain-opacity:\s*([\d.]+);/);
     expect(m).not.toBeNull();
     const opacity = Number(m![1]);
-    expect(opacity).toBeGreaterThan(0);
-    expect(opacity).toBeLessThanOrEqual(0.05);
-    // the layer is fixed + pointer-transparent: no per-frame cost
+    // the catalyst room is flat quiet paper — texture was the den's
+    // voice; the layer stays wired (fixed + pointer-transparent) so the
+    // material can return without a re-plumbing
+    expect(opacity).toBe(0);
     expect(BASE).toMatch(/body::before\s*\{[^}]*position:\s*fixed/s);
     expect(BASE).toMatch(/body::before\s*\{[^}]*pointer-events:\s*none/s);
   });

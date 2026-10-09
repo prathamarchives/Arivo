@@ -2,6 +2,11 @@
 
 > viscous precision: immediate → continuous → weighted → exact.
 
+> **v0.5.0 — the catalyst port.** the room now answers at the tempo
+> pratham's catalyst.exe2 speaks: state 200ms, surface 400ms, the
+> curves are the settle and the ink. three distinct curves, four
+> addresses (enter and rest share the settle — one beat, two names).
+
 the token layer (tokens.css) owns the curves and durations; this map
 assigns them to jobs. no component picks a duration by feel.
 
@@ -9,10 +14,10 @@ assigns them to jobs. no component picks a duration by feel.
 
 | token | curve | job |
 |---|---|---|
-| `--ease-glide` | (0.16, 1, 0.3, 1) | enter — fast start, weighted decel, exact rest |
-| `--ease-retreat` | (0.4, 0, 1, 1) | exit — brisk, accelerating away |
-| `--ease-shift` | (0.3, 0, 0.2, 1) | move — controlled continuity |
-| `--ease-settle` | (0.2, 0, 0, 1) | rest — viscous settle, no overshoot |
+| `--ease-glide` | (0.22, 1, 0.36, 1) | enter — the catalyst settle: fast start, weighted decel, exact rest |
+| `--ease-retreat` | (0.4, 0, 1, 1) | exit — brisk, accelerating away (arivo's own) |
+| `--ease-shift` | (0.4, 0, 0.2, 1) | move — the catalyst ink ease: controlled continuity |
+| `--ease-settle` | (0.22, 1, 0.36, 1) | rest — the catalyst settle, addressed again |
 
 no bounce. no elastic. no rebound. ever.
 
@@ -20,13 +25,13 @@ no bounce. no elastic. no rebound. ever.
 
 | mass | enter | exit |
 |---|---|---|
-| micro (dots, checks, press) | 120ms | 90ms |
-| component (buttons, chips, inputs) | 200ms | 140ms |
-| surface (drawers, panels, menus) | 320ms | 220ms |
-| spatial (rooms, mode transitions) | 560ms | 380ms |
-| state (hover/focus shifts) | 150ms both | |
+| micro (dots, checks, press) | 140ms | 100ms |
+| component (buttons, chips, inputs) | 240ms | 160ms |
+| surface (drawers, panels, menus) | 400ms | 260ms |
+| spatial (rooms, mode transitions) | 480ms | 320ms |
+| state (hover/focus shifts) | 200ms both | |
 | page turn | 250ms | |
-| material (theme, glass) | 700ms | |
+| material (theme, glass) | 600ms | |
 | atmosphere (booklight, room light) | 1400ms | |
 
 duration scales with mass, not mood. entering breathes; leaving is

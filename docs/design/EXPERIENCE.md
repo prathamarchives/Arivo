@@ -105,9 +105,9 @@ became.
 
 ## the signature order
 
-> **helvetica speaks for the room. literata speaks for the author.**
+> **inter speaks for the room. literata speaks for the author.**
 
-the ui voice is the helvetica direction — neutral, objective, precise,
+the ui voice is the inter direction — neutral, objective, precise,
 quiet. typography itself is never the source of personality. the reading
 voice is literata and remains sovereign over its own grid. two systems, one
 spatial treaty — never one font system.

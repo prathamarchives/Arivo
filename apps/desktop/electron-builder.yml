@@ -1,7 +1,7 @@
 appId: com.prathamarchives.arivo
 productName: Arivo
-# v0.3.2 — the app icon: the "a." monogram on paper (the uncanny default
-# electron icon is retired). buildResources dir = apps/desktop/build/.
+# v0.5.0 — the app icon: the catalyst glyph — a white circle with a
+# couple of very small punched holes on a hairline ink ring. buildResources dir = apps/desktop/build/.
 icon: build/icon.png
 directories:
   output: release

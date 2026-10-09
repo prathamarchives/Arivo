@@ -1,9 +1,9 @@
 /**
- * the arivo wordmark — v0.3.2, the simplification: the name IS the mark.
+ * the arivo wordmark — v0.5.0, the catalyst port: the name IS the mark.
  *
- * "arivo" speaks the wordmark cut (Helvetica Light, lowercase, tight);
- * the period is drawn, not typed — a filled dot that lands on the
- * baseline like a reader's dot. drawn marks survive scale and theme
+ * "arivo" speaks inter 500 (lowercase, tight) — the catalyst statement's
+ * own voice; the period is drawn, not typed — a filled dot that lands on
+ * the baseline like a reader's dot. drawn marks survive scale and theme
  * (currentColor) where a styled text period would not.
  *
  * compact: "a." — the monogram (the letter + the drawn period), the

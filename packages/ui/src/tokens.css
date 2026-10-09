@@ -1,64 +1,58 @@
-/* arivo tokens — the closed vocabulary, v3 (the simplification).
+/* arivo tokens — the closed vocabulary, v4 (the catalyst port).
    every color, size, duration, and easing lives here. no component invents
    a value. laws: docs/design/CONSTITUTION.md. thesis: docs/design/EXPERIENCE.md
 
    architecture — ONE axis, two lights:
      [data-theme='light' | 'dark']   the light in the room
-   v0.3.2: the temperament axis (den/lab) and sepia retired. the room
-   keeps den's warm voice; dark is the night room. nothing else. */
+
+   v0.5.0: the room is rebuilt on the catalyst.exe2 system — the same
+   grammar pratham's site speaks. the warm den (helvetica, cream, leather,
+   grain, elevation) is retired; the room is now neutral paper and ink:
+   one column of thought, hairline rules instead of shadows, inter 400/500
+   instead of helvetica 400/700, jetbrains mono for the meta voice, and
+   motion that settles instead of glides. what survives untouched: the
+   reading surface (literata + the reader themes), the annotation identity
+   colors (the user's marks — constant), and the booklight aura. */
 
 /* ============================== fonts ============================== */
-/* the supplied helvetica assets — the room's voice. 400 + 700 are the
-   workhorses; 300 is the light cut (latin subset) reserved for the
-   wordmark and large display. obliques/compressed/rounded are not part
-   of the system and are not shipped. literata (the author's voice) and
-   jetbrains mono (metadata utility) load from @fontsource in the app. */
+/* inter — the room's new voice. 400 is the workhorse; 500 is emphasis
+   (catalyst law: weight is spent on hover and emphasis, never on rest).
+   the light wordmark cut is retired — the wordmark is the name in 500.
+   literata (the author's voice) and jetbrains mono (metadata utility)
+   load from @fontsource in the app. */
 
 @font-face {
-  font-family: 'Helvetica';
+  font-family: 'Inter';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('./fonts/helvetica-400.woff2') format('woff2');
+  src: url('./fonts/inter-400.woff2') format('woff2');
 }
 
 @font-face {
-  font-family: 'Helvetica';
+  font-family: 'Inter';
   font-style: normal;
-  font-weight: 700;
+  font-weight: 500;
   font-display: swap;
-  src: url('./fonts/helvetica-700.woff2') format('woff2');
-}
-
-/* the light cut — latin-only subset. wordmark + display-1 specimen ONLY.
-   never a body role: mid-word fallbacks on non-latin titles. */
-@font-face {
-  font-family: 'Helvetica Light';
-  font-style: normal;
-  font-weight: 300;
-  font-display: swap;
-  src: url('./fonts/helvetica-300-wordmark.woff2') format('woff2');
+  src: url('./fonts/inter-500.woff2') format('woff2');
 }
 
 :root {
-  --font-ui: 'Helvetica', 'Helvetica Neue', Arial, sans-serif;
-  --font-wordmark: 'Helvetica Light', 'Helvetica', Arial, sans-serif;
+  --font-ui: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  --font-wordmark: 'Inter', 'Helvetica Neue', Arial, sans-serif;
   --font-read: 'Literata', Georgia, serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
-  /* instrument serif is retired: helvetica speaks for the room, literata
-     speaks for the author. two systems, one spatial treaty. */
 }
 
 /* ============================ typography ============================ */
-/* helvetica's x-height is smaller than the previous ui voice — sizes are
-   optically compensated (+1px at body steps). weights are 400 / 700 only
-   (500 and 600 do not exist in the supplied cuts; bold is spent
-   deliberately). 300 is wordmark-only. */
+/* inter's x-height is generous — sizes step down 1px at body roles to
+   hold the old rhythm. weights are 400 / 500 only (catalyst law: no
+   700; emphasis is 500, spent deliberately). */
 
 :root {
   --text-meta: 11px;   /* mono, uppercase, tracked — data, counts, labels */
   --text-xs: 12px;     /* quiet chrome: timestamps, hints */
-  --text-sm: 14px;     /* controls, table text */
+  --text-sm: 13px;     /* controls, table text */
   --text-base: 15px;   /* body ui */
   --text-md: 17px;     /* emphasized body, reader chrome */
   --text-lg: 19px;     /* panel titles, section heads */
@@ -69,7 +63,7 @@
 
   --lh-tight: 1.25;
   --lh-snug: 1.35;
-  --lh-base: 1.5;
+  --lh-base: 1.55;
   --lh-loose: 1.65;
 
   --tracking-meta: 0.08em;    /* uppercase mono labels */
@@ -99,13 +93,15 @@
 /* ============================= geometry ============================= */
 
 :root {
-  /* radius grammar — roundness communicates proximity to the hand.
-     walls restrained. objects softer. instruments fully rounded. */
-  --r-structural: 4px;   /* walls, rules, table edges */
-  --r-surface: 8px;     /* panels, raised surfaces */
-  --r-interactive: 12px; /* buttons, inputs, controls */
-  --r-object: 14px;     /* book objects, cards, artifacts */
-  --r-generous: 16px;   /* generous surfaces, sheets */
+  /* radius grammar — the catalyst port: roundness is nearly retired.
+     walls and rules are square (the hairline grammar); objects keep a
+     whisper of softness so covers read as paper, not chips. pills stay
+     round — they are instruments, not surfaces. */
+  --r-structural: 2px;   /* walls, rules, table edges */
+  --r-surface: 3px;     /* panels, raised surfaces */
+  --r-interactive: 3px; /* buttons, inputs, controls */
+  --r-object: 3px;     /* book objects, cards, artifacts */
+  --r-generous: 4px;   /* generous surfaces, sheets */
   --r-instrument: 999px; /* pills, floating instruments */
 
   --cover-w: 200px;      /* 2:3 book object */
@@ -129,40 +125,41 @@
 }
 
 /* ============================ elevation ============================ */
-/* two shadows: contact = closeness, ambient = altitude. light rooms use
-   warm shadows; dark rooms step surface values before piling shadow on
-   shadow. */
+/* the catalyst law: no shadows — hairlines separate, ink steps
+   communicate. these survive at a whisper (floating instruments still
+   need one breath of separation over live text); every wall, panel,
+   and card is drawn by its 1px rule, not its shadow. */
 
 :root {
-  --shadow-contact: 0 1px 2px rgba(43, 33, 24, 0.10);
-  --shadow-ambient: 0 8px 24px rgba(43, 33, 24, 0.10);
+  --shadow-contact: 0 1px 2px rgba(10, 10, 10, 0.05);
+  --shadow-ambient: 0 8px 24px rgba(10, 10, 10, 0.05);
   --elevation-1: var(--shadow-contact);
   --elevation-2: var(--shadow-contact), var(--shadow-ambient);
-  --elevation-3: 0 2px 6px rgba(43, 33, 24, 0.10), 0 16px 48px rgba(43, 33, 24, 0.14);
+  --elevation-3: 0 2px 6px rgba(10, 10, 10, 0.06), 0 16px 48px rgba(10, 10, 10, 0.08);
 }
 
 /* ============================== motion ============================== */
-/* viscous precision: immediate -> continuous -> weighted -> exact.
-   four easings only. durations scale with mass class, not mood.
-   entering breathes; leaving is brisk. */
+/* the catalyst beat ladder: hover answers in 200ms, surfaces settle in
+   400ms, the room breathes at its own mass. entering settles (the
+   catalyst ease); leaving stays brisk; hover speaks the ink ease. */
 
 :root {
-  --ease-glide: cubic-bezier(0.16, 1, 0.3, 1);   /* enter: fast start, weighted decel, exact rest */
+  --ease-glide: cubic-bezier(0.22, 1, 0.36, 1);   /* enter: the catalyst settle — fast start, weighted decel */
   --ease-retreat: cubic-bezier(0.4, 0, 1, 1);    /* exit: brisk, accelerating away */
-  --ease-shift: cubic-bezier(0.3, 0, 0.2, 1);    /* move: controlled continuity */
-  --ease-settle: cubic-bezier(0.2, 0, 0, 1);     /* rest: viscous, no overshoot */
+  --ease-shift: cubic-bezier(0.4, 0, 0.2, 1);    /* move: the catalyst ink ease */
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1); /* rest: viscous, no overshoot */
 
-  --dur-state: 150ms;          /* hover / focus state shifts */
-  --dur-micro-in: 120ms;
-  --dur-micro-out: 90ms;
-  --dur-comp-in: 200ms;
-  --dur-comp-out: 140ms;
-  --dur-surface-in: 320ms;
-  --dur-surface-out: 220ms;
-  --dur-spatial-in: 560ms;
-  --dur-spatial-out: 380ms;
+  --dur-state: 200ms;          /* hover / focus state shifts — the catalyst hover beat */
+  --dur-micro-in: 140ms;
+  --dur-micro-out: 100ms;
+  --dur-comp-in: 240ms;
+  --dur-comp-out: 160ms;
+  --dur-surface-in: 400ms;     /* the catalyst settle */
+  --dur-surface-out: 260ms;
+  --dur-spatial-in: 480ms;
+  --dur-spatial-out: 320ms;
   --dur-turn: 250ms;           /* the page turn */
-  --dur-material: 700ms;       /* material state changes (theme, glass) */
+  --dur-material: 600ms;       /* material state changes (theme) */
   --dur-atmosphere: 1400ms;    /* booklight, room light shifts */
 
   /* transform distances for the hover vocabulary (lift / breathe). on the
@@ -178,7 +175,7 @@
   --img-scrim-strong: rgba(0, 0, 0, 0.5);
   /* the spine fold — covers are physical: they curl toward the binding.
      one ink-based gradient, matte, part of the cover's material. */
-  --spine-fold: linear-gradient(to right, rgba(43, 33, 24, 0.09), rgba(43, 33, 24, 0) 16px);
+  --spine-fold: linear-gradient(to right, rgba(10, 10, 10, 0.08), rgba(10, 10, 10, 0) 16px);
 }
 
 /* legacy aliases — deprecated, swept during surface waves */
@@ -193,22 +190,25 @@
 }
 
 /* ====================== material: matte paper ====================== */
-/* the default surface: warm, quiet, low reflectivity, fine grain. the
-   grain is luminance-neutral noise at whisper opacity — texture must
-   support material meaning, never decorate. */
+/* the catalyst port: the grain is retired. the room's canvas is flat,
+   quiet paper — texture was the den's voice; the new room speaks
+   through type and rules alone. the token survives (zeroed) so the
+   canvas layer can stay wired. */
 
 :root {
-  --paper-grain-opacity: 0.035;
+  --paper-grain-opacity: 0;
   --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* ====================== material: soft glass ====================== */
 /* an instrument, never wallpaper. floating chrome only: selection menus,
-   command surfaces, mode controls. blur is a budgeted resource. */
+   command surfaces, mode controls. blur is a budgeted resource. the
+   catalyst port keeps the instrument but quiets it: paper-tinted, one
+   hairline rim, no light catch. */
 
 :root {
   --glass-blur: 16px;
-  --glass-saturation: 1.12;
+  --glass-saturation: 1.04;
   /* the scrim wash — a resolved decision, named: full-page overlays
      wash at a gentler radius than instruments; never a raw literal */
   --scrim-blur: 6px;
@@ -232,50 +232,53 @@
 /* ======================= selection & focus ======================= */
 
 :root {
-  --sel: rgba(43, 33, 24, 0.12);
-  --focus-ring: 2px solid var(--ink);
+  --sel: rgba(10, 10, 10, 0.10);
+  --focus-ring: 1px solid var(--ink);
 }
 
 /* ======================= lighting axis ======================= */
-/* two lights, one room (v0.3.2). light is the warm paper den — the
-   default; dark is the night room, surfaces stepped before shadow. */
+/* two lights, one room. the catalyst port: light is neutral paper —
+   near-white with a breath of warmth gone; dark is the night room,
+   surfaces stepped before shadow. the ink ladder is opacity-mixed off
+   one ink (62% soft, 45% faint) exactly as the catalyst system mixes
+   it — one ink, thinned, never a second gray. */
 
 :root {
-  --bg: #f4eee2;
-  --bg-raised: #fbf7ec;
-  --bg-sunken: #ece3d1;
-  --ink: #2b2118;
-  --ink-2: #6b5f4f;
-  --ink-3: #a2988a;
-  --line: #e2d9c6;
-  --line-strong: #cfc2a9;
-  --accent: #8a5c3a;          /* restrained leather — spent sparingly */
-  --accent-ink: #6f4830;      /* readable accent for text on paper */
-  --glass-tint: rgba(251, 247, 236, 0.86);
-  --glass-rim: rgba(43, 33, 24, 0.09);
-  --glass-light: rgba(255, 252, 244, 0.5);
+  --bg: #fafaf8;
+  --bg-raised: #ffffff;
+  --bg-sunken: #f2f2ef;
+  --ink: #0a0a0a;
+  --ink-2: #5f5f5c;
+  --ink-3: #8f8f8b;
+  --line: #e0e0dc;
+  --line-strong: #c8c8c3;
+  --accent: #B4443E;          /* the one spent color: errors, needs-attention */
+  --accent-ink: #9E3B36;      /* readable accent for text on paper */
+  --glass-tint: rgba(250, 250, 248, 0.92);
+  --glass-rim: rgba(10, 10, 10, 0.12);
+  --glass-light: rgba(255, 255, 255, 0.35);
 
-  --shadow-contact: 0 1px 2px rgba(43, 33, 24, 0.1);
-  --shadow-ambient: 0 8px 24px rgba(43, 33, 24, 0.1);
+  --shadow-contact: 0 1px 2px rgba(10, 10, 10, 0.05);
+  --shadow-ambient: 0 8px 24px rgba(10, 10, 10, 0.05);
 }
 
 [data-theme='dark'] {
-  --bg: #171310;
-  --bg-raised: #211c16;
-  --bg-sunken: #110e0b;
-  --ink: #e9e2d5;
-  --ink-2: #97897a;
-  --ink-3: #5c5346;
-  --line: #2b251d;
-  --line-strong: #3b332a;
-  --accent: #a06a3f;
-  --accent-ink: #c08d5e;
-  --glass-tint: rgba(33, 28, 22, 0.82);
-  --glass-rim: rgba(233, 226, 213, 0.09);
-  --glass-light: rgba(255, 240, 220, 0.06);
+  --bg: #0c0c0c;
+  --bg-raised: #151514;
+  --bg-sunken: #090909;
+  --ink: #f2f2f0;
+  --ink-2: #a0a09b;
+  --ink-3: #71716c;
+  --line: #232322;
+  --line-strong: #333330;
+  --accent: #C96962;
+  --accent-ink: #D08680;
+  --glass-tint: rgba(21, 21, 20, 0.88);
+  --glass-rim: rgba(242, 242, 240, 0.12);
+  --glass-light: rgba(255, 255, 255, 0.04);
 
-  --shadow-contact: 0 1px 2px rgba(0, 0, 0, 0.32);
-  --shadow-ambient: 0 8px 24px rgba(0, 0, 0, 0.36);
+  --shadow-contact: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --shadow-ambient: 0 8px 24px rgba(0, 0, 0, 0.30);
 }
 
 /* ======================= booklight ======================== */
@@ -301,7 +304,7 @@
   --wash-blue: rgba(78, 143, 196, 0.28);
   --wash-rose: rgba(198, 106, 103, 0.28);
   --wash-violet: rgba(144, 116, 194, 0.28);
-  --wash-gray: rgba(43, 33, 24, 0.12);   /* legacy pencil mark */
+  --wash-gray: rgba(10, 10, 10, 0.12);   /* legacy pencil mark */
 }
 
 [data-theme='dark'] {
@@ -310,7 +313,7 @@
   --wash-blue: rgba(78, 143, 196, 0.32);
   --wash-rose: rgba(198, 106, 103, 0.3);
   --wash-violet: rgba(144, 116, 194, 0.32);
-  --wash-gray: rgba(233, 226, 213, 0.12);
+  --wash-gray: rgba(242, 242, 240, 0.12);
 }
 
 /* ======================= reduced motion ======================== */
@@ -335,6 +338,6 @@
     --t-turn: 0ms;
     --t-drawer: 0ms;
     --t-material: 0ms;
-    --paper-grain-opacity: 0.035;
+    --paper-grain-opacity: 0;
   }
 }

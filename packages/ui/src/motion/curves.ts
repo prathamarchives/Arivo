@@ -9,12 +9,16 @@
 
 export type CurveName = 'glide' | 'retreat' | 'shift' | 'settle';
 
-/** the cubic-bezier control points, in css order (x1, y1, x2, y2) */
+/** the cubic-bezier control points, in css order (x1, y1, x2, y2).
+ *  v0.5.0 — the catalyst port: enter and rest share the catalyst settle
+ *  curve (one beat, two addresses), moves speak the catalyst ink ease,
+ *  and exits stay arivo's own brisk retreat. three distinct curves, four
+ *  names — the vocabulary stays closed. */
 export const CURVE_POINTS: Record<CurveName, readonly [number, number, number, number]> = {
-  glide: [0.16, 1, 0.3, 1], // enter — fast start, weighted decel, exact rest
+  glide: [0.22, 1, 0.36, 1], // enter — the catalyst settle: fast start, weighted decel, exact rest
   retreat: [0.4, 0, 1, 1], // exit — brisk, accelerating away
-  shift: [0.3, 0, 0.2, 1], // move — controlled continuity
-  settle: [0.2, 0, 0, 1], // rest — viscous settle, no overshoot
+  shift: [0.4, 0, 0.2, 1], // move — the catalyst ink ease: controlled continuity
+  settle: [0.22, 1, 0.36, 1], // rest — the catalyst settle, addressed again
 };
 
 /** the css token each curve is addressed by */

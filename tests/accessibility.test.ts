@@ -39,8 +39,10 @@ describe('the accessibility law (L14)', () => {
   it('one foundation rule gives every interactive element visible focus', () => {
     const rule = BASE.match(/:focus-visible\s*\{[^}]*outline:\s*var\(--focus-ring\)[^}]*\}/);
     expect(rule).not.toBeNull();
-    // the ring token exists and is ink — visible on every surface
-    expect(TOKENS).toMatch(/--focus-ring:\s*2px solid var\(--ink\)/);
+    // the ring token exists and is ink — visible on every surface.
+    // v0.5.0 — the catalyst port: the ring is a 1px hairline (the site's
+    // own focus grammar), still full ink, still everywhere
+    expect(TOKENS).toMatch(/--focus-ring:\s*1px solid var\(--ink\)/);
   });
 
   it('an outline may only be replaced, never silently removed', () => {

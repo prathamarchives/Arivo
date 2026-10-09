@@ -71,8 +71,9 @@ textarea {
 
 /* ------------------------- typography roles ------------------------- */
 /* composite tokens: family + size + weight + line-height + tracking
-   travel together. no arbitrary typography. weights are 400 / 700 (300
-   is wordmark-only). */
+   travel together. no arbitrary typography. weights are 400 / 500
+   (catalyst law: emphasis is 500, spent on hover and emphasis — never
+   a rest state; 700 does not exist in the room). */
 
 .meta-label {
   font-family: var(--font-mono);
@@ -86,19 +87,20 @@ textarea {
 
 .type-title {
   font-family: var(--font-ui);
-  /* v0.3.3 — the large display takes the light cut: the empty rooms
-   * speak softly (the wordmark's own voice at display scale) */
-  font-weight: 300;
+  /* v0.5.0 — the catalyst port: the display speaks inter 400; the size
+   * carries the hierarchy, the weight never shouts */
+  font-weight: 400;
   letter-spacing: var(--tracking-tight);
   line-height: var(--lh-tight);
 }
 
 .type-wordmark {
   font-family: var(--font-wordmark);
-  font-weight: 300;
+  font-weight: 500;
   letter-spacing: var(--tracking-tight);
   line-height: 1;
-  /* the wordmark: lowercase, full stop attached, quiet. */
+  /* the wordmark: lowercase, full stop attached, quiet — the name in
+     inter 500, the catalyst statement's own voice. */
 }
 
 /* --------------------------- surfaces ---------------------------- */
@@ -186,7 +188,7 @@ textarea {
   background: var(--ink);
   color: var(--bg-raised);
   border-color: var(--ink);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .btn-ghost {

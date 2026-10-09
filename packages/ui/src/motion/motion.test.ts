@@ -60,14 +60,16 @@ afterEach(() => {
 
 describe('W2 gate: no arbitrary durations', () => {
   it('the ladder IS the MOTION.md table', () => {
+    /* v0.5.0 — the catalyst beat ladder (MOTION.md carries the same
+     * table; this assertion is the mirror that keeps them one) */
     const table: Record<string, [number, number]> = {
-      micro: [120, 90],
-      component: [200, 140],
-      surface: [320, 220],
-      spatial: [560, 380],
-      state: [150, 150],
+      micro: [140, 100],
+      component: [240, 160],
+      surface: [400, 260],
+      spatial: [480, 320],
+      state: [200, 200],
       turn: [250, 250],
-      material: [700, 700],
+      material: [600, 600],
       atmosphere: [1400, 1400],
     };
     for (const [mass, [enter, exit]] of Object.entries(table)) {
@@ -93,7 +95,7 @@ describe('W2 gate: no arbitrary durations', () => {
 
   it('the contract input has no numeric slot — durations enter only via the ladder', () => {
     const spec = defineMotion({ mass: 'surface', job: 'enter' }) as MotionSpec;
-    expect(spec.duration.ms).toBe(320);
+    expect(spec.duration.ms).toBe(400);
     expect(spec.duration.token).toBe('--dur-surface-in');
     // the type has no duration/ms field; attempting one is a compile error,
     // and the runtime refuses to be constructed any other way
@@ -179,20 +181,20 @@ describe('W2 gate: the contract refuses unconstitutional input', () => {
 
 describe('W2: the semantic tree answers questions, not numbers', () => {
   it('every canonical motion is addressable and correct', () => {
-    expect(motion.surface.enter.duration.ms).toBe(320);
+    expect(motion.surface.enter.duration.ms).toBe(400);
     expect(motion.surface.enter.easing).toBe('glide');
-    expect(motion.surface.exit.duration.ms).toBe(220);
+    expect(motion.surface.exit.duration.ms).toBe(260);
     expect(motion.surface.exit.easing).toBe('retreat');
-    expect(motion.component.enter.duration.ms).toBe(200);
-    expect(motion.micro.exit.duration.ms).toBe(90);
-    expect(motion.spatial.enter.duration.ms).toBe(560);
-    expect(motion.press.duration.ms).toBe(120);
+    expect(motion.component.enter.duration.ms).toBe(240);
+    expect(motion.micro.exit.duration.ms).toBe(100);
+    expect(motion.spatial.enter.duration.ms).toBe(480);
+    expect(motion.press.duration.ms).toBe(140);
     expect(motion.press.properties).toEqual(['transform']);
     expect(motion.hover.duration.token).toBe('--dur-state');
     expect(motion.hover.properties).toEqual(['color', 'background', 'border-color']);
     expect(motion.turn.settle.duration.ms).toBe(250);
     expect(motion.turn.settle.easing).toBe('glide');
-    expect(motion.material.shift.duration.ms).toBe(700);
+    expect(motion.material.shift.duration.ms).toBe(600);
     expect(motion.atmosphere.shift.duration.ms).toBe(1400);
     expect(motion.spatial.follow.kind).toBe('physics');
     expect(motion.spatial.follow.interruptible).toBe(true);
