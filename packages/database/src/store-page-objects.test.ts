@@ -34,7 +34,7 @@ afterAll(() => {
       // its own test already closed the underlying db
     }
   }
-  rmSync(root, { recursive: true, force: true, maxReties: 5, retryDelay: 120 });
+  rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 120 });
 });
 
 /** the one door tests open their store through — closed on teardown */
