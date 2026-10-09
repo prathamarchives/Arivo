@@ -87,9 +87,10 @@ jobs:
 
             **upgrade note**
             the index database migrates automatically on first launch
-            (this release: schema 2 → 4 — notes, desk docs + FTS, tested
-            against the v2/v3 migration matrix). your library folder is
-            untouched; deleting the index never loses annotations.
+            (this release: schema → 5 — sticky notes and page sketches,
+            tested against the migration matrix incl. index-death
+            rebuild). your library folder is untouched; deleting the
+            index never loses annotations, sticky notes, or drawings.
 
       # the closing assertion: the release this workflow just published is
       # actually a working update feed — version, assets, and sha512 verified
