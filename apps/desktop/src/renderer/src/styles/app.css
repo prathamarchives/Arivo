@@ -549,6 +549,17 @@
   pointer-events: none;
 }
 
+/* v0.3.2 — the slide: the top chrome lifts away, the bottom drops —
+ * the navbar slides up and fades out when the text owns the eyes.
+ * transform only: the reading column below NEVER moves. */
+.reader-chrome-top.chrome-faded {
+  transform: translateY(-100%);
+}
+
+.reader-chrome-bottom.chrome-faded {
+  transform: translateY(100%);
+}
+
 .reader-title {
   display: flex;
   flex-direction: column;
@@ -2003,6 +2014,26 @@
   outline-offset: var(--s2);
 }
 
+.notebook-cover-stage {
+  perspective: 1400px;
+}
+
+.notebook-cover-opening {
+  animation: arivo-cover-open var(--dur-spatial-in) var(--ease-glide) both;
+  pointer-events: none;
+}
+
+@keyframes arivo-cover-open {
+  0% {
+    opacity: 1;
+    transform: rotateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotateY(-78deg) scale(0.94);
+  }
+}
+
 .notebook-cover-mark {
   color: var(--ink);
 }
@@ -2093,12 +2124,16 @@
 @keyframes arivo-sheet-turn {
   from {
     opacity: 0;
-    transform: translateX(12px);
+    transform: translateX(16px) rotateY(-4deg);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateX(0) rotateY(0);
   }
+}
+
+.notebook-sheet {
+  perspective: 1200px;
 }
 
 .notebook-sheet-head {
@@ -2222,7 +2257,7 @@
 
 .notebook-card-doc-title {
   font-size: var(--text-md);
-  font-weight: 700;
+  font-weight: 400;
   color: var(--ink);
 }
 
@@ -2478,5 +2513,8 @@
   }
   .notebook-cover {
     transition-duration: 0ms;
+  }
+  .notebook-cover-opening {
+    animation-duration: 0ms;
   }
 }

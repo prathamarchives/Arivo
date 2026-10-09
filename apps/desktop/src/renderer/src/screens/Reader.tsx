@@ -199,6 +199,14 @@ function PageToolbox({
 }): ReactNode {
   const x = clampCenter(at.x, 140);
   const y = Math.min(Math.max(at.y + 8, 64), window.innerHeight - 250);
+  /* the toolbox takes focus when it lands: a right-click fired inside
+   * the book's iframe leaves keyboard focus there, and the host's
+   * escape would never hear it. the instrument owns the keys while it
+   * is open. */
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    menuRef.current?.focus();
+  }, []);
   return (
     <>
       <div
@@ -209,7 +217,14 @@ function PageToolbox({
           onClose();
         }}
       />
-      <div className="page-toolbox glass rise" style={{ left: x, top: y }} role="menu" aria-label="page tools">
+      <div
+        ref={menuRef}
+        tabIndex={-1}
+        className="page-toolbox glass rise"
+        style={{ left: x, top: y }}
+        role="menu"
+        aria-label="page tools"
+      >
         <div className="toolbox-row">
           <button type="button" className="sel-action" onClick={onSticky}>
             <IconSticky />

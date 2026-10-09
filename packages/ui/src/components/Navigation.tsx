@@ -78,6 +78,9 @@ export function NavItem({ icon, label, selected, disabled, onSelect, id, badge }
       id={id}
       type="button"
       className={`nav-item ${selected ? 'is-selected' : ''}`.trim()}
+      /* v0.3.3 — the name survives the rail's collapse (the visible
+       * label leaves, the accessible name stays) */
+      aria-label={label}
       aria-current={selected ? 'page' : undefined}
       aria-disabled={disabled || undefined}
       disabled={disabled}

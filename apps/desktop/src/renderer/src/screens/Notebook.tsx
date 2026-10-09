@@ -56,10 +56,26 @@ import { Wordmark } from '../components/Wordmark.tsx';
 
 // ---------------- the cover ----------------
 
-function Cover({ stats, onOpen }: { stats: { highlights: number; notes: number; pages: number; links: number }; onOpen: () => void }): ReactNode {
+function Cover({
+  stats,
+  opening,
+  onOpen,
+  onOpened,
+}: {
+  stats: { highlights: number; notes: number; pages: number; links: number };
+  opening: boolean;
+  onOpen: () => void;
+  onOpened: () => void;
+}): ReactNode {
   return (
     <div className="notebook-cover-stage fade-in">
-      <button type="button" className="notebook-cover rise" onClick={onOpen} aria-label="open the notebook">
+      <button
+        type="button"
+        className={`notebook-cover rise${opening ? ' notebook-cover-opening' : ''}`}
+        onClick={onOpen}
+        onAnimationEnd={opening ? onOpened : undefined}
+        aria-label="open the notebook"
+      >
         <div className="notebook-cover-mark">
           <Wordmark />
         </div>
@@ -385,6 +401,9 @@ export function NotebookScreen(): ReactNode {
   const toast = useRoom((s) => s.toast);
 
   const [phase, setPhase] = useState<'cover' | 'pages'>('cover');
+  /* the opening flight: the cover flips away (its own animation), the
+   * pages arrive when it lands — the notebook's open moment */
+  const [opening, setOpening] = useState(false);
   const [feed, setFeed] = useState<ArchiveEntry[] | null>(null);
   const [pages, setPages] = useState<NotebookPage[]>([]);
   const [links, setLinks] = useState<AnnotationLink[]>([]);
@@ -543,6 +562,17 @@ export function NotebookScreen(): ReactNode {
   );
 
   const open = useRoomVisible();
+  /* the book closes when the room does: next open starts at the cover
+   * (the pages remember where you were — state.currentPage) */
+  useEffect(() => {
+    if (!open) {
+      setPhase('cover');
+      setOpening(false);
+      setEditingPageId(null);
+      setPageInk(null);
+      setLinkFrom(null);
+    }
+  }, [open]);
   if (!open) return null;
 
   const editingSheet = sheet?.kind === 'freeform' ? sheet.page : null;
@@ -555,7 +585,14 @@ export function NotebookScreen(): ReactNode {
   return (
     <div className="notebook-surface" role="dialog" aria-label="the notebook">
       {phase === 'cover' ? (
-        <Cover stats={stats} onOpen={() => setPhase('pages')} />
+        <Cover
+          stats={stats}
+          opening={opening}
+          onOpen={() => {
+            setOpening(true);
+          }}
+          onOpened={() => setPhase('pages')}
+        />
       ) : (
         <>
           <header className="notebook-head">
