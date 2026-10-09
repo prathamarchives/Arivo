@@ -18,7 +18,6 @@
     "./base.css": "./src/base.css",
     "./layout.css": "./src/layout/layout.css",
     "./components.css": "./src/components/components.css",
-    "./objects.css": "./src/objects/objects.css",
-    "./lab.css": "./src/lab/lab.css"
+    "./objects.css": "./src/objects/objects.css"
   }
 }

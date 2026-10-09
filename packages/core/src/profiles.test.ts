@@ -16,7 +16,7 @@ import {
 } from './types.ts';
 
 const base: ReaderSettings = {
-  theme: 'paper',
+  theme: 'light',
   ...READING_PROFILES.default,
   pageMode: 'single',
 };
@@ -52,7 +52,7 @@ describe('activeProfile — the chip is derived, never stored', () => {
     expect(activeProfile({ ...base, ...READING_PROFILES.research })).toBe('research');
   });
   it('theme and pageMode are orthogonal — they never break the derivation', () => {
-    expect(activeProfile({ ...base, theme: 'night', pageMode: 'auto' })).toBe('default');
+    expect(activeProfile({ ...base, theme: 'dark', pageMode: 'auto' })).toBe('default');
   });
   it('one nudged field is honest divergence — no chip, no stale mode', () => {
     expect(activeProfile({ ...base, fontStep: 2 })).toBeNull();

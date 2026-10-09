@@ -23,12 +23,8 @@ const SHELL_CSS = readFileSync(join(ROOT, 'apps/desktop/src/renderer/src/shell/s
 const BASE = readFileSync(join(ROOT, 'packages/ui/src/base.css'), 'utf-8');
 const COMPONENTS = readFileSync(join(ROOT, 'packages/ui/src/components/components.css'), 'utf-8');
 const READER_TSX = readFileSync(join(ROOT, 'apps/desktop/src/renderer/src/screens/Reader.tsx'), 'utf-8');
-const ARCHIVE_TSX = readFileSync(join(ROOT, 'apps/desktop/src/renderer/src/shell/ArchiveRoom.tsx'), 'utf-8');
-const WORKBENCH_TSX = readFileSync(
-  join(ROOT, 'apps/desktop/src/renderer/src/features/desk/Workbench.tsx'),
-  'utf-8',
-);
 const LIBRARY_TSX = readFileSync(join(ROOT, 'apps/desktop/src/renderer/src/screens/Library.tsx'), 'utf-8');
+const SETTINGS_TSX = readFileSync(join(ROOT, 'apps/desktop/src/renderer/src/screens/Settings.tsx'), 'utf-8');
 
 const ALL_CSS = [BASE, COMPONENTS, APP_CSS, SHELL_CSS].join('\n');
 
@@ -84,11 +80,10 @@ describe('L16 — the state audit (device truths + authored states)', () => {
       'sel-action',
       'sel-icon',
       'toc-item',
-      'archive-ref',
       'ink-tool',
       'sticky-body',
-      'archive-mark-open',
       'menu-item',
+      'rail-light',
     ];
     const gaps: string[] = [];
     for (const cls of families) {
@@ -100,7 +95,7 @@ describe('L16 — the state audit (device truths + authored states)', () => {
   });
 
   it('inputs carry their visible focus pattern', () => {
-    for (const cls of ['input', 'textarea', 'note-input', 'search-input', 'doc-title-input']) {
+    for (const cls of ['input', 'textarea', 'note-input', 'search-input']) {
       const block = ALL_CSS.match(new RegExp(`\\.${cls}:focus(-visible)?\\s*\\{[^}]*\\}`));
       expect(block, `${cls} needs a focus state`).not.toBeNull();
     }
@@ -109,24 +104,19 @@ describe('L16 — the state audit (device truths + authored states)', () => {
   it('every surface owns its empty state — authored, never apologetic', () => {
     // the shelf: the owned room waiting for its first object
     expect(LIBRARY_TSX.toLowerCase()).toMatch(/empty|first book|nothing here/);
-    // the archive: work will gather
-    expect(ARCHIVE_TSX).toContain('your work will gather here');
-    // the workbench: honest hints per kind
-    expect(WORKBENCH_TSX).toContain('nothing here yet');
-    // the notebook: what lands here
-    expect(READER_TSX).toContain('nothing marked yet');
+    // the reader's panel: what lands here
+    expect(READER_TSX).toContain('nothing highlighted yet');
+    // settings: the reading life owns its zero
+    expect(SETTINGS_TSX).toContain('no reading sessions yet');
   });
 
   it('every surface owns its error state — with a way out', () => {
     expect(READER_TSX).toContain("won't open");
     expect(READER_TSX).toContain('back to the shelf');
-    expect(ARCHIVE_TSX).toContain('could not be read');
-    expect(ARCHIVE_TSX).toContain('go to the shelf');
   });
 
   it('loading states speak, quietly', () => {
-    expect(ARCHIVE_TSX).toContain('reading the ledger');
-    expect(WORKBENCH_TSX).toContain('opening the workbench');
+    expect(SETTINGS_TSX).toContain('gathering the numbers');
   });
 
   it('v0.3.1 — the notes panel overlays: the reading column never moves', () => {

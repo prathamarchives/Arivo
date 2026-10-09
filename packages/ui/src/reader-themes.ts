@@ -113,10 +113,11 @@ interface ReadPalette {
   gray: string;
 }
 
-/* the reading palettes track the lighting axis (den family — the author's
-   page is warm paper). washes = identity colors at legibility alpha. */
+/* the reading palettes track the light — two, nothing else (v0.3.2).
+   light is the warm paper den; dark is the night room. washes = identity
+   colors at legibility alpha, constant per law 38. */
 const palettes: Record<ReadingTheme, ReadPalette> = {
-  paper: {
+  light: {
     bg: '#f4eee2',
     ink: '#2b2118',
     ink2: '#6b5f4f',
@@ -128,19 +129,7 @@ const palettes: Record<ReadingTheme, ReadPalette> = {
     pink: 'rgba(198, 106, 103, 0.28)',
     gray: 'rgba(43, 33, 24, 0.12)',
   },
-  sepia: {
-    bg: '#f1e7d2',
-    ink: '#33281c',
-    ink2: '#74634c',
-    ink3: '#a8977b',
-    line: '#ddcfae',
-    yellow: 'rgba(201, 150, 46, 0.34)',
-    blue: 'rgba(66, 125, 176, 0.28)',
-    green: 'rgba(96, 139, 68, 0.30)',
-    pink: 'rgba(180, 92, 89, 0.28)',
-    gray: 'rgba(51, 40, 28, 0.14)',
-  },
-  night: {
+  dark: {
     bg: '#171310',
     ink: '#e9e2d5',
     ink2: '#97897a',

@@ -12,9 +12,6 @@ import {
   IconPlus,
   IconGrid,
   IconList,
-  IconSun,
-  IconLamp,
-  IconMoon,
   IconDots,
   IconTrash,
   IconDownload,
@@ -269,12 +266,6 @@ function Toolbar({
   const importDialog = useLibrary((s) => s.importDialog);
   const setSettingsOpen = useRoom((s) => s.setSettingsOpen);
   const toast = useRoom((s) => s.toast);
-  const themes = [
-    { key: 'paper', icon: <IconSun />, label: 'paper' },
-    { key: 'sepia', icon: <IconLamp />, label: 'sepia' },
-    { key: 'night', icon: <IconMoon />, label: 'night' },
-  ] as const;
-  const themeIcon = themes.find((t) => t.key === settings.theme)?.icon ?? <IconSun />;
 
   return (
     <header className="library-toolbar">
@@ -310,16 +301,6 @@ function Toolbar({
             <IconCheck />
           </IconButton>
         )}
-        <IconButton
-          label="reading theme"
-          onClick={() => {
-            const order = ['paper', 'sepia', 'night'] as const;
-            const next = order[(order.indexOf(settings.theme) + 1) % 3]!;
-            set({ theme: next });
-          }}
-        >
-          {themeIcon}
-        </IconButton>
         <IconButton
           label={settings.libraryView === 'grid' ? 'list view' : 'grid view'}
           onClick={() => set({ libraryView: settings.libraryView === 'grid' ? 'list' : 'grid' })}
@@ -719,11 +700,10 @@ export function LibraryScreen(): ReactNode {
     continueList[0]?.id ?? null;
   const currentBook = books.find((b) => b.id === currentBookId) ?? null;
 
-  /* booklight: the current book tints the light (den only, gate 8).
-   * the cover is sampled once per current book; the room's aura slots
-   * follow it; identity never moves (golden 7). */
+  /* booklight: the current book tints the light. the cover is
+   * sampled once per current book; the room's aura slots follow it;
+   * identity never moves (golden 7). */
   const [aura, setAura] = useState<BookAura | null>(null);
-  const temperament = settings.temperament;
   const currentCover =
     platform === 'electron' && currentBook?.coverPath
       ? api.book.coverUrl(currentBook.id)
@@ -731,19 +711,19 @@ export function LibraryScreen(): ReactNode {
   useEffect(() => {
     let disposed = false;
     if (!currentCover) {
-      applyRoomAura(null, temperament);
+      applyRoomAura(null);
       setAura(null);
       return;
     }
     void computeAura(currentCover).then((a) => {
       if (disposed) return;
       setAura(a);
-      applyRoomAura(a, temperament);
+      applyRoomAura(a);
     });
     return () => {
       disposed = true;
     };
-  }, [currentCover, temperament]);
+  }, [currentCover]);
 
   const onDrop = async (e: DragEvent): Promise<void> => {
     e.preventDefault();

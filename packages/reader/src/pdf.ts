@@ -178,7 +178,7 @@ export class PdfAdapter implements FormatReader {
     this.settings = settings;
     if (!this.container) return;
     this.container.dataset.readTheme = settings.theme;
-    const night = settings.theme === 'night';
+    const night = settings.theme === 'dark';
     for (const canvas of this.container.querySelectorAll('canvas')) {
       (canvas as HTMLCanvasElement).style.filter = night
         ? 'invert(0.92) hue-rotate(180deg)'

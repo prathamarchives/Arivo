@@ -95,6 +95,9 @@ async function createWindow(): Promise<BrowserWindow> {
     minHeight: 600,
     backgroundColor: '#f4eee2',
     title: 'Arivo',
+    /* v0.3.2 — the a. monogram speaks in dev too (packaged builds carry
+     * it inside the exe via electron-builder) */
+    icon: path.join(__dirname, '..', '..', 'build', 'icon.png'),
     show: !isSmoke,
     autoHideMenuBar: true,
     webPreferences: {

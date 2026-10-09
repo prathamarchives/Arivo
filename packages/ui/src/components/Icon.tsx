@@ -41,9 +41,10 @@ export const ICON_PATHS = {
      same grid, same stroke, same round caps — the language stays one. */
   shelf: 'M2.5 13.5h11M5 13.5V7.5M8 13.5V4.5M11 13.5V8.5',
   archive: 'M2.5 5.5h11v8h-11v-8ZM2.5 9h11M6.5 11.5h3',
-  /* the wave-1 surfaces (library tools + settings): settings gear, info,
-     tag, pencil, folder, pulse — the reading life's line. */
-  settings: 'M8 10.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5ZM8 1.75l.9 1.5 1.7-.4.4 1.7 1.5.9-.9 1.55.9 1.55-1.5.9-.4 1.7-1.7-.4L8 14.25l-.9-1.5-1.7.4-.4-1.7-1.5-.9.9-1.55-.9-1.55 1.5-.9.4-1.7 1.7.4L8 1.75Z',
+  /* the wave-1 surfaces (library tools + settings): settings sliders, info,
+     tag, pencil, folder, pulse — the reading life's line. v0.3.2: the
+     spiky gear retired for the sliders — unambiguous at 16px. */
+  settings: 'M2.5 4.75h11M2.5 8h11M2.5 11.25h11M10.25 4.75h.01M5.75 8h.01M9.25 11.25h.01',
   info: 'M8 14.25a6.25 6.25 0 1 0 0-12.5 6.25 6.25 0 0 0 0 12.5ZM8 7.25v4M8 4.6v.01',
   tag: 'M2.5 3.5h5l5.5 5.5-5 5L2.5 8.5v-5ZM5 6v.01',
   pencil: 'M10.5 2.5 13.5 5.5 5.5 13.5 2.5 13.5 2.5 10.5 10.5 2.5Z',

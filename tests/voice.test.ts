@@ -40,10 +40,6 @@ const READER_TSX = readFileSync(
   join(ROOT, 'apps/desktop/src/renderer/src/screens/Reader.tsx'),
   'utf-8',
 );
-const ARCHIVE_TSX = readFileSync(
-  join(ROOT, 'apps/desktop/src/renderer/src/shell/ArchiveRoom.tsx'),
-  'utf-8',
-);
 
 /** extract every quoted string literal from source text */
 function stringLiterals(text: string): string[] {
@@ -103,7 +99,7 @@ describe('the voice law (L13)', () => {
   });
 
   it('the fixed nouns are the product dictionary — the surfaces that define it carry them', () => {
-    const corpus = `${ROOM_TS} ${READER_TSX} ${ARCHIVE_TSX}`.toLowerCase();
+    const corpus = `${ROOM_TS} ${READER_TSX}`.toLowerCase();
     for (const noun of VOICE_NOUNS) {
       expect(corpus).toContain(noun);
     }
@@ -116,10 +112,6 @@ describe('the voice law (L13)', () => {
     const readerError = READER_TSX.match(/reader-error[\s\S]{0,400}/)?.[0] ?? '';
     expect(readerError).toContain("won't open");
     expect(readerError).toContain('back to the shelf');
-    // the archive: what happened + go to the shelf
-    const archiveError = ARCHIVE_TSX.match(/archive-error[\s\S]{0,500}/)?.[0] ?? '';
-    expect(archiveError).toContain('could not be read');
-    expect(archiveError).toContain('go to the shelf');
   });
 
   it('plainError lets our coded errors speak — internals never do', () => {
@@ -137,7 +129,7 @@ describe('the voice law (L13)', () => {
   });
 
   it('the renderer never displays a raw err.message — plainError owns every surface', () => {
-    for (const file of [READER_TSX, ARCHIVE_TSX]) {
+    for (const file of [READER_TSX]) {
       expect(file).not.toMatch(/err instanceof Error \? err\.message/);
       expect(file).toContain('plainError(');
     }

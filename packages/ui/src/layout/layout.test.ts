@@ -60,9 +60,10 @@ describe('W3 gate: density is inherited at regions, never multiplied per compone
     }
   });
 
-  it('the tokens define density for both temperaments', () => {
+  it('the tokens define the room density — one voice (v0.3.2)', () => {
     expect(TOKENS.includes('--density: 1.1')).toBe(true);
-    expect(TOKENS.includes('--density: 0.9')).toBe(true);
+    // the second density (lab 0.9) is retired with the temperament
+    expect(TOKENS.includes('--density: 0.9')).toBe(false);
   });
 });
 

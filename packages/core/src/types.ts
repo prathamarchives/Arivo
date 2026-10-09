@@ -37,7 +37,10 @@ export interface BookFolderMeta {
   fileMissing?: boolean;
 }
 
-export type ReadingTheme = 'paper' | 'sepia' | 'night';
+/** v0.3.2 — the simplification: two lights, nothing else. sepia and
+ *  night folded into light/dark; the temperament axis (den/lab) retired.
+ *  legacy stored values (paper/sepia/night) migrate on read in main. */
+export type ReadingTheme = 'light' | 'dark';
 
 export type ReadingFlow = 'paginated' | 'scrolled';
 
@@ -57,8 +60,7 @@ export type LibraryView = 'grid' | 'list';
 
 export type LibrarySize = 's' | 'm' | 'l';
 
-/** the room's temperament — the two authored modes, never a third (L0) */
-export type Temperament = 'den' | 'lab';
+/** v0.3.2 — the temperament axis is retired: one room, one voice. */
 
 /** fonts come from the catalyst family: instrument serif (display), literata (reading), inter (ui) */
 export interface ReaderSettings {
@@ -78,9 +80,6 @@ export interface AppSettings extends ReaderSettings {
   librarySize: LibrarySize;
   /** null = default ~/Arivo */
   booksDir: string | null;
-  /** the room's temperament — persisted since L8 (gate 13). den is the
-   *  living default; lab is the opt-in serious room (D-003). */
-  temperament: Temperament;
 }
 
 export const FONT_STEPS = [16, 18, 20, 22, 24] as const;
@@ -127,7 +126,7 @@ export function activeProfile(s: ReaderSettings): ReadingProfile | null {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  theme: 'paper',
+  theme: 'light',
   fontStep: 1,
   lineHeight: 1.65,
   measure: 680,
@@ -136,7 +135,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   libraryView: 'grid',
   librarySize: 'm',
   booksDir: null,
-  temperament: 'den',
 };
 
 /** THE ANCHOR — every annotation's immortality contract. */

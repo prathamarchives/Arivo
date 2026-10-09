@@ -1,20 +1,17 @@
 /**
- * Shell — L8. the app becomes a room, not a router.
+ * Shell — v0.3.2, the simplification. the app is one place with two
+ * cameras: shelf · desk.
  *
- * three camera positions over one continuous place:
- *   shelf · desk · archive
  * the orientation rail is persistent furniture — it never remounts on
  * place change (spatial memory); the work region is the camera. the
  * shell's visibility follows attention: full while browsing, quiet at
- * the desk, absent when the text owns the eyes. the context region
- * (right workbench) is the desk's L10 future — the slot is structural,
- * it does not render empty furniture.
+ * the desk, absent when the text owns the eyes. the archive place is
+ * retired — its ledger survives as the notebook's future feed.
  */
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useRoom, shellVisibility } from '../stores/room.ts';
 import { OrientationRail } from './OrientationRail.tsx';
-import { ArchiveRoom } from './ArchiveRoom.tsx';
 import { LibraryScreen } from '../screens/Library.tsx';
 import { ReaderScreen } from '../screens/Reader.tsx';
 
@@ -47,7 +44,6 @@ export function Shell(): ReactNode {
       <main className="shell-work" data-region="work" aria-label="work">
         {place === 'shelf' && <LibraryScreen />}
         {place === 'desk' && desk && <ReaderScreen bookId={desk.bookId} key={desk.bookId} />}
-        {place === 'archive' && <ArchiveRoom />}
         {/* the desk without a desk-context cannot occur (goDesk always
          * creates one) — the guard exists so the room never shows a hole */}
         {place === 'desk' && !desk && (

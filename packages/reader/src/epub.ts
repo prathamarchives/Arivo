@@ -339,7 +339,7 @@ export class EpubAdapter implements FormatReader {
     if (old) old.remove();
     const style = doc.createElement('style');
     style.id = 'arivo-style';
-    const vars = readThemeVars(this.settings?.theme ?? 'paper');
+    const vars = readThemeVars(this.settings?.theme ?? 'light');
     const s = this.settings;
     const geometry = s
       ? `\n:root { --ar-leading: ${s.lineHeight}; }`

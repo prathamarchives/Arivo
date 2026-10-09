@@ -47,6 +47,22 @@ export function createServices(): Services {
   const settingsDir = path.join(homeArivo, 'config');
   let settings = readSettings(settingsDir, { ...DEFAULT_SETTINGS }) as unknown as AppSettings;
 
+  /* v0.3.2 — the simplification migration: the stored room may speak the
+   * old vocabulary (paper/sepia/night + a temperament). it folds on
+   * read — sepia joins light, night becomes dark, the temperament is
+   * dropped — and the folded truth is written back once, so settings.json
+   * converges on the new vocabulary. */
+  const raw = settings as unknown as Record<string, unknown>;
+  const legacyTheme = raw['theme'] !== 'light' && raw['theme'] !== 'dark';
+  const legacyTemperament = 'temperament' in raw;
+  if (legacyTheme || legacyTemperament) {
+    const folded = { ...settings } as unknown as Record<string, unknown>;
+    folded['theme'] = raw['theme'] === 'night' ? 'dark' : 'light';
+    delete folded['temperament'];
+    settings = folded as unknown as AppSettings;
+    writeSettings(settingsDir, folded);
+  }
+
   // the root is fixed for the process lifetime — a booksDir change is
   // validated + persisted, then honored at next launch (no live split-brain)
   const root = settings.booksDir ?? homeArivo;

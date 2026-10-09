@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { DiagnosticsReport, SessionStats, ReadingProfile } from '@arivo/core';
-import { READING_PROFILES, activeProfile } from '@arivo/core';
+import { READING_PROFILES, activeProfile, FONT_STEPS, LINE_HEIGHTS, MEASURES } from '@arivo/core';
 import { api, platform } from '../services/api.ts';
 import { useSettings } from '../stores/settings.ts';
 import { useRoom } from '../stores/room.ts';
@@ -12,9 +12,6 @@ import {
   IconFolder,
   IconPulse,
   IconDownload,
-  IconSun,
-  IconLamp,
-  IconMoon,
   IconInfo,
 } from '../components/icons.tsx';
 
@@ -155,16 +152,6 @@ export function SettingsScreen(): ReactNode {
     return () => window.removeEventListener('keydown', onKey);
   }, [settingsOpen, setSettingsOpen]);
 
-  const themes = useMemo(
-    () =>
-      [
-        { key: 'paper', label: 'paper', icon: <IconSun /> },
-        { key: 'sepia', label: 'sepia', icon: <IconLamp /> },
-        { key: 'night', label: 'night', icon: <IconMoon /> },
-      ] as const,
-    [],
-  );
-
   if (!settingsOpen) return null;
 
   return (
@@ -182,6 +169,9 @@ export function SettingsScreen(): ReactNode {
         <div className="drawer-body settings-body">
           <section className="detail-section">
             <div className="meta-label section-label">reading</div>
+            {/* the typography the reader's type panel owned — absorbed
+                here (v0.3.2): profile, size, leading, measure, flow, page.
+                the light lives on the rail, not here. */}
             <div className="settings-row">
               <span className="settings-row-label">profile</span>
               <div className="type-flow">
@@ -197,16 +187,46 @@ export function SettingsScreen(): ReactNode {
               </div>
             </div>
             <div className="settings-row">
-              <span className="settings-row-label">theme</span>
-              <div className="type-themes">
-                {themes.map((t) => (
+              <span className="settings-row-label">size</span>
+              <div className="type-flow">
+                {FONT_STEPS.map((px, i) => (
                   <button
-                    key={t.key}
-                    className={`type-theme${settings.theme === t.key ? ' type-theme-active' : ''}`}
-                    onClick={() => set({ theme: t.key })}
+                    key={px}
+                    className={`type-step${settings.fontStep === i ? ' type-step-active' : ''}`}
+                    style={{ fontSize: `${10 + i * 2}px` }}
+                    onClick={() => set({ fontStep: i })}
+                    aria-label={`${px} pixels`}
                   >
-                    {t.icon}
-                    {t.label}
+                    Aa
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">leading</span>
+              <div className="type-flow">
+                {LINE_HEIGHTS.map((lh) => (
+                  <button
+                    key={lh}
+                    className={`chip${settings.lineHeight === lh ? ' chip-active' : ''}`}
+                    onClick={() => set({ lineHeight: lh })}
+                  >
+                    {lh}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">measure</span>
+              <div className="type-flow">
+                {MEASURES.map((m) => (
+                  <button
+                    key={m}
+                    className={`chip${settings.measure === m ? ' chip-active' : ''}`}
+                    onClick={() => set({ measure: m })}
+                    aria-label={`${m} pixel column`}
+                  >
+                    {m}
                   </button>
                 ))}
               </div>
@@ -228,42 +248,30 @@ export function SettingsScreen(): ReactNode {
                 </button>
               </div>
             </div>
-            <div className="settings-row">
-              <span className="settings-row-label">covers</span>
-              <div className="type-flow">
-                {(['s', 'm', 'l'] as const).map((size) => (
+            {settings.flow === 'paginated' && (
+              <div className="settings-row">
+                <span className="settings-row-label">page</span>
+                <div className="type-flow">
                   <button
-                    key={size}
-                    className={`chip${settings.librarySize === size ? ' chip-active' : ''}`}
-                    onClick={() => set({ librarySize: size })}
+                    className={`chip${settings.pageMode === 'single' ? ' chip-active' : ''}`}
+                    onClick={() => set({ pageMode: 'single' })}
                   >
-                    {size === 's' ? 'small' : size === 'm' ? 'medium' : 'large'}
+                    one page
                   </button>
-                ))}
+                  <button
+                    className={`chip${settings.pageMode === 'auto' ? ' chip-active' : ''}`}
+                    onClick={() => set({ pageMode: 'auto' })}
+                  >
+                    two pages
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="settings-row">
-              <span className="settings-row-label">library view</span>
-              <div className="type-flow">
-                <button
-                  className={`chip${settings.libraryView === 'grid' ? ' chip-active' : ''}`}
-                  onClick={() => set({ libraryView: 'grid' })}
-                >
-                  grid
-                </button>
-                <button
-                  className={`chip${settings.libraryView === 'list' ? ' chip-active' : ''}`}
-                  onClick={() => set({ libraryView: 'list' })}
-                >
-                  list
-                </button>
-              </div>
-            </div>
+            )}
           </section>
 
           <section className="detail-section">
             <div className="meta-label section-label">
-              <IconFolder /> library folder
+              <IconFolder /> library
             </div>
             <p className="settings-path mono">{settings.booksDir ?? '~/Arivo (default)'}</p>
             {platform === 'electron' ? (
@@ -297,6 +305,37 @@ export function SettingsScreen(): ReactNode {
                 current one
               </p>
             )}
+            <div className="settings-row">
+              <span className="settings-row-label">view</span>
+              <div className="type-flow">
+                <button
+                  className={`chip${settings.libraryView === 'grid' ? ' chip-active' : ''}`}
+                  onClick={() => set({ libraryView: 'grid' })}
+                >
+                  grid
+                </button>
+                <button
+                  className={`chip${settings.libraryView === 'list' ? ' chip-active' : ''}`}
+                  onClick={() => set({ libraryView: 'list' })}
+                >
+                  list
+                </button>
+              </div>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">covers</span>
+              <div className="type-flow">
+                {(['s', 'm', 'l'] as const).map((size) => (
+                  <button
+                    key={size}
+                    className={`chip${settings.librarySize === size ? ' chip-active' : ''}`}
+                    onClick={() => set({ librarySize: size })}
+                  >
+                    {size === 's' ? 'small' : size === 'm' ? 'medium' : 'large'}
+                  </button>
+                ))}
+              </div>
+            </div>
           </section>
 
           <section className="detail-section">

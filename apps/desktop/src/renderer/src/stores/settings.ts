@@ -10,12 +10,10 @@ interface SettingsState {
   set: (partial: Partial<AppSettings>) => void;
 }
 
-/** both axes apply to the root, always: temperament (den/lab) and
- *  lighting (paper/sepia/night). persistence is settings.json — gate 13
- *  closed: the picker is the rail's furniture, the boot applies the
- *  saved room, den is the living default (D-003). */
+/** the light applies to the root, always (v0.3.2: light/dark, nothing
+ *  else). persistence is settings.json — the picker is the rail's foot,
+ *  the boot applies the saved light. */
 function applyRoom(s: AppSettings): void {
-  document.documentElement.dataset.temperament = s.temperament;
   document.documentElement.dataset.theme = s.theme;
 }
 

@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { DesignLab } from '@arivo/ui';
 import { useSettings } from './stores/settings.ts';
 import { useLibrary } from './stores/library.ts';
 import { useRoom } from './stores/room.ts';
@@ -41,24 +40,17 @@ export function App(): ReactNode {
   const setPaletteOpen = useRoom((s) => s.setPaletteOpen);
   const goShelf = useRoom((s) => s.goShelf);
   const returnToDesk = useRoom((s) => s.returnToDesk);
-  const goArchive = useRoom((s) => s.goArchive);
-  const labMode = window.location.hash === '#lab';
+  const setSettingsOpen = useRoom((s) => s.setSettingsOpen);
 
   useEffect(() => {
-    if (labMode) {
-      /* the lab is isolated from product state — no settings/library boot */
-      document.documentElement.dataset.temperament ??= 'den';
-      document.documentElement.dataset.theme ??= 'paper';
-      return;
-    }
     void initSettings();
     void refresh();
-  }, [labMode, initSettings, refresh]);
+  }, [initSettings, refresh]);
 
-  /* the room's global keys: the palette (transient), the three places
-   * (ctrl+1/2/3), and the design lab door (ctrl+shift+l). */
+  /* the room's global keys: the palette (transient), the two places
+   * (ctrl+1/2), and settings (ctrl+,). v0.3.2: the design lab door is
+   * gone — the lab was a development instrument, not a room. */
   useEffect(() => {
-    if (labMode) return;
     const onKey = (e: KeyboardEvent): void => {
       const target = e.target as HTMLElement | null;
       const typing =
@@ -68,10 +60,9 @@ export function App(): ReactNode {
         setPaletteOpen(true);
         return;
       }
-      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'l') {
+      if ((e.ctrlKey || e.metaKey) && e.key === ',') {
         e.preventDefault();
-        window.location.hash = 'lab';
-        window.location.reload();
+        setSettingsOpen(true);
         return;
       }
       if (typing || !(e.ctrlKey || e.metaKey)) return;
@@ -81,23 +72,20 @@ export function App(): ReactNode {
       } else if (e.key === '2') {
         e.preventDefault();
         returnToDesk();
-      } else if (e.key === '3') {
-        e.preventDefault();
-        goArchive();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [labMode, setPaletteOpen, goShelf, returnToDesk, goArchive]);
+  }, [setPaletteOpen, goShelf, returnToDesk, setSettingsOpen]);
 
   return (
     <>
-      {labMode ? <DesignLab /> : <Shell />}
-      {labMode ? null : <BookDetail />}
-      {labMode ? null : <SettingsScreen />}
-      {labMode ? null : <CommandPalette />}
-      {labMode ? null : <Toaster />}
-      {labMode ? null : <RecoveryBanner />}
+      <Shell />
+      <BookDetail />
+      <SettingsScreen />
+      <CommandPalette />
+      <Toaster />
+      <RecoveryBanner />
     </>
   );
 }

@@ -13,19 +13,18 @@
  * surface's plain fallback.
  */
 
-/** the fixed nouns — the product speaks these, only these */
+/** the product's own dictionary — the nouns the surfaces speak.
+ *  v0.3.2: the archive vocabulary retired; the reading surface's nouns
+ *  stay. the notebook's nouns arrive with the notebook. */
 export const VOICE_NOUNS = [
   'shelf',
   'desk',
-  'archive',
   'book',
-  'mark',
+  'highlight',
   'note',
   'question',
-  'research',
-  'make',
-  'reflect',
-  'document',
+  'sticky',
+  'bookmark',
   'passage',
 ] as const;
 

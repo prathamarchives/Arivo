@@ -155,9 +155,9 @@ describe('structured channels reject malformed structures', () => {
     expect(() => expectAccept(schemas.searchQuery, 'burnout')).not.toThrow();
   });
 
-  it('settings:set — enum fields + guarded booksDir + temperament + reading geometry', () => {
+  it('settings:set — enum fields + guarded booksDir + reading geometry (v0.3.2: light/dark)', () => {
     const good = {
-      theme: 'night',
+      theme: 'dark',
       fontStep: 2,
       lineHeight: 1.5,
       measure: 760,
@@ -165,19 +165,21 @@ describe('structured channels reject malformed structures', () => {
       pageMode: 'auto',
       libraryView: 'list',
       librarySize: 'l',
-      temperament: 'lab',
       booksDir: null,
     };
     expect(() => expectAccept(schemas.settingsSet, good)).not.toThrow();
-    expect(() => expectAccept(schemas.settingsSet, { ...good, temperament: 'den' })).not.toThrow();
+    expect(() => expectAccept(schemas.settingsSet, { ...good, theme: 'light' })).not.toThrow();
     expect(() => expectAccept(schemas.settingsSet, { ...good, lineHeight: 1.65, measure: 680, pageMode: 'single' })).not.toThrow();
     expectReject(schemas.settingsSet, { ...good, theme: 'neon' });
+    // the retired vocabulary is rejected at the boundary, not folded here
+    expectReject(schemas.settingsSet, { ...good, theme: 'paper' });
+    expectReject(schemas.settingsSet, { ...good, theme: 'sepia' });
     expectReject(schemas.settingsSet, { ...good, fontStep: 9 });
     expectReject(schemas.settingsSet, { ...good, lineHeight: 1.2 });
     expectReject(schemas.settingsSet, { ...good, measure: 800 });
     expectReject(schemas.settingsSet, { ...good, pageMode: 'dual' });
-    expectReject(schemas.settingsSet, { ...good, temperament: 'study' });
-    expectReject(schemas.settingsSet, { ...good, temperament: undefined });
+    // v0.3.2: temperament is gone — an extra key is ignored at the
+    // boundary (stripped by the renderer before it ever arrives)
     expectReject(schemas.settingsSet, { ...good, booksDir: '' });
     expect(() =>
       expectAccept(schemas.settingsSet, { ...good, booksDir: 'C:\\Users\\me\\Arivo' }),

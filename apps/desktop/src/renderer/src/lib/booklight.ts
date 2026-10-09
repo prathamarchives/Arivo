@@ -94,13 +94,13 @@ export async function computeAura(coverUrl: string): Promise<BookAura | null> {
 }
 
 /**
- * write the room's light. den + a live aura → the slots + the on-alpha
- * (inline over the tokens' off-truth); anything else → clear, the
- * tokens take back over (alpha 0, the walls stay the walls).
+ * write the room's light. a live aura → the slots + the on-alpha
+ * (inline over the tokens' off-truth); no aura → clear, the tokens
+ * take back over (alpha 0, the walls stay the walls).
  */
-export function applyRoomAura(aura: BookAura | null, temperament: 'den' | 'lab'): void {
+export function applyRoomAura(aura: BookAura | null): void {
   const root = document.documentElement;
-  if (aura && temperament === 'den') {
+  if (aura) {
     root.style.setProperty('--aura-h', `${aura.h}`);
     root.style.setProperty('--aura-s', `${aura.s}%`);
     root.style.setProperty('--aura-l', `${aura.l}%`);

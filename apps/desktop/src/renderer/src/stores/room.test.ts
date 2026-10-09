@@ -1,13 +1,15 @@
 /**
- * the room's contract (L8): place, spatial memory, attention.
- * the shell's behavioral laws are testable without a dom — the store is
- * the room's truth, and the room must never lie about where you are or
- * what you were doing.
+ * the room's contract: place, spatial memory, attention.
+ * v0.3.2 — the simplification: two cameras (shelf · desk), the notes
+ * panel is one list (no tabs), the archive place is retired. the shell's
+ * behavioral laws are testable without a dom — the store is the room's
+ * truth, and the room must never lie about where you are or what you
+ * were doing.
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useRoom, shellVisibility } from './room.ts';
 
-describe('the room model (L8)', () => {
+describe('the room model (v0.3.2)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
@@ -17,7 +19,6 @@ describe('the room model (L8)', () => {
       attention: 'active',
       engaged: false,
       shelfScroll: 0,
-      archiveScroll: 0,
       paletteOpen: false,
       toasts: [],
     });
@@ -31,13 +32,14 @@ describe('the room model (L8)', () => {
     expect(useRoom.getState().place).toBe('shelf');
   });
 
-  it('the three places are camera positions over one room', () => {
+  it('the two cameras are positions over one room — the archive is gone', () => {
     useRoom.getState().goDesk('b1');
     expect(useRoom.getState().place).toBe('desk');
-    useRoom.getState().goArchive();
-    expect(useRoom.getState().place).toBe('archive');
     useRoom.getState().goShelf();
     expect(useRoom.getState().place).toBe('shelf');
+    const state = useRoom.getState();
+    expect('goArchive' in state).toBe(false);
+    expect('archiveScroll' in state).toBe(false);
   });
 
   it('spatial memory: the desk survives navigation (golden 6)', () => {
@@ -72,9 +74,8 @@ describe('the room model (L8)', () => {
     expect(useRoom.getState().desk?.pendingLocator).toBeNull();
   });
 
-  it('visibility follows attention: full on shelf, quiet at desk, absent when reading', () => {
+  it('visibility follows attention: full on the shelf, quiet at desk, absent when reading', () => {
     expect(shellVisibility('shelf', 'active')).toBe('full');
-    expect(shellVisibility('archive', 'active')).toBe('full');
     expect(shellVisibility('desk', 'active')).toBe('quiet');
     expect(shellVisibility('desk', 'reading')).toBe('absent');
   });
@@ -111,26 +112,19 @@ describe('the room model (L8)', () => {
     expect(useRoom.getState().attention).toBe('active');
   });
 
-  it('the idle budget never quiets the shelf or the archive', () => {
+  it('the idle budget never quiets the shelf', () => {
     useRoom.getState().poke();
     vi.advanceTimersByTime(3000);
     expect(useRoom.getState().attention).toBe('active');
-    useRoom.getState().goArchive();
-    vi.advanceTimersByTime(3000);
-    expect(useRoom.getState().attention).toBe('active');
   });
 
-  it('per-place scroll memory records and restores', () => {
+  it('scroll memory records and restores', () => {
     useRoom.getState().setShelfScroll(420);
     expect(useRoom.getState().shelfScroll).toBe(420);
-    useRoom.getState().setArchiveScroll(80);
-    expect(useRoom.getState().archiveScroll).toBe(80);
-    /* independent rooms, independent memory */
-    expect(useRoom.getState().shelfScroll).not.toBe(useRoom.getState().archiveScroll);
   });
 });
 
-describe('the notes panel (v0.3.1 — the modes became one panel)', () => {
+describe('the notes panel (v0.3.2 — one list, no tabs)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
@@ -140,7 +134,6 @@ describe('the notes panel (v0.3.1 — the modes became one panel)', () => {
       attention: 'active',
       engaged: false,
       shelfScroll: 0,
-      archiveScroll: 0,
       paletteOpen: false,
       toasts: [],
     });
@@ -153,28 +146,22 @@ describe('the notes panel (v0.3.1 — the modes became one panel)', () => {
   it('a fresh desk opens with the panel closed — the reading is primary', () => {
     useRoom.getState().goDesk('b1');
     expect(useRoom.getState().desk?.notesOpen).toBe(false);
-    expect(useRoom.getState().desk?.notesTab).toBe('marks');
-    expect(useRoom.getState().desk?.workbenchDocId).toBeNull();
   });
 
-  it('the panel preserves spatial memory: a shelf roundtrip returns to the same tab + document', () => {
+  it('the panel preserves spatial memory: a shelf roundtrip returns to the same panel', () => {
     useRoom.getState().goDesk('b1');
-    useRoom.getState().openNotes('notebook');
-    useRoom.getState().setWorkbenchDoc('doc-9');
+    useRoom.getState().openNotes();
     /* the shelf roundtrip — the desk keeps its context (law 32) */
     useRoom.getState().goShelf();
     useRoom.getState().returnToDesk();
     expect(useRoom.getState().desk?.notesOpen).toBe(true);
-    expect(useRoom.getState().desk?.notesTab).toBe('notebook');
-    expect(useRoom.getState().desk?.workbenchDocId).toBe('doc-9');
     expect(useRoom.getState().desk?.bookId).toBe('b1');
   });
 
-  it('tab switching never recreates the desk context — same object identity for book + pendings', () => {
+  it('opening never recreates the desk context — same identity for book + pendings', () => {
     useRoom.getState().goDesk('b1', 'cfi-loc', 'hl-1');
     const before = useRoom.getState().desk!;
     useRoom.getState().openNotes();
-    useRoom.getState().setNotesTab('notebook');
     const after = useRoom.getState().desk!;
     expect(after.bookId).toBe(before.bookId);
     expect(after.pendingLocator).toBe(before.pendingLocator);
@@ -183,7 +170,7 @@ describe('the notes panel (v0.3.1 — the modes became one panel)', () => {
 
   it('an open panel is engagement — the chrome cannot withdraw mid-work', () => {
     useRoom.getState().goDesk('b1');
-    useRoom.getState().openNotes('notebook');
+    useRoom.getState().openNotes();
     expect(useRoom.getState().engaged).toBe(true);
     vi.advanceTimersByTime(10_000);
     expect(useRoom.getState().attention).toBe('active');
@@ -199,9 +186,8 @@ describe('the notes panel (v0.3.1 — the modes became one panel)', () => {
   });
 
   it('panel actions with no desk are inert', () => {
-    useRoom.getState().openNotes('notebook');
+    useRoom.getState().openNotes();
     expect(useRoom.getState().desk).toBeNull();
     expect(useRoom.getState().place).toBe('shelf');
   });
 });
-

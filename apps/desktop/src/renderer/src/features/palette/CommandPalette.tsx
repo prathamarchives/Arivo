@@ -24,7 +24,8 @@ interface Item {
 }
 
 export function CommandPalette(): ReactNode {
-  const { paletteOpen, setPaletteOpen, goDesk, goShelf, goArchive, toast } = useRoom();
+  const { paletteOpen, setPaletteOpen, goDesk, goShelf, toast } = useRoom();
+  const setSettingsOpen = useRoom((s) => s.setSettingsOpen);
   const { books, importDialog, refresh } = useLibrary();
   const { settings, set } = useSettings();
   const [q, setQ] = useState('');
@@ -107,22 +108,32 @@ export function CommandPalette(): ReactNode {
       });
     }
 
-    const themeLabels: Record<string, string> = { paper: 'sepia', sepia: 'night', night: 'paper' };
-    const nextTheme = themeLabels[settings.theme] ?? 'paper';
-    const themeIcon =
-      nextTheme === 'night' ? 'night' : nextTheme === 'sepia' ? 'lamp' : 'day';
-    if (ql.length === 0 || 'reading theme'.includes(ql)) {
+    /* the light — two, nothing else (v0.3.2) */
+    const nextTheme = settings.theme === 'light' ? 'dark' : 'light';
+    if (ql.length === 0 || 'light dark theme'.includes(ql)) {
       list.push({
         id: 'action-theme',
         kind: 'action',
-        title: `reading theme → ${nextTheme}`,
-        context: 'paper · sepia · night',
+        title: `light → ${nextTheme}`,
+        context: 'light · dark',
         run: () => {
-          set({ theme: nextTheme as 'paper' | 'sepia' | 'night' });
+          set({ theme: nextTheme });
           setPaletteOpen(false);
         },
       });
-      void themeIcon;
+    }
+
+    if (ql.length === 0 || 'settings'.includes(ql)) {
+      list.push({
+        id: 'action-settings',
+        kind: 'action',
+        title: 'open settings',
+        context: 'reading · library · about',
+        run: () => {
+          setPaletteOpen(false);
+          setSettingsOpen(true);
+        },
+      });
     }
 
     if (platform === 'electron' && (ql.length === 0 || 'rebuild index'.includes(ql))) {
@@ -141,11 +152,10 @@ export function CommandPalette(): ReactNode {
       });
     }
 
-    /* the three places — camera positions, not routes */
+    /* the two places — camera positions, not routes */
     const places: [Place, string][] = [
       ['shelf', 'go to the shelf'],
       ['desk', 'go to the desk'],
-      ['archive', 'go to the archive'],
     ];
     for (const [place, label] of places) {
       if (ql.length === 0 || label.includes(ql)) {
@@ -157,45 +167,14 @@ export function CommandPalette(): ReactNode {
           run: () => {
             setPaletteOpen(false);
             if (place === 'shelf') goShelf();
-            else if (place === 'archive') goArchive();
             else useRoom.getState().returnToDesk();
           },
         });
       }
     }
 
-    /* temperament — the room's two modes (gate 13 surface) */
-    const nextTemperament = settings.temperament === 'den' ? 'lab' : 'den';
-    if (ql.length === 0 || 'temperament'.includes(ql)) {
-      list.push({
-        id: 'action-temperament',
-        kind: 'action',
-        title: `temperament → ${nextTemperament}`,
-        context: 'den · lab',
-        run: () => {
-          set({ temperament: nextTemperament });
-          setPaletteOpen(false);
-        },
-      });
-    }
-
-    /* the lab door (L8 keyboard entry point) */
-    if (ql.length === 0 || 'design lab'.includes(ql)) {
-      list.push({
-        id: 'action-lab',
-        kind: 'action',
-        title: 'open the design lab',
-        context: 'the specimens, isolated from product state',
-        run: () => {
-          setPaletteOpen(false);
-          window.location.hash = 'lab';
-          window.location.reload();
-        },
-      });
-    }
-
     return list.slice(0, 14);
-  }, [q, books, remoteHits, settings.theme, settings.temperament, set, setPaletteOpen, goDesk, goShelf, goArchive, importDialog, toast, refresh, platform]);
+  }, [q, books, remoteHits, settings.theme, set, setPaletteOpen, setSettingsOpen, goDesk, goShelf, importDialog, toast, refresh, platform]);
 
   useEffect(() => {
     setCursor((c) => Math.min(c, Math.max(0, items.length - 1)));

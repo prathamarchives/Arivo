@@ -107,11 +107,9 @@ describe('the accessibility law (L14)', () => {
     expect(readFileSync(join(ROOT, 'apps/desktop/src/renderer/src/screens/PageObjects.tsx'), 'utf-8')).toContain(
       "role=\"toolbar\"",
     );
-    expect(readFileSync(join(ROOT, 'apps/desktop/src/renderer/src/features/desk/Workbench.tsx'), 'utf-8')).toContain(
-      'aria-label={`${meta.label} workbench`}',
-    );
-    expect(readFileSync(join(ROOT, 'apps/desktop/src/renderer/src/shell/ArchiveRoom.tsx'), 'utf-8')).toContain(
-      "aria-label={g.label}",
+    // v0.3.2: the reader's drawer keeps its landmark label
+    expect(readFileSync(join(ROOT, 'apps/desktop/src/renderer/src/screens/Reader.tsx'), 'utf-8')).toContain(
+      'aria-label="contents and bookmarks"',
     );
   });
 });

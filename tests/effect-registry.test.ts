@@ -84,9 +84,8 @@ describe('the effect registry (L12)', () => {
   it('booklight clamps its wash — the light can never compete with text', () => {
     // the pipeline's clamps are real code, not prose
     expect(BOOKLIGHT).toMatch(/clamp|saturate/i);
-    // lab ignores the booklight entirely (temperament law)
-    const labIgnore = BOOKLIGHT.includes("'lab'") || BOOKLIGHT.includes('lab');
-    expect(labIgnore).toBe(true);
+    // v0.3.2: one room, one light — the aura applies with no temperament gate
+    expect(BOOKLIGHT).not.toContain("'lab'");
   });
 
   it('the atmosphere twin exists — booklight shifts collapse under reduced motion', () => {

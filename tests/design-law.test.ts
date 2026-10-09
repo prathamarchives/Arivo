@@ -17,7 +17,6 @@ const BASE = readFileSync(join(ROOT, 'packages/ui/src/base.css'), 'utf-8');
 const COMPONENTS_CSS = readFileSync(join(ROOT, 'packages/ui/src/components/components.css'), 'utf-8');
 const OBJECTS_CSS = readFileSync(join(ROOT, 'packages/ui/src/objects/objects.css'), 'utf-8');
 const LAYOUT_CSS = readFileSync(join(ROOT, 'packages/ui/src/layout/layout.css'), 'utf-8');
-const LAB_CSS = readFileSync(join(ROOT, 'packages/ui/src/lab/lab.css'), 'utf-8');
 const APP_CSS = readFileSync(join(ROOT, 'apps/desktop/src/renderer/src/styles/app.css'), 'utf-8');
 const SHELL_CSS = readFileSync(join(ROOT, 'apps/desktop/src/renderer/src/shell/shell.css'), 'utf-8');
 const READER_THEMES = readFileSync(join(ROOT, 'packages/ui/src/reader-themes.ts'), 'utf-8');
@@ -196,12 +195,13 @@ describe('the design law — tokens are the closed vocabulary', () => {
     }
   });
 
-  it('both room axes are addressable: temperament and lighting', () => {
-    expect(TOKENS.includes("[data-temperament='den']")).toBe(true);
-    expect(TOKENS.includes("[data-temperament='lab']")).toBe(true);
-    for (const t of ['paper', 'sepia', 'night']) {
-      expect(TOKENS.includes(`[data-theme='${t}']`)).toBe(true);
-    }
+  it('the light is two, nothing else — light and dark addressable, the retired axes absent (v0.3.2)', () => {
+    expect(TOKENS.includes("[data-theme='dark']")).toBe(true);
+    // the retired vocabulary never returns: no temperament, no sepia blocks
+    expect(TOKENS).not.toContain('data-temperament');
+    expect(TOKENS).not.toContain("[data-theme='paper']");
+    expect(TOKENS).not.toContain("[data-theme='sepia']");
+    expect(TOKENS).not.toContain("[data-theme='night']");
   });
 });
 
@@ -211,7 +211,6 @@ describe('the design law — components speak only tokens', () => {
     expect(rawHexViolations(COMPONENTS_CSS)).toEqual([]);
     expect(rawHexViolations(OBJECTS_CSS)).toEqual([]);
     expect(rawHexViolations(LAYOUT_CSS)).toEqual([]);
-    expect(rawHexViolations(LAB_CSS)).toEqual([]);
     expect(rawHexViolations(SHELL_CSS)).toEqual([]);
     /* the final campaign's P10 attack found app.css outside this law's
      * reach — the reader's own skin file. it joins the scan; the pdf
@@ -220,11 +219,11 @@ describe('the design law — components speak only tokens', () => {
   });
 
   it('z-index is semantic everywhere (law 47)', () => {
-    expect(zIndexViolations(BASE, COMPONENTS_CSS, OBJECTS_CSS, LAYOUT_CSS, LAB_CSS, APP_CSS, SHELL_CSS)).toEqual([]);
+    expect(zIndexViolations(BASE, COMPONENTS_CSS, OBJECTS_CSS, LAYOUT_CSS, APP_CSS, SHELL_CSS)).toEqual([]);
   });
 
   it('weights are 400/700 only (300 wordmark) — the supplied cuts', () => {
-    expect(weightViolations(BASE, COMPONENTS_CSS, OBJECTS_CSS, LAYOUT_CSS, LAB_CSS, APP_CSS, SHELL_CSS)).toEqual([]);
+    expect(weightViolations(BASE, COMPONENTS_CSS, OBJECTS_CSS, LAYOUT_CSS, APP_CSS, SHELL_CSS)).toEqual([]);
   });
 
   it('no raw durations — transitions speak only the ladder (L3)', () => {
@@ -232,13 +231,12 @@ describe('the design law — components speak only tokens', () => {
     expect(rawDurationViolations(COMPONENTS_CSS)).toEqual([]);
     expect(rawDurationViolations(OBJECTS_CSS)).toEqual([]);
     expect(rawDurationViolations(LAYOUT_CSS)).toEqual([]);
-    expect(rawDurationViolations(LAB_CSS)).toEqual([]);
     expect(rawDurationViolations(APP_CSS)).toEqual([]);
     expect(rawDurationViolations(SHELL_CSS)).toEqual([]);
   });
 
   it('retired tokens never return', () => {
-    expect(retiredTokenViolations(BASE, COMPONENTS_CSS, OBJECTS_CSS, LAYOUT_CSS, LAB_CSS, APP_CSS, SHELL_CSS, READER_THEMES)).toEqual([]);
+    expect(retiredTokenViolations(BASE, COMPONENTS_CSS, OBJECTS_CSS, LAYOUT_CSS, APP_CSS, SHELL_CSS, READER_THEMES)).toEqual([]);
   });
 
   it('the retired display serif is gone from the reading surface', () => {
@@ -289,40 +287,6 @@ describe('the checkers work — seeded violations are caught', () => {
     ).toHaveLength(1);
     // zero is the twin, not a violation
     expect(rawDurationViolations('.btn { transition-duration: 0ms; }')).toHaveLength(0);
-  });
-});
-
-/* ---------------- the lab mirror must match the tokens ---------------- */
-
-describe('the design lab tells the truth', () => {
-  const LAB_DATA = readFileSync(join(ROOT, 'packages/ui/src/lab/lab-data.ts'), 'utf-8');
-
-  it('lab spacing table matches tokens.css', () => {
-    const props = propsOf(TOKENS);
-    for (const m of LAB_DATA.matchAll(/\['(--s[a-z0-9]+)',\s*(\d+)\]/g)) {
-      expect(props.get(m[1]!)).toBe(`${m[2]}px`);
-    }
-  });
-
-  it('lab radius table matches tokens.css', () => {
-    const props = propsOf(TOKENS);
-    for (const m of LAB_DATA.matchAll(/\['(--r-[a-z-]+)',\s*(\d+)\]/g)) {
-      expect(props.get(m[1]!)).toBe(`${m[2]}px`);
-    }
-  });
-
-  it('lab annotation table matches tokens.css', () => {
-    const props = propsOf(TOKENS);
-    for (const m of LAB_DATA.matchAll(/\['(--anno-[a-z]+)',\s*'(#[0-9A-Fa-f]{6})'\]/g)) {
-      expect(props.get(m[1]!)).toBe(m[2]!);
-    }
-  });
-
-  it('lab easing table matches tokens.css', () => {
-    const props = propsOf(TOKENS);
-    for (const m of LAB_DATA.matchAll(/\['(--ease-[a-z]+)',\s*'(cubic-bezier\([^)]*\))'/g)) {
-      expect(props.get(m[1]!)).toBe(m[2]!);
-    }
   });
 });
 

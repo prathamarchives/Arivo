@@ -91,21 +91,22 @@ describe('regression 5 — user text never disappears (L10, session 0007)', () =
   });
 });
 
-describe('regression 6 — the reading stays primary; the panel preserves spatial memory (v0.3.1 exit predicate)', () => {
+describe('regression 6 — the reading stays primary; the panel preserves spatial memory (v0.3.2 exit predicate)', () => {
   it('a fresh desk opens with the notes panel closed — the resting state', () => {
     const block = ROOM_TS.match(/goDesk: \(bookId, locator[\s\S]*?scheduleIdle\(\);/)?.[0] ?? '';
     expect(block).not.toBe('');
     expect(block).toContain('notesOpen: false');
-    expect(block).toContain('workbenchDocId: null');
   });
 
   it('only the panel engages the room — reading trusts the attention law', () => {
-    const block = ROOM_TS.match(/openNotes: \(tab\)[\s\S]*?},\s*\n\s*closeNotes/)?.[0] ?? '';
+    const block = ROOM_TS.match(/openNotes: \(\)[\s\S]*?},\s*\n\s*closeNotes/)?.[0] ?? '';
     expect(block).not.toBe('');
     expect(block).toContain('engaged: true');
-    expect(block).toContain("notesTab: tab");
     // the modes are truly gone — no mode switcher remains anywhere
     expect(ROOM_TS).not.toContain('setDeskMode');
     expect(READER_TSX).not.toContain('DESK_MODES');
+    // the tabs are gone — one list, no competing collections
+    expect(ROOM_TS).not.toContain('NotesTab');
+    expect(ROOM_TS).not.toContain('workbenchDocId');
   });
 });
