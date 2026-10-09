@@ -24,7 +24,17 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 120 });
+  // windows refuses to delete a file sqlite still holds open — every
+  // store opened in this file is registered and closed BEFORE the temp
+  // tree comes down (the v0.3.0 release run taught this the hard way)
+  for (const s of openStores) {
+    try {
+      s.close();
+    } catch {
+      // its own test already closed the underlying db
+    }
+  }
+  rmSync(root, { recursive: true, force: true, maxReties: 5, retryDelay: 120 });
 });
 
 /** the one door tests open their store through — closed on teardown */
