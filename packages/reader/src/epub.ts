@@ -148,7 +148,14 @@ export class EpubAdapter implements FormatReader {
     // relocated → progress
     rendition.on('relocated', (location: unknown) => {
       const loc = location as {
-        start?: { cfi: string; index?: number; percentage?: number; href?: string };
+        start?: {
+          cfi: string;
+          index?: number;
+          percentage?: number;
+          href?: string;
+          /** pagination within the section — present in paginated flow */
+          displayed?: { page?: number; total?: number };
+        };
       } | undefined;
       if (!loc?.start?.cfi) return;
       this.currentLocator = loc.start.cfi;
@@ -159,7 +166,15 @@ export class EpubAdapter implements FormatReader {
       if (typeof percent !== 'number' || Number.isNaN(percent)) {
         percent = spineIdx / Math.max(1, spineItems.length - 1);
       }
-      this.hooks.onRelocated({ locator: loc.start.cfi, percent, chapter });
+      this.hooks.onRelocated({
+        locator: loc.start.cfi,
+        percent,
+        chapter,
+        // the visible view's identity — sticky notes and ink pin to it
+        spineIndex: typeof spineIdx === 'number' ? spineIdx : undefined,
+        pageInSpine: loc.start.displayed?.page,
+        pagesInSpine: loc.start.displayed?.total,
+      });
     });
 
     // selected → the signature moment

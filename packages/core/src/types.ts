@@ -221,6 +221,60 @@ export interface Note {
  */
 export type DeskDocKind = 'research' | 'make' | 'reflect';
 
+/** the sticky note's paper — one of the five identity washes (law 38) */
+export type StickyColor = 'yellow' | 'blue' | 'green' | 'pink' | 'violet';
+
+/**
+ * v0.3.1 — the sticky note: a small paper pinned to the PAGE you are
+ * reading. it is spatial, not textual: x/y are fractions of the reader
+ * viewport, so it survives window resizing and stays where you left it
+ * on the page. the anchor carries the place (epub spine+page / pdf
+ * page) so the note finds its page again on return.
+ */
+export interface StickyNote {
+  id: string;
+  bookId: string;
+  anchor: Anchor;
+  body: string;
+  color: StickyColor;
+  /** 0-1 fraction of the reader host's width, the note's left edge */
+  x: number;
+  /** 0-1 fraction of the reader host's height, the note's top edge */
+  y: number;
+  chapter: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** the ink tools — pencil (soft graphite), pen (solid ink), highlighter (wide translucent wash) */
+export type InkTool = 'pencil' | 'pen' | 'highlighter';
+
+/** one stroke: a tool, its color (an annotation identity color), its
+ *  width, and its points as flat 0-1 viewport fractions (x,y pairs) */
+export interface InkStroke {
+  tool: InkTool;
+  color: StickyColor;
+  size: number;
+  /** flat [x0,y0,x1,y1,...] in 0-1 fractions of the reader host */
+  points: number[];
+}
+
+/**
+ * v0.3.1 — the sketch: freehand ink laid on one page. one sketch per
+ * page (strokes append); the anchor names the page exactly like the
+ * sticky note's. strokes stretch with the viewport (fractional points
+ * keep their place over the text beneath).
+ */
+export interface Sketch {
+  id: string;
+  bookId: string;
+  anchor: Anchor;
+  strokes: InkStroke[];
+  chapter: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
 /** a passage pulled from the source into a desk document — provenance kept */
 export interface SourceRef {
   /** the quoted passage, verbatim */

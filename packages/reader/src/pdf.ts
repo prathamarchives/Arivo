@@ -518,6 +518,8 @@ export class PdfAdapter implements FormatReader {
       locator: `page:${page}`,
       percent,
       chapter: this.chapterLabel(page),
+      // the visible view's identity — sticky notes and ink pin to it
+      page,
     });
   }
 

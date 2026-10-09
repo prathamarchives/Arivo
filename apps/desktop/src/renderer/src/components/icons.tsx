@@ -35,4 +35,6 @@ export {
   IconPencil,
   IconFolder,
   IconPulse,
+  IconSticky,
+  IconCopy,
 } from '@arivo/ui';

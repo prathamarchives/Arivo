@@ -72,13 +72,20 @@ describe('the accessibility law (L14)', () => {
     expect(wide).toMatch(/width:\s*min\(400px,\s*100%\)/);
   });
 
-  it('the shell persists at small widths — labels leave, furniture stays', () => {
-    const block = SHELL_CSS.match(/@media \(max-width: 1043px\)\s*\{[\s\S]*?\n\}/)?.[0] ?? '';
-    expect(block).not.toBe('');
-    expect(block).toContain('--rail-w-slim');
-    // structure survives: only the labels are hidden, never the items
-    expect(block).toMatch(/\.nav-item-label[\s\S]*?display:\s*none/);
-    expect(block).not.toMatch(/\.nav-item\s*\{[\s\S]{0,80}display:\s*none/);
+  it('the rail persists at every width — the overlay law keeps its furniture structural', () => {
+    // v0.3.1: the icon column is the resting state at ALL widths; the
+    // measured 1043 media query is gone (the rail floats, it never
+    // competes with the work for pixels). structure survives; only the
+    // labels follow the expansion.
+    expect(SHELL_CSS).not.toContain('@media (max-width: 1043px)');
+    // the rail is furniture at rest: fixed overlay, resting width
+    const rail = SHELL_CSS.match(/\.rail\s*\{[^}]*\}/)?.[0] ?? '';
+    expect(rail).toMatch(/position:\s*fixed/);
+    expect(rail).toMatch(/width:\s*var\(--rail-w-slim\)/);
+    // expansion is a state, never a disappearance of the places
+    const collapsed = SHELL_CSS.match(/\.rail:not\(\[data-expanded='true'\]\)\s+\.nav-item-label\s*\{[^}]*\}/)?.[0] ?? '';
+    expect(collapsed).toMatch(/display:\s*none/);
+    expect(SHELL_CSS).not.toMatch(/\.nav-item\s*\{[^}]{0,120}display:\s*none/);
   });
 
   it('every reduced-motion twin lives where motion is defined', () => {
@@ -96,8 +103,8 @@ describe('the accessibility law (L14)', () => {
   });
 
   it('the landmarks and instruments are labeled for non-visual readers', () => {
-    // the mode rail is a toolbar; the drawers say what they are
-    expect(readFileSync(join(ROOT, 'apps/desktop/src/renderer/src/screens/Reader.tsx'), 'utf-8')).toContain(
+    // the drawing toolbar is a toolbar; the drawers say what they are
+    expect(readFileSync(join(ROOT, 'apps/desktop/src/renderer/src/screens/PageObjects.tsx'), 'utf-8')).toContain(
       "role=\"toolbar\"",
     );
     expect(readFileSync(join(ROOT, 'apps/desktop/src/renderer/src/features/desk/Workbench.tsx'), 'utf-8')).toContain(

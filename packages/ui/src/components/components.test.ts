@@ -21,11 +21,12 @@ const LAYOUT_CSS = readFileSync(join(HERE, 'layout/layout.css'), 'utf-8');
 /* ---------------- the icon language ---------------- */
 
 describe('W5 gate: the icon language is one family', () => {
-  it('32 glyphs, all real paths on the 16-grid', () => {
+  it('34 glyphs, all real paths on the 16-grid', () => {
     /* 24 at L6 + shelf and archive at L8 + the wave-1 surfaces
-     * (settings, info, tag, pencil, folder, pulse). a new glyph must
-     * extend the family, never fork it. */
-    expect(Object.keys(ICON_PATHS)).toHaveLength(32);
+     * (settings, info, tag, pencil, folder, pulse) + the v0.3.1 page
+     * objects (sticky, copy). a new glyph must extend the family,
+     * never fork it. */
+    expect(Object.keys(ICON_PATHS)).toHaveLength(34);
     for (const [name, d] of Object.entries(ICON_PATHS)) {
       expect(d!.startsWith('M')).toBe(true);
       void name;

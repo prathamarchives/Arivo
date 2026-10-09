@@ -73,7 +73,7 @@ describe('the upgrade path (I-17, I-19)', () => {
       .prepare("SELECT value FROM meta WHERE key = 'schema_version'")
       .get() as { value: string };
     expect(Number(version.value)).toBe(SCHEMA_VERSION);
-    expect(Number(version.value)).toBe(4); // migration 004 (the desk) is current
+    expect(Number(version.value)).toBe(5); // migration 005 (the page objects) is current
 
     // data survived
     const books = db.raw.prepare('SELECT id FROM books ORDER BY id').all();
@@ -234,7 +234,7 @@ describe('the runner on a raw connection', () => {
   it('reports the applied chain', () => {
     const raw = new Database(':memory:');
     const outcome = runMigrations(raw);
-    expect(outcome.applied).toHaveLength(4);
+    expect(outcome.applied).toHaveLength(5);
     expect(outcome.from).toBe(0);
     expect(outcome.to).toBe(SCHEMA_VERSION);
     expect(existsSync(':memory:')).toBe(false); // sanity: no fs footprint

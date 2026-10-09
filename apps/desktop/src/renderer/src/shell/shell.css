@@ -1,10 +1,11 @@
 /* arivo — the shell (L8). the room, not the router.
-   the rail is furniture: persistent, matte, structurally stable. the
-   work region is the camera: shelf, desk, archive are positions in one
-   place. visibility follows attention — full, quiet, absent — and
-   absence is PERCEPTUAL (opacity), never structural: the room does not
-   move while you read, the text keeps its exact position on the eye.
-   (D-024). every value is a token; the design law scans this file. */
+   the rail is an OVERLAY instrument (v0.3.1): collapsed to its icon
+   column at rest, expanding on approach (hover or focus), floating
+   over the work instead of displacing it. the work region is the full
+   window — the reading column centers on the true window center, and
+   no rail state ever reflows a word. absence stays perceptual
+   (opacity, never structure). every value is a token; the design law
+   scans this file. */
 
 /* the rail's furniture geometry is recorded in tokens.css (--rail-w,
    --rail-w-slim) like --cover-w (D-020). */
@@ -15,30 +16,77 @@
   background: var(--bg);
 }
 
-/* ---------------- the orientation rail ---------------- */
+/* ---------------- the orientation rail (overlay) ---------------- */
 
 .rail {
-  width: var(--rail-w);
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--rail-w-slim);
   flex: none;
   display: flex;
   flex-direction: column;
-  padding: calc(var(--s3) * var(--density)) calc(var(--s2) * var(--density));
+  padding: calc(var(--s3) * var(--density)) var(--s2);
   border-right: 1px solid var(--line);
-  /* breathing is region-level and density-inherited (gate 16) */
   gap: calc(var(--s4) * var(--density));
   background: var(--bg);
-  z-index: var(--z-sticky);
-  /* entering breathes (glide); leaving gets its brisk curve from the
-   * absent state's own transition — the target state picks the curve */
+  z-index: var(--z-overlay);
+  overflow: hidden;
+  /* approach expands (glide in); retreat is brisk — the target state
+   * picks its own curve. the width never touches layout: fixed overlay. */
   transition:
+    width var(--dur-state) var(--ease-glide),
     opacity var(--dur-surface-in) var(--ease-glide),
+    box-shadow var(--dur-state) var(--ease-settle),
     color var(--dur-state) var(--ease-settle);
 }
 
-.rail-wordmark {
-  font-size: var(--text-md);
-  padding: calc(var(--s1) * var(--density)) var(--s2);
+/* expanded: the full rail floats over the work — contact + ambient
+ * shadow lift it off the page it covers; the work never moves. */
+.rail[data-expanded='true'] {
+  width: var(--rail-w);
+  box-shadow: var(--elevation-2);
+}
+
+/* the brand: the mark centers in the icon column at rest; the lockup
+ * speaks when expanded. the mark never moves — only the name arrives. */
+.rail-brand {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-h-lg);
+  padding: 0 var(--s2);
   color: var(--ink);
+}
+
+/* the wordmark lockup (components/Wordmark.tsx) */
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  color: var(--ink);
+}
+
+.wordmark-mark {
+  display: block;
+}
+
+.wordmark-text {
+  font-family: var(--font-wordmark);
+  font-weight: 300;
+  font-size: var(--text-lg);
+  letter-spacing: var(--tracking-tight);
+  line-height: 1;
+}
+
+.wordmark-period {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink);
+  margin-left: 1px;
+  align-self: flex-end;
+  margin-bottom: var(--s1);
 }
 
 .rail-places {
@@ -47,14 +95,20 @@
   gap: var(--s1);
 }
 
+/* the labels leave when the rail rests — the icon column is
+ * pixel-stable between states (spatial memory kept). */
+.rail:not([data-expanded='true']) .nav-item-label {
+  display: none;
+}
+
 /* the current book — the object that is open on the desk, one click
-   from anywhere. quiet card: structure from the border, not shadow. */
+   from anywhere. at rest the cover carries it; expanded, it speaks. */
 .rail-book {
   display: flex;
-  flex-direction: column;
-  gap: var(--s1);
+  align-items: flex-start;
+  gap: var(--s2);
   margin: 0 var(--s1);
-  padding: var(--s2);
+  padding: var(--s1);
   border: 1px solid var(--line);
   border-radius: var(--r-surface);
   background: var(--bg-raised);
@@ -75,6 +129,28 @@
 .rail-book:focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--s1);
+}
+
+.rail-book-cover {
+  display: block;
+  width: var(--s8);
+  height: var(--s12);
+  object-fit: cover;
+  border-radius: var(--r-interactive);
+  box-shadow: var(--shadow-contact);
+  background: var(--bg-sunken);
+}
+
+.rail-book-meta {
+  display: none;
+  flex-direction: column;
+  gap: var(--s1);
+  min-width: 0;
+  flex: 1;
+}
+
+.rail[data-expanded='true'] .rail-book-meta {
+  display: flex;
 }
 
 .rail-book-title {
@@ -110,7 +186,9 @@
   border-radius: var(--r-instrument);
 }
 
-/* the foot: room settings as furniture */
+/* the foot: room settings as furniture — the temperament, then
+   settings (a NavItem, same anatomy as the places). the labels follow
+   the rail's own expansion. */
 .rail-foot {
   margin-top: auto;
   display: flex;
@@ -119,21 +197,34 @@
   padding: 0 var(--s1);
 }
 
+/* the segmented control speaks the body voice: the app's type ramp,
+   control height, a quiet selected fill — no mono caps (the v0.3.1
+   foot rebuild). it rests hidden: room-level furniture, summoned by
+   the rail's expansion. */
 .rail-temperament {
   display: flex;
   padding: var(--s1);
   gap: var(--s1);
   border: 1px solid var(--line);
   border-radius: var(--r-interactive);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--dur-micro-in) var(--ease-settle),
+    visibility var(--dur-micro-in);
+}
+
+.rail[data-expanded='true'] .rail-temperament {
+  opacity: 1;
+  visibility: visible;
 }
 
 .rail-temperament-option {
   flex: 1;
   height: var(--control-h);
-  font-size: var(--text-xs);
-  font-family: var(--font-mono);
-  letter-spacing: var(--tracking-meta);
-  text-transform: uppercase;
+  font-size: var(--text-sm);
+  font-family: var(--font-ui);
+  letter-spacing: var(--tracking-wide);
   color: var(--ink-2);
   border-radius: var(--r-interactive);
   transition:
@@ -151,8 +242,9 @@
   font-weight: 700;
 }
 
-.rail-lab,
-.rail-command {
+/* the design lab: a development instrument (DEV only), never product
+   furniture. commands are keyboard-first (Ctrl+K) — no rail text. */
+.rail-lab {
   height: var(--control-h);
   color: var(--ink-2);
   text-align: left;
@@ -162,8 +254,7 @@
   transition: color var(--dur-state) var(--ease-settle);
 }
 
-.rail-lab:hover,
-.rail-command:hover {
+.rail-lab:hover {
   color: var(--ink);
 }
 
@@ -175,6 +266,16 @@
   display: flex;
   flex-direction: column;
   position: relative;
+}
+
+/* the shelf and archive reserve the rail's full territory — the rail
+ * expands into its own ground, never over a book object (an overlay
+ * that swallowed clicks near the left edge was found live by the drive
+ * test). the desk does NOT reserve it: the reader owns the full window
+ * and centers its column on the true window center (the reading law). */
+.shell[data-place='shelf'] .shell-work,
+.shell[data-place='archive'] .shell-work {
+  padding-left: calc(var(--rail-w) + var(--s4));
 }
 
 /* the screens fill the region — the rail is furniture, never a viewport.
@@ -205,9 +306,10 @@
 
 /* absent — the text owns the eyes: the room withdraws from perception.
  * no layout change, no reflow, the text holds its position exactly.
- * leaving is brisk — the retreat curve lives here, on the exit state. */
+ * the ghost rail stops catching the pointer (selection starts near the
+ * left edge belong to the text); the left approach strip wakes it. */
 .shell-absent .rail {
-  opacity: 0;
+  opacity: 0.04;
   pointer-events: none;
   transition: opacity var(--dur-surface-out) var(--ease-retreat);
 }
@@ -471,37 +573,22 @@
   place-items: center;
 }
 
-/* ---------------- the measured structural change (gate 6, first) ---------------- */
+/* ---------------- the rail's rest law (v0.3.1) ---------------- */
 
-/* the rail collapses to an icon rail when the window can no longer hold
-   rail(224) + the desk's minimum work area (measure 520 + workbench
-   300 = 820). below 1044 the labels leave, the places persist — a
-   structural transformation, not a shrink. L14 owns the final audit. */
-@media (max-width: 1043px) {
-  .shell {
-    --rail-w: var(--rail-w-slim);
-  }
+/* the measured 1043 boundary is gone: the icon column is the rail's
+   resting state at EVERY width — the overlay law made the boundary
+   moot (the rail no longer competes with the work for pixels; it
+   floats). the furniture persists at all sizes; only the labels
+   follow the expansion. the accessibility test holds this law. */
+.rail:not([data-expanded='true']) .nav-item {
+  justify-content: flex-start;
+}
 
-  .rail {
-    padding-left: calc(var(--s1) * var(--density));
-    padding-right: calc(var(--s1) * var(--density));
-  }
-
-  .nav-item-label,
-  .rail-wordmark,
+@media (prefers-reduced-motion: reduce) {
+  .rail,
+  .rail-temperament,
   .rail-book,
-  .rail-lab,
-  .rail-command {
-    /* the labels leave; the furniture persists as icons and structure */
-    display: none;
-  }
-
-  .nav-item {
-    justify-content: center;
-    padding: 0;
-  }
-
-  .rail-places {
-    align-items: stretch;
+  .nav-item-label {
+    transition-duration: 0ms;
   }
 }

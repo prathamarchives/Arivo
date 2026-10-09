@@ -19,7 +19,7 @@ import type { ReactNode } from 'react';
 import type { ArchiveEntry } from '@arivo/core';
 import { api } from '../services/api.ts';
 import { plainError } from '../lib/voice.ts';
-import { useRoom, type DeskMode } from '../stores/room.ts';
+import { useRoom } from '../stores/room.ts';
 import { IconBookmark, IconNote, IconSearch, IconPencil, IconInfo, IconChevronRight } from '../components/icons.tsx';
 
 function dayLabel(ts: number): string {
@@ -59,17 +59,17 @@ function KindGlyph({ mark }: { mark: ArchiveEntry }): ReactNode {
 
 function ArchiveMark({ mark }: { mark: ArchiveEntry }): ReactNode {
   const goDesk = useRoom((s) => s.goDesk);
-  const setDeskMode = useRoom((s) => s.setDeskMode);
+  const openNotes = useRoom((s) => s.openNotes);
   const setWorkbenchDoc = useRoom((s) => s.setWorkbenchDoc);
 
   /* source return: the anchor rides with the object — the passage is
    * one click away, at the exact place it was made. a document opens
-   * back into its own workbench surface (Archive → Desk, the world
-   * model's transition: artifact → source → exact context). */
+   * back into the notes panel's notebook tab (Archive → Desk: artifact
+   * → source → exact context, the workbench is a panel not a mode). */
   const open = (): void => {
-    if (mark.kind === 'deskdoc' && mark.deskKind) {
+    if (mark.kind === 'deskdoc') {
       goDesk(mark.bookId);
-      setDeskMode(mark.deskKind as DeskMode);
+      openNotes('notebook');
       setWorkbenchDoc(mark.id);
       return;
     }

@@ -15,6 +15,8 @@ import type {
   Note,
   SearchHit,
   SessionStats,
+  Sketch,
+  StickyNote,
 } from '@arivo/core';
 import { DEFAULT_SETTINGS } from '@arivo/core';
 
@@ -55,6 +57,8 @@ export function createMockApi(): ArivoApi {
     bookmarks: Bookmark[];
     notes: Note[];
     deskDocs: DeskDoc[];
+    stickies: StickyNote[];
+    sketches: Sketch[];
     collections: { collection: Collection; count: number }[];
     settings: AppSettings;
   }
@@ -63,8 +67,14 @@ export function createMockApi(): ArivoApi {
       const raw = localStorage.getItem(KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<MockState>;
-        // tolerant read: state written before L10 has no deskDocs
-        return { ...fresh(), ...parsed, deskDocs: parsed.deskDocs ?? [] };
+        // tolerant read: state written before the family grew has no latecomers
+        return {
+          ...fresh(),
+          ...parsed,
+          deskDocs: parsed.deskDocs ?? [],
+          stickies: parsed.stickies ?? [],
+          sketches: parsed.sketches ?? [],
+        };
       }
     } catch {
       /* fresh */
@@ -97,6 +107,8 @@ export function createMockApi(): ArivoApi {
     bookmarks: [],
     notes: [],
     deskDocs: [],
+    stickies: [],
+    sketches: [],
     collections: [{ collection: { id: 'mock-col-1', name: 'philosophy', description: null, createdAt: Date.now() }, count: 1 }],
     settings: { ...DEFAULT_SETTINGS },
   });
@@ -194,6 +206,8 @@ export function createMockApi(): ArivoApi {
         highlights: state.highlights.filter((h) => h.bookId === bookId),
         bookmarks: state.bookmarks.filter((b) => b.bookId === bookId),
         notes: state.notes.filter((n) => n.bookId === bookId),
+        stickies: state.stickies.filter((s) => s.bookId === bookId),
+        sketches: state.sketches.filter((s) => s.bookId === bookId),
       }),
       createHighlight: async (bookId, h) => {
         state = { ...state, highlights: [...state.highlights, h] };
@@ -228,6 +242,30 @@ export function createMockApi(): ArivoApi {
       },
       deleteNote: async (bookId, id) => {
         state = { ...state, notes: state.notes.filter((n) => n.id !== id) };
+        save();
+      },
+      createSticky: async (bookId, s) => {
+        state = { ...state, stickies: [...state.stickies, s] };
+        save();
+      },
+      updateSticky: async (bookId, s) => {
+        state = { ...state, stickies: state.stickies.map((x) => (x.id === s.id ? s : x)) };
+        save();
+      },
+      deleteSticky: async (bookId, id) => {
+        state = { ...state, stickies: state.stickies.filter((s) => s.id !== id) };
+        save();
+      },
+      saveSketch: async (bookId, s) => {
+        const exists = state.sketches.some((x) => x.id === s.id);
+        state = {
+          ...state,
+          sketches: exists ? state.sketches.map((x) => (x.id === s.id ? s : x)) : [...state.sketches, s],
+        };
+        save();
+      },
+      deleteSketch: async (bookId, id) => {
+        state = { ...state, sketches: state.sketches.filter((s) => s.id !== id) };
         save();
       },
     },

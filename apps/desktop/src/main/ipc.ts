@@ -79,6 +79,8 @@ export function registerIpc(getServices: () => Services): void {
     highlights: s().store.listHighlights(bookId),
     bookmarks: s().store.listBookmarks(bookId),
     notes: s().store.listNotes(bookId),
+    stickies: s().store.listStickies(bookId),
+    sketches: s().store.listSketches(bookId),
   }));
   handle('archive:marks', () => s().store.listArchiveMarks());
   handleArg('highlight:create', schemas.highlightCreate, ({ bookId, h }) =>
@@ -104,6 +106,21 @@ export function registerIpc(getServices: () => Services): void {
   );
   handleArg('note:delete', schemas.noteDelete, ({ bookId, id: nid }) =>
     s().store.deleteNote(bookId, nid),
+  );
+  handleArg('sticky:create', schemas.stickyCreate, ({ bookId, s: sn }) =>
+    s().store.createSticky(bookId, sn as import('@arivo/core').StickyNote),
+  );
+  handleArg('sticky:update', schemas.stickyUpdate, ({ bookId, s: sn }) =>
+    s().store.updateSticky(bookId, sn as import('@arivo/core').StickyNote),
+  );
+  handleArg('sticky:delete', schemas.stickyDelete, ({ bookId, id: sid }) =>
+    s().store.deleteSticky(bookId, sid),
+  );
+  handleArg('sketch:save', schemas.sketchSave, ({ bookId, s: sk }) =>
+    s().store.saveSketch(bookId, sk as import('@arivo/core').Sketch),
+  );
+  handleArg('sketch:delete', schemas.sketchDelete, ({ bookId, id: skid }) =>
+    s().store.deleteSketch(bookId, skid),
   );
 
   handleArg('desk:listDocs', schemas.deskDocList, ({ bookId }) =>

@@ -25,12 +25,15 @@ export function Shell(): ReactNode {
   const poke = useRoom((s) => s.poke);
 
   /* the shell owns chrome quietness — edge proximity wakes it, the idle
-   * budget (in the room store) quiets it. one truth, no per-screen mice. */
+   * budget (in the room store) quiets it. one truth, no per-screen mice.
+   * the left strip wakes the ghost rail (absent state): the approach
+   * corridor is generous but narrow enough to belong to the text. */
   useEffect(() => {
     const onMove = (e: MouseEvent): void => {
       const nearTop = e.clientY < 72;
       const nearBottom = e.clientY > window.innerHeight - 84;
-      if (nearTop || nearBottom) poke();
+      const nearLeft = e.clientX < 24;
+      if (nearTop || nearBottom || nearLeft) poke();
     };
     window.addEventListener('mousemove', onMove);
     return () => window.removeEventListener('mousemove', onMove);

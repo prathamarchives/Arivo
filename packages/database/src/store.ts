@@ -29,6 +29,9 @@ import type {
   SessionStats,
   SessionDayStat,
   BookTimeStat,
+  Sketch,
+  StickyNote,
+  InkStroke,
 } from '@arivo/core';
 import { uuidv7, exportReadingNotes } from '@arivo/core';
 import { writeFileSyncAtomic } from '@arivo/persistence';
@@ -144,6 +147,80 @@ interface DeskDocRow {
   updated_at: number;
   fts_row: number;
 }
+
+interface StickyRow {
+  id: string;
+  book_id: string;
+  format: string;
+  primary_locator: string;
+  pos_spine: number | null;
+  pos_page: number | null;
+  pos_percent: number | null;
+  chapter: string | null;
+  body: string;
+  color: string;
+  x: number;
+  y: number;
+  created_at: number;
+  updated_at: number;
+}
+
+interface SketchRow {
+  id: string;
+  book_id: string;
+  format: string;
+  primary_locator: string;
+  pos_spine: number | null;
+  pos_page: number | null;
+  pos_percent: number | null;
+  chapter: string | null;
+  strokes: string;
+  created_at: number;
+  updated_at: number;
+}
+
+const STICKY_COLORS: readonly string[] = ['yellow', 'blue', 'green', 'pink', 'violet'];
+
+const rowToSticky = (r: StickyRow): StickyNote => ({
+  id: r.id,
+  bookId: r.book_id,
+  anchor: {
+    format: r.format === 'pdf' ? 'pdf' : 'epub',
+    primary: r.primary_locator,
+    textRange: null,
+    position: {
+      spineIndex: r.pos_spine ?? undefined,
+      page: r.pos_page ?? undefined,
+      percent: r.pos_percent ?? undefined,
+    },
+  },
+  body: r.body,
+  color: (STICKY_COLORS.includes(r.color) ? r.color : 'yellow') as StickyNote['color'],
+  x: r.x,
+  y: r.y,
+  chapter: r.chapter,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+const rowToSketch = (r: SketchRow): Sketch => ({
+  id: r.id,
+  bookId: r.book_id,
+  anchor: {
+    format: r.format === 'pdf' ? 'pdf' : 'epub',
+    primary: r.primary_locator,
+    textRange: null,
+    position: {
+      spineIndex: r.pos_spine ?? undefined,
+      page: r.pos_page ?? undefined,
+      percent: r.pos_percent ?? undefined,
+    },
+  },
+  strokes: JSON.parse(r.strokes || '[]') as InkStroke[],
+  chapter: r.chapter,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
 
 const rowToDeskDoc = (r: DeskDocRow): DeskDoc => ({
   id: r.id,
@@ -448,6 +525,8 @@ export class ArivoStore {
     for (const b of truth.bookmarks) this.insertBookmarkRow({ ...b, bookId: meta.id });
     for (const n of truth.notes) this.insertNoteRow({ ...n, bookId: meta.id });
     for (const d of truth.deskDocs) this.insertDeskDocRow({ ...d, bookId: meta.id });
+    for (const s of truth.stickies) this.insertStickyRow({ ...s, bookId: meta.id });
+    for (const k of truth.sketches) this.insertSketchRow({ ...k, bookId: meta.id });
     return { registered: true, highlights: truth.highlights.length, bookmarks: truth.bookmarks.length };
   }
 
@@ -924,6 +1003,104 @@ export class ArivoStore {
     this.db.raw.prepare('DELETE FROM notes WHERE id = ?').run(id);
   }
 
+  // ---------- sticky notes (v0.3.1 — papers pinned to the page) ----------
+
+  listStickies(bookId: string): StickyNote[] {
+    const rows = this.db.raw
+      .prepare('SELECT * FROM stickies WHERE book_id = ? ORDER BY created_at DESC')
+      .all(bookId) as StickyRow[];
+    return rows.map(rowToSticky);
+  }
+
+  createSticky(bookId: string, s: StickyNote): void {
+    const truth = readTruth(this.bookDir(bookId), bookId);
+    truth.stickies.push(s);
+    writeTruth(this.bookDir(bookId), truth); // truth first
+    this.insertStickyRow(s);
+  }
+
+  private insertStickyRow(s: StickyNote): void {
+    const cols = anchorCols(s.anchor);
+    this.db.raw
+      .prepare(
+        `INSERT INTO stickies (id, book_id, format, primary_locator, pos_spine, pos_page,
+          pos_percent, chapter, body, color, x, y, created_at, updated_at)
+         VALUES (@id, @bookId, @format, @primary_locator, @pos_spine, @pos_page,
+          @pos_percent, @chapter, @body, @color, @x, @y, @createdAt, @updatedAt)`,
+      )
+      .run({ ...s, ...cols, format: s.anchor.format });
+  }
+
+  updateSticky(bookId: string, s: StickyNote): void {
+    const truth = readTruth(this.bookDir(bookId), bookId);
+    const i = truth.stickies.findIndex((x) => x.id === s.id);
+    if (i !== -1) truth.stickies[i] = s;
+    else truth.stickies.push(s);
+    writeTruth(this.bookDir(bookId), truth);
+    const cols = anchorCols(s.anchor);
+    const res = this.db.raw
+      .prepare(
+        `UPDATE stickies SET format = @format, primary_locator = @primary_locator, pos_spine = @pos_spine,
+          pos_page = @pos_page, pos_percent = @pos_percent, chapter = @chapter, body = @body,
+          color = @color, x = @x, y = @y, updated_at = @updatedAt WHERE id = @id`,
+      )
+      .run({ ...s, ...cols, format: s.anchor.format });
+    if (res.changes === 0) this.insertStickyRow(s);
+  }
+
+  deleteSticky(bookId: string, id: string): void {
+    const truth = readTruth(this.bookDir(bookId), bookId);
+    truth.stickies = truth.stickies.filter((s) => s.id !== id);
+    writeTruth(this.bookDir(bookId), truth);
+    this.db.raw.prepare('DELETE FROM stickies WHERE id = ?').run(id);
+  }
+
+  // ---------- page sketches (v0.3.1 — freehand ink on the page) ----------
+
+  listSketches(bookId: string): Sketch[] {
+    const rows = this.db.raw
+      .prepare('SELECT * FROM sketches WHERE book_id = ? ORDER BY created_at DESC')
+      .all(bookId) as SketchRow[];
+    return rows.map(rowToSketch);
+  }
+
+  /** save = upsert: one sketch row per page key (the anchor's primary) */
+  saveSketch(bookId: string, s: Sketch): void {
+    const truth = readTruth(this.bookDir(bookId), bookId);
+    const i = truth.sketches.findIndex((x) => x.id === s.id);
+    if (i !== -1) truth.sketches[i] = s;
+    else truth.sketches.push(s);
+    writeTruth(this.bookDir(bookId), truth);
+    const cols = anchorCols(s.anchor);
+    const res = this.db.raw
+      .prepare(
+        `UPDATE sketches SET format = @format, primary_locator = @primary_locator, pos_spine = @pos_spine,
+          pos_page = @pos_page, pos_percent = @pos_percent, chapter = @chapter, strokes = @strokes,
+          updated_at = @updatedAt WHERE id = @id`,
+      )
+      .run({ ...s, ...cols, format: s.anchor.format, strokes: JSON.stringify(s.strokes) });
+    if (res.changes === 0) this.insertSketchRow(s);
+  }
+
+  private insertSketchRow(s: Sketch): void {
+    const cols = anchorCols(s.anchor);
+    this.db.raw
+      .prepare(
+        `INSERT INTO sketches (id, book_id, format, primary_locator, pos_spine, pos_page,
+          pos_percent, chapter, strokes, created_at, updated_at)
+         VALUES (@id, @bookId, @format, @primary_locator, @pos_spine, @pos_page,
+          @pos_percent, @chapter, @strokes, @createdAt, @updatedAt)`,
+      )
+      .run({ ...s, ...cols, format: s.anchor.format, strokes: JSON.stringify(s.strokes) });
+  }
+
+  deleteSketch(bookId: string, id: string): void {
+    const truth = readTruth(this.bookDir(bookId), bookId);
+    truth.sketches = truth.sketches.filter((s) => s.id !== id);
+    writeTruth(this.bookDir(bookId), truth);
+    this.db.raw.prepare('DELETE FROM sketches WHERE id = ?').run(id);
+  }
+
   // ---------- desk documents (L10 — the workbench's papers) ----------
 
   listDeskDocs(bookId: string): DeskDoc[] {
@@ -1208,6 +1385,8 @@ export class ArivoStore {
     this.db.raw.exec('DELETE FROM bookmarks');
     this.db.raw.exec('DELETE FROM notes');
     this.db.raw.exec('DELETE FROM desk_docs');
+    this.db.raw.exec('DELETE FROM stickies');
+    this.db.raw.exec('DELETE FROM sketches');
     this.db.raw.exec('DELETE FROM sessions');
     this.db.raw.exec('DELETE FROM collections');
     this.db.raw.exec('DELETE FROM collection_items');

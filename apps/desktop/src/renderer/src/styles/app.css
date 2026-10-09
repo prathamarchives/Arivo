@@ -512,11 +512,25 @@
   min-height: 0;
 }
 
+/* the stage (v0.3.1): the adapter's host + the page objects (sticky
+ * notes, ink) as overlays. the layers rest pointer-transparent until a
+ * note or the draw mode claims the pointer — selection always belongs
+ * to the text first. the reading column inside the host centers on the
+ * TRUE window center; nothing here ever reflows it. */
+.reader-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
 .reader-chrome {
   display: flex;
   align-items: center;
   gap: var(--s3);
-  padding: var(--s2) var(--s4);
+  /* the rail overlays the window — the reader chrome clears its rest
+   * column while the reading column below stays truly centered */
+  padding: var(--s2) var(--s4) var(--s2) calc(var(--rail-w-slim) + var(--s3));
   border-bottom: 1px solid var(--line);
   background: var(--bg);
   transition: opacity var(--dur-surface-in) var(--ease-settle), transform var(--dur-surface-in) var(--ease-settle);
@@ -527,7 +541,7 @@
   border-bottom: none;
   border-top: 1px solid var(--line);
   justify-content: space-between;
-  padding: var(--s2) var(--s6);
+  padding: var(--s2) var(--s6) var(--s2) calc(var(--rail-w-slim) + var(--s6));
 }
 
 .chrome-faded {
@@ -604,7 +618,9 @@
 }
 
 .drawer-left {
-  left: 0;
+  /* clear the overlay rail's rest column — the drawer slides from the
+   * rail's edge, never under it */
+  left: var(--rail-w-slim);
   border-right-width: 1px;
 }
 
@@ -778,7 +794,6 @@
   border-color: var(--ink-2);
   box-shadow: 0 0 0 2px var(--sel);
 }
-}
 
 .note-input:focus {
   border-color: var(--ink-2);
@@ -841,6 +856,26 @@
   background: var(--glass-rim);
 }
 
+/* the icon actions — narrow enough to sit over one line of text. names
+ * live in the title + aria-label; the dots and the icons are the menu. */
+.sel-icon {
+  width: var(--control-h);
+  height: var(--control-h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-interactive);
+  color: var(--ink-2);
+  transition:
+    color var(--dur-state) var(--ease-settle),
+    background var(--dur-state) var(--ease-settle);
+}
+
+.sel-icon:hover {
+  color: var(--ink);
+  background: var(--bg-sunken);
+}
+
 .sel-action {
   display: inline-flex;
   align-items: center;
@@ -890,51 +925,249 @@
   font-style: italic;
 }
 
-/* L10 — the desk's mode rail: five instruments, quiet chips.
- * it rides the bottom edge with the reading chrome and fades with it. */
+/* v0.3.1 — the modes are gone. one notes panel (tabs in its drawer
+ * head), contextual actions on the selection, page objects on the
+ * stage. their styles live here. */
 
-.mode-rail {
+/* the sticky notes — small papers pinned to the page */
+
+.sticky-layer {
   position: absolute;
-  /* 8px clear of the bottom chrome — never crowding its hairline */
-  bottom: 44px;
-  left: 50%;
-  transform: translateX(-50%);
+  inset: 0;
+  z-index: var(--z-content);
+  pointer-events: none;
+}
+
+.sticky-note {
+  position: absolute;
+  width: var(--s32);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  pointer-events: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-object);
+  box-shadow: var(--elevation-1);
+  transform: rotate(var(--sticky-tilt, -0.75deg));
+  transition:
+    box-shadow var(--dur-state) var(--ease-settle),
+    border-color var(--dur-state) var(--ease-settle);
+}
+
+.sticky-note:hover {
+  box-shadow: var(--elevation-2);
+  border-color: var(--ink-3);
+}
+
+.sticky-dragging {
+  box-shadow: var(--elevation-3);
+  transition: none;
+}
+
+.sticky-note[data-color='yellow'] { background: var(--wash-amber); }
+.sticky-note[data-color='blue'] { background: var(--wash-blue); }
+.sticky-note[data-color='green'] { background: var(--wash-sage); }
+.sticky-note[data-color='pink'] { background: var(--wash-rose); }
+.sticky-note[data-color='violet'] { background: var(--wash-violet); }
+
+.sticky-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--s1) var(--s1) 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.sticky-dragging .sticky-head {
+  cursor: grabbing;
+}
+
+.sticky-grip {
+  flex: 1;
+  height: var(--s2);
+  border-radius: var(--r-instrument);
+  background: var(--glass-rim);
+}
+
+.sticky-dots {
+  display: none;
+  gap: var(--s1);
+}
+
+.sticky-note:hover .sticky-dots {
+  display: flex;
+}
+
+.sticky-dot {
+  width: var(--s2);
+  height: var(--s2);
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+}
+
+.sticky-dot-yellow { background: var(--anno-amber); }
+.sticky-dot-blue { background: var(--anno-blue); }
+.sticky-dot-green { background: var(--anno-sage); }
+.sticky-dot-pink { background: var(--anno-rose); }
+.sticky-dot-violet { background: var(--anno-violet); }
+
+.sticky-x {
+  color: var(--ink-2);
+  border-radius: var(--r-interactive);
+  display: inline-flex;
+  padding: 0;
+}
+
+.sticky-x:hover {
+  color: var(--ink);
+  background: var(--glass-rim);
+}
+
+.sticky-body {
+  text-align: left;
+  padding: var(--s1) var(--s2) var(--s2);
+  font-family: var(--font-read);
+  font-size: var(--text-sm);
+  line-height: var(--lh-base);
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: var(--s12);
+  border-radius: 0 0 var(--r-object) var(--r-object);
+}
+
+.sticky-body:hover {
+  background: var(--glass-rim);
+}
+
+.sticky-empty {
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+.sticky-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  padding: 0 var(--s1) var(--s1);
+}
+
+.sticky-input {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-interactive);
+  background: var(--bg-raised);
+  padding: var(--s1) var(--s2);
+  font-family: var(--font-read);
+  font-size: var(--text-sm);
+  line-height: var(--lh-base);
+  resize: vertical;
+  outline: none;
+}
+
+.sticky-input:focus-visible {
+  outline: none;
+  border-color: var(--ink-2);
+  box-shadow: 0 0 0 2px var(--sel);
+}
+
+.sticky-edit-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sticky-save {
+  color: var(--ink);
+  border-radius: var(--r-interactive);
+  display: inline-flex;
+  padding: 0 var(--s1);
+}
+
+.sticky-save:hover {
+  background: var(--bg-sunken);
+}
+
+/* the ink layer — freehand drawing over the page */
+
+.ink-layer {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-content);
+  pointer-events: none;
+  touch-action: none;
+}
+
+.ink-layer.ink-active {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+.ink-toolbar {
+  position: absolute;
+  bottom: var(--s8);
+  right: var(--s4);
   z-index: var(--z-floating);
   display: flex;
+  align-items: center;
   gap: var(--s1);
-  padding: var(--s1);
+  padding: var(--s1) var(--s2);
   border-radius: var(--r-instrument);
-  background: var(--bg-raised);
-  border: 1px solid var(--line);
-  transition: opacity var(--dur-state) var(--ease-settle);
 }
 
-.mode-chip {
-  border: 0;
-  background: transparent;
-  padding: 0 var(--s3);
-  height: 24px;
+.ink-tool {
+  width: var(--control-h);
+  height: var(--control-h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--r-interactive);
-  font-size: var(--text-xs);
   color: var(--ink-2);
-  letter-spacing: 0.02em;
-  cursor: pointer;
+  transition:
+    color var(--dur-state) var(--ease-settle),
+    background var(--dur-state) var(--ease-settle);
 }
 
-.mode-chip:hover {
+.ink-tool:hover {
   color: var(--ink);
   background: var(--bg-sunken);
 }
 
-.mode-chip-active {
+.ink-tool:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ink-tool:disabled:hover {
+  color: var(--ink-2);
+  background: transparent;
+}
+
+.ink-tool-active {
   color: var(--ink);
+  background: var(--bg-sunken);
   font-weight: 700;
-  background: var(--bg-sunken);
 }
 
-.mode-chip:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: -2px;
+.ink-highlighter-glyph {
+  width: var(--s4);
+  height: var(--s2);
+  border-radius: var(--r-instrument);
+  background: var(--anno-amber);
+  display: inline-block;
+}
+
+.sel-dot-active {
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+/* the notes panel — one drawer, two tabs (the modes' replacement) */
+
+.drawer-head .tabs {
+  border-bottom: 0;
+  padding-bottom: 0;
 }
 
 /* L10 — the workbench: a wider drawer, the desk's paper */
@@ -1052,7 +1285,9 @@
   position: absolute;
   top: 56px;
   right: var(--s4);
-  z-index: var(--z-floating);
+  /* above the notes drawer (later DOM at equal z) so reading settings
+   * stay reachable while the panel is open */
+  z-index: var(--z-overlay);
   width: 240px;
   padding: var(--s2);
   display: flex;
@@ -1169,7 +1404,6 @@
   box-shadow: 0 0 0 2px var(--sel);
   border-radius: var(--r-interactive);
 }
-}
 
 .palette-input-row input::placeholder {
   color: var(--ink-3);
@@ -1240,15 +1474,10 @@
   min-width: min(520px, 100vw);
 }
 
-/* L17 — the source yields to the workbench: the reading column slides
- * half the drawer's width so the text is never half-covered while the
- * work surface is open. a transform, never a reflow: the column keeps
- * its exact width, the page keeps its exact pagination, the place is
- * untouched. closing returns it on the shift easing. */
-.reader[data-workbench='open'][data-format='epub'] .epub-container {
-  transform: translateX(-200px);
-  transition: transform var(--dur-surface-out) var(--ease-shift);
-}
+/* v0.3.1 — the notes panel OVERLAYS the reading column instead of
+ * displacing it: the panel is dismissible furniture, the text never
+ * moves (the owner's law: never push the book off-center). the L17
+ * yield (translateX / padding) is retired with the modes. */
 
 .reader[data-format='epub'] .epub-container {
   transition: transform var(--dur-surface-out) var(--ease-shift);
@@ -1516,14 +1745,13 @@
   font-size: var(--text-xs);
   color: var(--ink);
   padding: var(--s1) 0;
+  min-width: 110px;
 }
 
 .tag-input:focus-visible {
   outline: none;
   border-bottom-color: var(--ink-2);
   box-shadow: 0 2px 0 0 var(--sel);
-}
-  min-width: 110px;
 }
 
 .tag-input::placeholder {
@@ -1749,8 +1977,4 @@
 @keyframes ar-pdf-flash {
   0% { filter: brightness(1.4); }
   100% { filter: brightness(1); }
-}
-
-.reader[data-workbench='open'] .pdf-scroll {
-  padding-right: 420px;
 }

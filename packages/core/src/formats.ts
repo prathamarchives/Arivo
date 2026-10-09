@@ -40,6 +40,14 @@ export interface RelocatedEvent {
   locator: string;
   percent: number;
   chapter: string | null;
+  /** v0.3.1 — the visible view's identity, for page-pinned objects
+   *  (sticky notes, ink): epub spine index + page within it, pdf page.
+   *  absent when the adapter cannot know it — the reader falls back to
+   *  chapter-level pinning. */
+  spineIndex?: number;
+  pageInSpine?: number;
+  pagesInSpine?: number;
+  page?: number;
 }
 
 export interface FormatReader {

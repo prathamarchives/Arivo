@@ -15,6 +15,8 @@ import type {
   ReadingProgress,
   SearchHit,
   SessionStats,
+  Sketch,
+  StickyNote,
 } from './types.ts';
 import type { SerializedArivoError } from './errors.ts';
 import type { DiagnosticsReport } from './diagnostics.ts';
@@ -85,7 +87,13 @@ export interface ArivoApi {
     stats(): Promise<SessionStats>;
   };
   annotations: {
-    list(bookId: string): Promise<{ highlights: Highlight[]; bookmarks: Bookmark[]; notes: Note[] }>;
+    list(bookId: string): Promise<{
+      highlights: Highlight[];
+      bookmarks: Bookmark[];
+      notes: Note[];
+      stickies: StickyNote[];
+      sketches: Sketch[];
+    }>;
     createHighlight(bookId: string, h: Highlight): Promise<void>;
     updateHighlight(bookId: string, h: Highlight): Promise<void>;
     deleteHighlight(bookId: string, id: string): Promise<void>;
@@ -95,6 +103,13 @@ export interface ArivoApi {
     createNote(bookId: string, n: Note): Promise<void>;
     updateNote(bookId: string, n: Note): Promise<void>;
     deleteNote(bookId: string, id: string): Promise<void>;
+    /** sticky notes — small papers pinned to the page (v0.3.1) */
+    createSticky(bookId: string, s: StickyNote): Promise<void>;
+    updateSticky(bookId: string, s: StickyNote): Promise<void>;
+    deleteSticky(bookId: string, id: string): Promise<void>;
+    /** page sketches — freehand ink laid on the page (v0.3.1) */
+    saveSketch(bookId: string, s: Sketch): Promise<void>;
+    deleteSketch(bookId: string, id: string): Promise<void>;
   };
   desk: {
     /** the workbench documents for a book, newest first */

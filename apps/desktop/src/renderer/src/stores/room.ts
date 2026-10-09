@@ -12,6 +12,15 @@
  * routing. attention (active / reading) drives the shell's visibility:
  * full on shelf/archive, quiet at the desk at rest, absent when the text
  * owns the user's eyes.
+ *
+ * v0.3.1 — the modes are gone. read / mark / research / make / reflect
+ * were labels over behavior that already existed (the selection menu is
+ * always on) plus a gated workbench that rendered empty until you
+ * collected something. in their place: ONE notes panel, always
+ * summonable (marks tab = this book's marks; notebook tab = the desk
+ * documents with their collected quotes). actions are contextual, not
+ * modes — the law the owner set: no competing states, the book stays
+ * the primary object.
  */
 import { create } from 'zustand';
 
@@ -19,15 +28,8 @@ export type Place = 'shelf' | 'desk' | 'archive';
 
 export type Attention = 'active' | 'reading';
 
-/**
- * L10 — the desk's attention modes. not pages, not routes: instruments.
- * the book stays the primary object; the mode decides which work surface
- * is available beside it. READ is the resting state and stays sacred —
- * the chrome-withdrawal law (attention) is untouched by mode switches.
- */
-export type DeskMode = 'read' | 'mark' | 'research' | 'make' | 'reflect';
-
-export const DESK_MODES: readonly DeskMode[] = ['read', 'mark', 'research', 'make', 'reflect'];
+/** the notes panel's two tabs — one panel, two collections */
+export type NotesTab = 'marks' | 'notebook';
 
 /** the desk's live context — survives navigation (spatial memory, law 32) */
 export interface DeskContext {
@@ -37,10 +39,11 @@ export interface DeskContext {
   pendingLocator: string | null;
   /** one-shot highlight to focus after an exact return */
   pendingFocusId: string | null;
-  /** L10 — the desk's mode. rides the desk context: a shelf roundtrip
-   *  returns to the same instruments, the same open document. */
-  mode: DeskMode;
-  /** the workbench's open document, if any — part of the desk's state */
+  /** the notes panel — v0.3.1: rides the desk context, so a shelf
+   *  roundtrip returns to the same tab, the same open document. */
+  notesOpen: boolean;
+  notesTab: NotesTab;
+  /** the notebook tab's open document, if any — part of the desk's state */
   workbenchDocId: string | null;
 }
 
@@ -56,7 +59,7 @@ interface RoomState {
   /** desk engagement (selection, drawers) — chrome cannot hide mid-work */
   engaged: boolean;
 
-  /** the settings drawer (wave 1's settings surface, room-owned) */
+  /** the settings drawer (room-owned) */
   settingsOpen: boolean;
   /** the book whose detail drawer is open (library-side, bookId-keyed) */
   detailBookId: string | null;
@@ -67,9 +70,12 @@ interface RoomState {
   /** back to the desk exactly as it was — no locator, progress is truth */
   returnToDesk: () => void;
 
-  /** L10 — switch the desk's mode without losing any desk context */
-  setDeskMode: (mode: DeskMode) => void;
-  /** L10 — the workbench's open document (part of spatial memory) */
+  /** the notes panel: open (optionally to a tab), close, switch tabs —
+   *  never recreating the desk context (spatial memory, law 32) */
+  openNotes: (tab?: NotesTab) => void;
+  closeNotes: () => void;
+  setNotesTab: (tab: NotesTab) => void;
+  /** the notebook tab's open document (part of spatial memory) */
   setWorkbenchDoc: (docId: string | null) => void;
 
   setEngaged: (engaged: boolean) => void;
@@ -127,8 +133,9 @@ export const useRoom = create<RoomState>((set, get) => ({
         // the truth file's progress speak
         pendingLocator: locator ?? null,
         pendingFocusId: focusId ?? null,
-        // a fresh open starts in READ — the resting state, the sacred one
-        mode: 'read',
+        // a fresh open rests: the panel is closed, the reading is primary
+        notesOpen: false,
+        notesTab: 'marks',
         workbenchDocId: null,
       },
     });
@@ -160,18 +167,29 @@ export const useRoom = create<RoomState>((set, get) => ({
   setShelfScroll: (top) => set({ shelfScroll: top }),
   setArchiveScroll: (top) => set({ archiveScroll: top }),
 
-  /* L10 — mode is a property of the desk, not a route: switching never
-   * recreates the context, never touches attention's withdrawal law.
-   * the work modes (research/make/reflect) are engagement — the chrome
-   * cannot withdraw mid-work. READ and MARK leave the attention model
-   * exactly as it was: mark's engagement is the selection in hand. */
-  setDeskMode: (mode) => {
+  /* the notes panel is a property of the desk, not a route: switching
+   * never recreates the context. an open panel is engagement — the
+   * chrome cannot withdraw mid-work; a closed panel releases it. */
+  openNotes: (tab) => {
     const d = get().desk;
-    if (!d || d.mode === mode) return;
-    set({ desk: { ...d, mode } });
-    if (mode === 'research' || mode === 'make' || mode === 'reflect') {
-      set({ engaged: true });
-    }
+    if (!d) return;
+    set({
+      desk: { ...d, notesOpen: true, ...(tab ? { notesTab: tab } : {}) },
+      engaged: true,
+      attention: 'active',
+    });
+  },
+
+  closeNotes: () => {
+    const d = get().desk;
+    if (!d) return;
+    set({ desk: { ...d, notesOpen: false } });
+  },
+
+  setNotesTab: (tab) => {
+    const d = get().desk;
+    if (!d || d.notesTab === tab) return;
+    set({ desk: { ...d, notesTab: tab } });
   },
 
   setWorkbenchDoc: (docId) => {

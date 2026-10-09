@@ -344,10 +344,10 @@ describe('migration 004 (v3 → v4, the desk)', () => {
     }
     raw.close();
 
-    // open through the house door: migration 004 runs, validate passes
+    // open through the house door: the planner runs to current, validate passes
     const db = openDb(v3Path);
     expect(db.raw.prepare("SELECT value FROM meta WHERE key='schema_version'").get()).toEqual({
-      value: '4',
+      value: '5',
     });
     // the notes table learned the question column with a default
     const cols = db.raw.prepare('PRAGMA table_info(notes)').all() as { name: string; dflt_value: string }[];

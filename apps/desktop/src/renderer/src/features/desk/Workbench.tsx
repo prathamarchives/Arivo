@@ -35,24 +35,38 @@ export interface WorkbenchHandle {
   collect: (ref: SourceRef) => void;
 }
 
-const KIND_META: Record<DeskDocKind, { label: string; hint: string; refLabel: string; icon: ReactNode }> = {
+/** the panel's view kinds: 'all' is the v0.3.1 notebook — every paper
+ *  this book produced, the mode ceremony gone */
+export type WorkbenchKind = DeskDocKind | 'all';
+
+const KIND_META: Record<WorkbenchKind, { label: string; hint: string; refLabel: string; icon: ReactNode; fresh: DeskDocKind }> = {
+  all: {
+    label: 'notebook',
+    hint: 'collected quotes and the papers you wrote',
+    refLabel: 'collected quotes',
+    icon: <IconNote />,
+    fresh: 'research',
+  },
   research: {
     label: 'research',
     hint: 'quotes from this source, citations, questions',
     refLabel: 'collected quotes',
     icon: <IconSearch />,
+    fresh: 'research',
   },
   make: {
     label: 'make',
     hint: 'compose something from this source',
     refLabel: 'material',
     icon: <IconPencil />,
+    fresh: 'make',
   },
   reflect: {
     label: 'reflect',
     hint: 'synthesis, disagreement, what changed',
     refLabel: 'passages',
     icon: <IconNote />,
+    fresh: 'reflect',
   },
 };
 
@@ -71,7 +85,7 @@ function worstOf(a: DraftState, b: DraftState): DraftState {
 
 interface WorkbenchProps {
   book: BookWithProgress;
-  kind: DeskDocKind;
+  kind: WorkbenchKind;
   /** the open document (spatial memory — rides the desk context) */
   openDocId: string | null;
   onOpenDoc: (id: string | null) => void;
@@ -82,10 +96,12 @@ interface WorkbenchProps {
   /** a quote collected while the workbench was closed — consumed on mount */
   pendingCollect: SourceRef | null;
   onPendingConsumed: () => void;
+  /** the notes panel's header (tabs) — replaces the default label row */
+  header?: ReactNode;
 }
 
 export const Workbench = forwardRef<WorkbenchHandle, WorkbenchProps>(function Workbench(
-  { book, kind, openDocId, onOpenDoc, onJump, onClose, toast, pendingCollect, onPendingConsumed },
+  { book, kind, openDocId, onOpenDoc, onJump, onClose, toast, pendingCollect, onPendingConsumed, header },
   ref,
 ) {
   const [docs, setDocs] = useState<DeskDoc[]>([]);
@@ -266,9 +282,11 @@ export const Workbench = forwardRef<WorkbenchHandle, WorkbenchProps>(function Wo
     }
   }, [pendingCollect, loaded, collectInternal, onPendingConsumed]);
 
-  /* ---------- kind switching closes foreign docs ---------- */
+  const meta = KIND_META[kind];
+
+  /* ---------- kind switching closes foreign docs (the notebook keeps all) ---------- */
   useEffect(() => {
-    if (openDoc && openDoc.kind !== kind) onOpenDoc(null);
+    if (kind !== 'all' && openDoc && openDoc.kind !== kind) onOpenDoc(null);
   }, [kind, openDoc, onOpenDoc]);
 
   /* ---------- new document ---------- */
@@ -276,7 +294,7 @@ export const Workbench = forwardRef<WorkbenchHandle, WorkbenchProps>(function Wo
     const fresh: DeskDoc = {
       id: uuidv7(),
       bookId: book.id,
-      kind,
+      kind: meta.fresh,
       title: '',
       body: '',
       sourceRefs: [],
@@ -304,18 +322,21 @@ export const Workbench = forwardRef<WorkbenchHandle, WorkbenchProps>(function Wo
     [book.id, openDocId, onOpenDoc, toast],
   );
 
-  const meta = KIND_META[kind];
-  const kindDocs = docs.filter((d) => d.kind === kind);
+  const kindDocs = kind === 'all' ? docs : docs.filter((d) => d.kind === kind);
 
   return (
     <aside className="drawer drawer-right drawer-wide rise" aria-label={`${meta.label} workbench`}>
       <header className="drawer-head">
-        <span className="meta-label">
-          {meta.icon} {meta.label} · {kindDocs.length} {kindDocs.length === 1 ? 'document' : 'documents'}
-        </span>
-        <IconButton label={`close ${meta.label}`} onClick={onClose}>
-          <IconX />
-        </IconButton>
+        {header ?? (
+          <span className="meta-label">
+            {meta.icon} {meta.label} · {kindDocs.length} {kindDocs.length === 1 ? 'document' : 'documents'}
+          </span>
+        )}
+        {header ? null : (
+          <IconButton label={`close ${meta.label}`} onClick={onClose}>
+            <IconX />
+          </IconButton>
+        )}
       </header>
       <div className="drawer-body">
         {openDoc ? (

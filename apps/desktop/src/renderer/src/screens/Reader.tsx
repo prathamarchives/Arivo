@@ -7,26 +7,39 @@ import type {
   FormatReaderHooks,
   Highlight,
   HighlightColor,
+  InkStroke,
+  InkTool,
   Note,
   RelocatedEvent,
   SelectionInfo,
   SourceRef,
   FormatReader,
   ReaderSettings,
+  Sketch,
+  StickyColor,
+  StickyNote,
 } from '@arivo/core';
 import { uuidv7, FONT_STEPS, LINE_HEIGHTS, MEASURES, READING_PROFILES, activeProfile, type ReadingProfile } from '@arivo/core';
 import { EpubAdapter, PdfAdapter, type PdfAnchorData, type ZoomMode } from '@arivo/reader';
 import { zoomLabel, stepZoom, parsePageTarget } from '@arivo/reader';
-import { IconButton, Button, Input, Kbd } from '@arivo/ui';
+import { IconButton, Button, Input, Kbd, Tabs } from '@arivo/ui';
 import { api } from '../services/api.ts';
 import { BOOK_FONT_FACE_CSS } from '../lib/book-fonts.ts';
 import { useSettings } from '../stores/settings.ts';
-import { useRoom, DESK_MODES, type DeskMode } from '../stores/room.ts';
+import { useRoom, type NotesTab } from '../stores/room.ts';
 import { useLibrary } from '../stores/library.ts';
 import { Workbench, type WorkbenchHandle } from '../features/desk/Workbench.tsx';
 import { draftStatusText } from '../lib/drafts.ts';
 import { useDraft } from '../lib/useDraft.ts';
 import { plainError } from '../lib/voice.ts';
+import {
+  StickyLayer,
+  InkLayer,
+  InkToolbar,
+  onVisiblePage,
+  pageAnchor,
+  newSketch,
+} from './PageObjects.tsx';
 import {
   IconBack,
   IconToc,
@@ -45,6 +58,8 @@ import {
   IconPencil,
   IconSearch,
   IconInfo,
+  IconSticky,
+  IconCopy,
 } from '../components/icons.tsx';
 
 const COLORS: HighlightColor[] = ['yellow', 'blue', 'green', 'pink', 'gray'];
@@ -58,13 +73,26 @@ function parsePdfRects(anchor: { primary: string }): PdfAnchorData['rects'] | un
   }
 }
 
+/** clamp a centered popover's x so its width never leaves the window */
+function clampCenter(x: number, half: number): number {
+  return Math.min(Math.max(x, half + 8), window.innerWidth - half - 8);
+}
+
 // ---------------- selection menu ----------------
 
+/**
+ * the selection menu — the signature moment, rebuilt (v0.3.1): a compact
+ * instrument that floats ABOVE the selection's first line (below it when
+ * the line is near the top), clamped so it can never clip. colors speak
+ * as dots; the actions speak as icons with names — narrow enough to sit
+ * over one line of text without becoming furniture.
+ */
 function SelectionMenu({
   selection,
   onColor,
   onNote,
   onQuestion,
+  onSticky,
   onBookmark,
   onCollect,
   onClose,
@@ -73,16 +101,22 @@ function SelectionMenu({
   onColor: (color: HighlightColor) => void;
   onNote: () => void;
   onQuestion: () => void;
+  onSticky: () => void;
   onBookmark: () => void;
   onCollect: () => void;
   onClose: () => void;
 }): ReactNode {
-  const x = selection.rect ? Math.min(Math.max(selection.rect.x + selection.rect.w / 2, 90), window.innerWidth - 90) : window.innerWidth / 2;
-  const y = selection.rect ? Math.max(selection.rect.y - 56, 60) : window.innerHeight / 2 - 60;
+  const HALF = 170;
+  const cx = selection.rect ? selection.rect.x + selection.rect.w / 2 : window.innerWidth / 2;
+  const x = clampCenter(cx, HALF);
+  const aboveY = selection.rect ? selection.rect.y - 52 : window.innerHeight / 2 - 60;
+  /* near the top of the window: flip below the selection, never clipped */
+  const belowY = selection.rect ? selection.rect.y + (selection.rect.h || 24) + 44 : window.innerHeight / 2;
+  const y = aboveY >= 64 ? aboveY : belowY;
   return (
     <>
       <div className="menu-scrim" onMouseDown={onClose} />
-      <div className="selection-menu glass rise" style={{ left: x, top: y }} role="menu">
+      <div className="selection-menu glass rise" style={{ left: x, top: y }} role="menu" aria-label="selection actions">
         <div className="sel-colors">
           {COLORS.map((c) => (
             <button
@@ -94,41 +128,40 @@ function SelectionMenu({
           ))}
         </div>
         <div className="sel-sep" />
-        <button className="sel-action" onClick={onNote}>
+        <button className="sel-icon" onClick={onNote} title="note on this passage" aria-label="note on this passage">
           <IconNote />
-          note
         </button>
-        <button className="sel-action" onClick={onQuestion}>
+        <button className="sel-icon" onClick={onQuestion} title="keep a question here" aria-label="keep a question here">
           <IconInfo />
-          question
         </button>
-        <button className="sel-action" onClick={onBookmark}>
+        <button className="sel-icon" onClick={onSticky} title="pin a sticky note on this page" aria-label="pin a sticky note on this page">
+          <IconSticky />
+        </button>
+        <button className="sel-icon" onClick={onBookmark} title="bookmark this passage" aria-label="bookmark this passage">
           <IconBookmark />
-          bookmark
         </button>
-        <button className="sel-action" onClick={onCollect}>
+        <button className="sel-icon" onClick={onCollect} title="collect into the notebook" aria-label="collect into the notebook">
           <IconSearch />
-          collect
         </button>
         <button
-          className="sel-action"
+          className="sel-icon"
           onClick={() => {
             void navigator.clipboard?.writeText(selection.text);
             onClose();
           }}
+          title="copy"
+          aria-label="copy"
         >
-          <IconDownload />
-          copy
+          <IconCopy />
         </button>
       </div>
     </>
   );
 }
 
-// ---------------- notebook ----------------
+// ---------------- notebook (the marks tab) ----------------
 
 function Notebook({
-  book,
   highlights,
   bookmarks,
   notes,
@@ -140,10 +173,9 @@ function Notebook({
   onCreateNote,
   onUpdateNote,
   onDeleteNote,
-  onClose,
+  header,
   focusId,
 }: {
-  book: BookWithProgress;
   highlights: Highlight[];
   bookmarks: Bookmark[];
   notes: Note[];
@@ -155,10 +187,9 @@ function Notebook({
   onCreateNote: (body: string) => void;
   onUpdateNote: (n: Note) => void;
   onDeleteNote: (id: string) => void;
-  onClose: () => void;
+  header: ReactNode;
   focusId: string | null;
 }): ReactNode {
-  const toast = useRoom((s) => s.toast);
   const [noteDraft, setNoteDraft] = useState<{ id: string; body: string } | null>(null);
   const [newNoteOpen, setNewNoteOpen] = useState(false);
   const [newNoteBody, setNewNoteBody] = useState('');
@@ -166,7 +197,7 @@ function Notebook({
   const focusRef = useRef<HTMLDivElement | null>(null);
 
   /* leaving the notebook mid-edit must never cost text: unmount saves
-   * whatever draft is in hand (the mode switch to a work surface closes
+   * whatever draft is in hand (the tab switch to the notebook closes
    * this drawer — blur never fires on unmount) */
   const liveRef = useRef({ noteDraft, noteEdit, highlights, notes, onUpdate, onUpdateNote });
   liveRef.current = { noteDraft, noteEdit, highlights, notes, onUpdate, onUpdateNote };
@@ -214,23 +245,8 @@ function Notebook({
   );
 
   return (
-    <aside className="drawer drawer-right rise" aria-label="notebook">
-      <header className="drawer-head">
-        <span className="meta-label">
-          notebook · {highlights.length} highlights · {bookmarks.length} bookmarks · {notes.length} notes
-        </span>
-        <div className="row">
-          <IconButton label="export reading notes" onClick={async () => {
-            const saved = await api.exportNotes.save(book.id);
-            toast(saved ? 'reading notes saved' : 'export cancelled');
-          }}>
-            <IconDownload />
-          </IconButton>
-          <IconButton label="close notebook" onClick={onClose}>
-            <IconX />
-          </IconButton>
-        </div>
-      </header>
+    <aside className="drawer drawer-right rise" aria-label="marks">
+      {header}
       <div className="drawer-body">
         {/* the margin-note composer — thinking attached to where you are */}
         {newNoteOpen ? (
@@ -347,7 +363,12 @@ function Notebook({
           <div key={b.id} className="note-card note-bookmark" onClick={() => void 0}>
             <div className="note-card-head">
               <IconBookmark />
-              <span className="meta-label note-chapter">{b.chapter ?? b.label ?? 'bookmark'}</span>
+              <span className="meta-label note-chapter">
+                {b.chapter ?? b.label ?? 'bookmark'}
+                {b.anchor.position?.percent !== undefined && b.anchor.position.percent !== null
+                  ? ` · ${Math.round((b.anchor.position.percent ?? 0) * 100)}%`
+                  : ''}
+              </span>
             </div>
             <div className="note-actions">
               <button
@@ -597,11 +618,14 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
   const attention = useRoom((s) => s.attention);
   const setEngaged = useRoom((s) => s.setEngaged);
   const clearDeskPending = useRoom((s) => s.clearDeskPending);
-  /* L10 — the desk's mode + open workbench doc live in the room: they
-   * survive a shelf roundtrip (spatial memory, the exit predicate) */
-  const deskMode = useRoom((s) => s.desk?.mode ?? 'read');
+  /* the notes panel rides the desk context (spatial memory): it
+   * survives a shelf roundtrip — same tab, same open document */
+  const notesOpen = useRoom((s) => s.desk?.notesOpen ?? false);
+  const notesTab = useRoom((s) => s.desk?.notesTab ?? 'marks');
   const workbenchDocId = useRoom((s) => s.desk?.workbenchDocId ?? null);
-  const setDeskMode = useRoom((s) => s.setDeskMode);
+  const openNotes = useRoom((s) => s.openNotes);
+  const closeNotes = useRoom((s) => s.closeNotes);
+  const setNotesTab = useRoom((s) => s.setNotesTab);
   const setWorkbenchDoc = useRoom((s) => s.setWorkbenchDoc);
   const refresh = useLibrary((s) => s.refresh);
   const { settings, set: setSettings } = useSettings();
@@ -614,7 +638,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [tocOpen, setTocOpen] = useState(false);
-  const [notebookOpen, setNotebookOpen] = useState(false);
+  const [tocTab, setTocTab] = useState<'contents' | 'bookmarks'>('contents');
   const [typeOpen, setTypeOpen] = useState(false);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [percent, setPercent] = useState(0);
@@ -623,20 +647,23 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
   const [pdfZoom, setPdfZoom] = useState<ZoomMode>('fit-width');
   const [pdfPageCount, setPdfPageCount] = useState(0);
   const [pageQuery, setPageQuery] = useState('');
-  /* L10 — the mark menu's question instrument, and a quote collected
-   * while the workbench was closed (consumed when it mounts) */
+  /* the question instrument, and a quote collected while the notebook
+   * tab was closed (consumed when the workbench mounts) */
   const [questionMode, setQuestionMode] = useState(false);
   const [pendingCollect, setPendingCollect] = useState<SourceRef | null>(null);
   const wbRef = useRef<WorkbenchHandle | null>(null);
 
-  /* the workbench hosts the three writing modes; the notebook yields */
-  const workMode = deskMode === 'research' || deskMode === 'make' || deskMode === 'reflect';
-  useEffect(() => {
-    if (workMode) setNotebookOpen(false);
-  }, [workMode]);
+  /* ---- the page objects (v0.3.1): stickies + ink ---- */
+  const [stickies, setStickies] = useState<StickyNote[]>([]);
+  const [sketches, setSketches] = useState<Sketch[]>([]);
+  const [view, setView] = useState<RelocatedEvent | null>(null);
+  const [drawMode, setDrawMode] = useState(false);
+  const [drawTool, setDrawTool] = useState<InkTool>('pencil');
+  const [drawColor, setDrawColor] = useState<StickyColor>('yellow');
+  const stageRef = useRef<HTMLDivElement | null>(null);
 
   /* chrome visibility is the shell's attention model — the reader reports
-   * engagement (selection, drawers), the room decides quiet/absent */
+   * engagement (selection, drawers, drawing), the room decides quiet/absent */
   const chromeShown = attention === 'active';
 
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -706,6 +733,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
         const hooks: FormatReaderHooks = {
           onRelocated: (e) => {
             progressRef.current = e;
+            setView(e);
             setPercent(e.percent);
             setChapter(e.chapter ?? '');
             persistProgress(false);
@@ -714,7 +742,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
             setSelection(s);
           },
           onAnnotationClick: (id) => {
-            setNotebookOpen(true);
+            openNotes('marks');
             setFocusId(id);
           },
         };
@@ -746,7 +774,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
         }
 
         // annotations + the drift pass
-        const { highlights, bookmarks, notes } = await api.annotations.list(bookId);
+        const { highlights, bookmarks, notes, stickies, sketches } = await api.annotations.list(bookId);
         if (disposed) return;
 
         const final: Highlight[] = [];
@@ -782,6 +810,8 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
         setHighlights(final);
         setBookmarks(bookmarks);
         setNotes(notes);
+        setStickies(stickies);
+        setSketches(sketches);
         rerenderAnnotations(final);
 
         const startPercent = book.progress?.percent ?? 0;
@@ -796,7 +826,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
         const pendingFocusId = desk?.bookId === bookId ? desk.pendingFocusId : null;
         await adapter.display(pendingLocator ?? book.progress?.locator ?? undefined);
         if (pendingFocusId) {
-          setNotebookOpen(true);
+          openNotes('marks');
           setFocusId(pendingFocusId);
         }
         clearDeskPending();
@@ -836,33 +866,30 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
   }, [pdfZoom, book?.format]);
 
   /* engagement: while the reader holds work in hand (selection,
-   * drawers, panels, a work mode) the shell stays present — quiet/absent
-   * is for unencumbered reading only. READ and MARK trust the attention
-   * law; the writing modes pin the room. */
+   * drawers, panels, drawing) the shell stays present — quiet/absent
+   * is for unencumbered reading only. */
   useEffect(() => {
-    setEngaged(workMode || Boolean(selection || notebookOpen || tocOpen || typeOpen));
+    setEngaged(Boolean(selection || notesOpen || tocOpen || typeOpen || drawMode));
     return () => setEngaged(false);
-  }, [workMode, selection, notebookOpen, tocOpen, typeOpen, setEngaged]);
+  }, [selection, notesOpen, tocOpen, typeOpen, drawMode, setEngaged]);
 
   // ---- keyboard ----
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      /* the mode keys work everywhere — Alt+1..5 switches the desk's
-       * instruments; even mid-compose the mirror holds the text */
-      if (e.altKey && !e.ctrlKey && !e.metaKey && /^[1-5]$/.test(e.key)) {
-        const m = DESK_MODES[Number(e.key) - 1] as DeskMode | undefined;
-        if (m) {
-          e.preventDefault();
-          setDeskMode(m);
-        }
-        return;
-      }
       const target = e.target as HTMLElement | null;
       const typing =
         target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
-      if (typing) return;
       const adapter = adapterRef.current;
       if (!adapter) return;
+      /* the notes panel is one keystroke away — the modes it replaced
+       * never were (they needed Alt gymnastics) */
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
+        e.preventDefault();
+        if (notesOpen) closeNotes();
+        else openNotes();
+        return;
+      }
+      if (typing) return;
       switch (e.key) {
         case 'ArrowRight':
         case 'PageDown':
@@ -893,6 +920,9 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
           }
           break;
         case 'Escape':
+          /* the cascade: transient surfaces first, the selection, then
+           * the draw mode, then the notes panel — each keystroke peels
+           * one layer back toward the reading */
           if (tocOpen || typeOpen) {
             setTocOpen(false);
             setTypeOpen(false);
@@ -900,9 +930,10 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
             setSelection(null);
             setNoteMode(false);
             setQuestionMode(false);
-          } else if (workMode) {
-            /* the workbench closes to READ — the desk's resting state */
-            setDeskMode('read');
+          } else if (drawMode) {
+            setDrawMode(false);
+          } else if (notesOpen) {
+            closeNotes();
           }
           break;
         default:
@@ -911,7 +942,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isPdf, settings.fontStep, tocOpen, typeOpen, selection, percent, chapter, workMode, setDeskMode]);
+  }, [isPdf, settings.fontStep, tocOpen, typeOpen, selection, drawMode, notesOpen, percent, chapter, setSettings, openNotes, closeNotes]);
 
   useEffect(() => {
     const onBeforeUnload = (): void => persistProgress(true);
@@ -988,8 +1019,6 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
     };
     await api.annotations.createBookmark(book.id, b);
     setBookmarks((prev) => [b, ...prev]);
-    adapterRef.current?.clearSelection();
-    setSelection(null);
     toast('bookmarked');
   }, [book, toast]);
 
@@ -1020,8 +1049,8 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
     [book, toast],
   );
 
-  /* L10 — the question: a margin note that asks rather than asserts,
-   * anchored to the passage under the reader's hand */
+  /* the question: a margin note that asks rather than asserts, anchored
+   * to the passage under the reader's hand */
   const createQuestionNote = useCallback(
     async (body: string): Promise<void> => {
       const sel = selection;
@@ -1046,9 +1075,9 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
     [selection, book, toast],
   );
 
-  /* L10 — collect: the passage enters the research workbench with its
-   * place kept. if the workbench is closed, the quote rides the mode
-   * switch and lands when it mounts. */
+  /* collect: the passage enters the notebook with its place kept. if
+   * the panel is closed (or on the marks tab), the quote rides the tab
+   * switch and lands when the workbench mounts. */
   const collectSelection = useCallback((): void => {
     const sel = selection;
     if (!sel || !book) return;
@@ -1061,13 +1090,13 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
     };
     setSelection(null);
     adapterRef.current?.clearSelection();
-    if (deskMode === 'research' && wbRef.current) {
+    if (notesOpen && notesTab === 'notebook' && wbRef.current) {
       wbRef.current.collect(ref);
     } else {
       setPendingCollect(ref);
-      setDeskMode('research');
+      openNotes('notebook');
     }
-  }, [selection, book, deskMode, setDeskMode]);
+  }, [selection, book, notesOpen, notesTab, openNotes]);
 
   const updateNote = useCallback(
     async (n: Note): Promise<void> => {
@@ -1087,6 +1116,114 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
     [book],
   );
 
+  // ---- sticky notes (v0.3.1) ----
+
+  const visibleStickies = useMemo(
+    () => (book ? stickies.filter((s) => onVisiblePage(s.anchor, view, book.format)) : []),
+    [stickies, view, book],
+  );
+
+  const createSticky = useCallback(
+    (at?: { x: number; y: number }): void => {
+      const ev = progressRef.current;
+      if (!book || !ev) return;
+      const s: StickyNote = {
+        id: uuidv7(),
+        bookId: book.id,
+        anchor: pageAnchor(book, ev),
+        body: '',
+        color: 'yellow',
+        x: at ? Math.min(at.x, 0.86) : 0.56,
+        y: at ? Math.min(at.y, 0.8) : 0.18,
+        chapter: ev.chapter ?? null,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      void api.annotations.createSticky(book.id, s);
+      setStickies((prev) => [...prev, s]);
+    },
+    [book],
+  );
+
+  /** selection → sticky: the paper lands where the hand was, in stage
+   *  fractions (window coords → stage rect) */
+  const stickyFromSelection = useCallback((): void => {
+    const sel = selection;
+    const stage = stageRef.current;
+    let at: { x: number; y: number } | undefined;
+    if (sel?.rect && stage) {
+      const r = stage.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) {
+        at = {
+          x: (sel.rect.x + sel.rect.w / 2 - r.left) / r.width,
+          y: (sel.rect.y - r.top) / r.height - 0.06,
+        };
+      }
+    }
+    setSelection(null);
+    adapterRef.current?.clearSelection();
+    createSticky(at);
+  }, [selection, createSticky]);
+
+  const updateSticky = useCallback(
+    (s: StickyNote): void => {
+      if (!book) return;
+      setStickies((prev) => prev.map((x) => (x.id === s.id ? s : x)));
+      void api.annotations.updateSticky(book.id, s);
+    },
+    [book],
+  );
+
+  const deleteSticky = useCallback(
+    (id: string): void => {
+      if (!book) return;
+      setStickies((prev) => prev.filter((s) => s.id !== id));
+      void api.annotations.deleteSticky(book.id, id);
+    },
+    [book],
+  );
+
+  // ---- ink (v0.3.1) ----
+
+  const visibleSketch = useMemo(
+    () => (book ? sketches.find((k) => onVisiblePage(k.anchor, view, book.format)) ?? null : null),
+    [sketches, view, book],
+  );
+
+  const commitStrokes = useCallback(
+    (strokes: InkStroke[], sketchId: string | null): void => {
+      const ev = progressRef.current;
+      if (!book || !ev) return;
+      let target = visibleSketch;
+      if (!target || target.id !== sketchId) {
+        if (sketchId) target = sketches.find((k) => k.id === sketchId) ?? null;
+        if (!target) target = newSketch(book, pageAnchor(book, ev), ev.chapter ?? null);
+      }
+      const next: Sketch = { ...target, strokes, updatedAt: Date.now() };
+      void api.annotations.saveSketch(book.id, next);
+      setSketches((prev) => {
+        const i = prev.findIndex((k) => k.id === next.id);
+        return i === -1 ? [...prev, next] : prev.map((k) => (k.id === next.id ? next : k));
+      });
+    },
+    [book, visibleSketch, sketches],
+  );
+
+  const undoStroke = useCallback((): void => {
+    const k = visibleSketch;
+    if (!k || k.strokes.length === 0) return;
+    commitStrokes(k.strokes.slice(0, -1), k.id);
+  }, [visibleSketch, commitStrokes]);
+
+  const clearInk = useCallback((): void => {
+    const k = visibleSketch;
+    if (!book || !k) return;
+    void api.annotations.deleteSketch(book.id, k.id);
+    setSketches((prev) => prev.filter((x) => x.id !== k.id));
+  }, [book, visibleSketch]);
+
+  // ---- render ----
+
   if (error) {
     return (
       <div className="reader-error fade-in">
@@ -1100,12 +1237,45 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
     );
   }
 
+  /* the notes panel's shared header — one instrument, two collections.
+   * the marks tab carries the export (reading notes are marks); the
+   * notebook's export rides its own documents. */
+  const notesHeader = (
+    <header className="drawer-head">
+      <Tabs
+        tabs={[
+          { id: 'marks', label: 'marks' },
+          { id: 'notebook', label: 'notebook' },
+        ]}
+        selected={notesTab}
+        onSelect={(id) => setNotesTab(id as NotesTab)}
+        label="notes"
+      />
+      <div className="row">
+        {notesTab === 'marks' ? (
+          <IconButton
+            label="export reading notes"
+            onClick={async () => {
+              if (!book) return;
+              const saved = await api.exportNotes.save(book.id);
+              toast(saved ? 'reading notes saved' : 'export cancelled');
+            }}
+          >
+            <IconDownload />
+          </IconButton>
+        ) : null}
+        <IconButton label="close notes" onClick={closeNotes}>
+          <IconX />
+        </IconButton>
+      </div>
+    </header>
+  );
+
   return (
     <div
       className="reader"
       data-format={book?.format ?? 'epub'}
       data-page-mode={settings.pageMode}
-      data-workbench={workMode ? 'open' : 'closed'}
       style={{ '--ar-measure': `${settings.measure}px` } as CSSProperties}
     >
       <div className={`reader-chrome reader-chrome-top${chromeShown ? '' : ' chrome-faded'}`}>
@@ -1117,6 +1287,19 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
           <span className="meta-label">{book?.authors.join(', ') ?? ''}</span>
         </div>
         <div className="reader-actions">
+          <IconButton
+            label="pin a sticky note on this page"
+            onClick={() => createSticky()}
+          >
+            <IconSticky />
+          </IconButton>
+          <IconButton
+            label={drawMode ? 'stop drawing' : 'draw on the page'}
+            aria-pressed={drawMode}
+            onClick={() => setDrawMode((v) => !v)}
+          >
+            <IconPencil />
+          </IconButton>
           <IconButton
             label="reading settings"
             onClick={() => {
@@ -1131,18 +1314,27 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
             onClick={() => {
               setTocOpen((v) => !v);
               setTypeOpen(false);
+              if (!tocOpen) setTocTab('contents');
             }}
           >
             <IconToc />
           </IconButton>
-          <IconButton label="bookmark this position" onClick={() => void addBookmark()}>
+          <IconButton
+            label="bookmark list"
+            onClick={() => {
+              setTocOpen((v) => !v);
+              setTypeOpen(false);
+              if (!tocOpen) setTocTab('bookmarks');
+            }}
+          >
             <IconBookmark />
           </IconButton>
           <IconButton
-            label="notebook"
+            label="notes"
+            aria-pressed={notesOpen}
             onClick={() => {
-              setNotebookOpen((v) => !v);
-              setFocusId(null);
+              if (notesOpen) closeNotes();
+              else openNotes();
             }}
           >
             <IconNote />
@@ -1150,46 +1342,55 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
         </div>
       </div>
 
-      <div className="reader-host" ref={hostRef} />
-
-      {/* L10 — the mode rail: the desk's five instruments, quiet chips.
-       *  READ is the resting state; the rail fades with the chrome. */}
-      <div
-        className={`mode-rail${chromeShown ? '' : ' chrome-faded'}`}
-        role="toolbar"
-        aria-label="desk modes"
-      >
-        {DESK_MODES.map((m, i) => (
-          <button
-            key={m}
-            className={`mode-chip${deskMode === m ? ' mode-chip-active' : ''}`}
-            onClick={() => setDeskMode(m)}
-            aria-pressed={deskMode === m}
-            title={`${m} — Alt+${i + 1}`}
-          >
-            {m}
-          </button>
-        ))}
+      {/* the stage: the adapter's host + the page objects (stickies, ink)
+       * as overlays. the reading column centers on the window; the layers
+       * never claim the pointer until a note or the draw mode does. */}
+      <div className="reader-stage" ref={stageRef}>
+        <div className="reader-host" ref={hostRef} />
+        {book && (
+          <StickyLayer stickies={visibleStickies} onUpdate={updateSticky} onDelete={deleteSticky} />
+        )}
+        {book && (
+          <InkLayer
+            sketch={visibleSketch}
+            active={drawMode}
+            tool={drawTool}
+            color={drawColor}
+            onCommitStrokes={commitStrokes}
+          />
+        )}
+        {drawMode && book && (
+          <InkToolbar
+            tool={drawTool}
+            color={drawColor}
+            onTool={setDrawTool}
+            onColor={setDrawColor}
+            onUndo={undoStroke}
+            onClear={clearInk}
+            onExit={() => setDrawMode(false)}
+            canUndo={(visibleSketch?.strokes.length ?? 0) > 0}
+          />
+        )}
       </div>
 
-      {book && workMode && (
+      {book && notesOpen && notesTab === 'notebook' && (
         <Workbench
           ref={wbRef}
           book={book}
-          kind={deskMode === 'research' || deskMode === 'make' || deskMode === 'reflect' ? deskMode : 'reflect'}
+          kind="all"
           openDocId={workbenchDocId}
           onOpenDoc={setWorkbenchDoc}
           onJump={(loc) => void adapterRef.current?.jumpTo(loc)}
-          onClose={() => setDeskMode('read')}
+          onClose={closeNotes}
           toast={toast}
           pendingCollect={pendingCollect}
           onPendingConsumed={() => setPendingCollect(null)}
+          header={notesHeader}
         />
       )}
 
-      {book && notebookOpen && (
+      {book && notesOpen && notesTab === 'marks' && (
         <Notebook
-          book={book}
           highlights={highlights}
           bookmarks={bookmarks}
           notes={notes}
@@ -1209,58 +1410,121 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
           onCreateNote={(body) => void createNoteAt(body)}
           onUpdateNote={(n) => void updateNote(n)}
           onDeleteNote={(id) => void deleteNote(id)}
-          onClose={() => setNotebookOpen(false)}
+          header={notesHeader}
           focusId={focusId}
         />
       )}
 
       {tocOpen && (
-        <aside className="drawer drawer-left rise" aria-label="contents">
+        <aside className="drawer drawer-left rise" aria-label="contents and bookmarks">
           <header className="drawer-head">
-            <span className="meta-label">contents</span>
-            <IconButton label="close contents" onClick={() => setTocOpen(false)}>
+            <Tabs
+              tabs={[
+                { id: 'contents', label: 'contents' },
+                { id: 'bookmarks', label: 'bookmarks' },
+              ]}
+              selected={tocTab}
+              onSelect={(id) => setTocTab(id as 'contents' | 'bookmarks')}
+              label="contents"
+            />
+            <IconButton label="close" onClick={() => setTocOpen(false)}>
               <IconX />
             </IconButton>
           </header>
           <div className="drawer-body">
-            {isPdf && pdfPageCount > 0 && (
-              <div className="toc-jump">
-                <Input
-                  className="toc-jump-input"
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={pdfPageCount}
-                  aria-label="go to page"
-                  placeholder="page"
-                  value={pageQuery}
-                  onChange={(e) => setPageQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key !== 'Enter') return;
-                    const target = parsePageTarget(pageQuery || undefined, pdfPageCount);
-                    void adapterRef.current?.display(`page:${target}`);
-                    setPageQuery('');
-                    setTocOpen(false);
-                  }}
-                />
-                <span className="meta-label">
-                  of {pdfPageCount} {pdfPageCount === 1 ? 'page' : 'pages'}
-                </span>
-              </div>
+            {tocTab === 'contents' ? (
+              <>
+                {isPdf && pdfPageCount > 0 && (
+                  <div className="toc-jump">
+                    <Input
+                      className="toc-jump-input"
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={pdfPageCount}
+                      aria-label="go to page"
+                      placeholder="page"
+                      value={pageQuery}
+                      onChange={(e) => setPageQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key !== 'Enter') return;
+                        const target = parsePageTarget(pageQuery || undefined, pdfPageCount);
+                        void adapterRef.current?.display(`page:${target}`);
+                        setPageQuery('');
+                        setTocOpen(false);
+                      }}
+                    />
+                    <span className="meta-label">
+                      of {pdfPageCount} {pdfPageCount === 1 ? 'page' : 'pages'}
+                    </span>
+                  </div>
+                )}
+                {chapters.map((c) => (
+                  <button
+                    key={`${c.target}-${c.label}`}
+                    className={`toc-item${c.label === chapter ? ' toc-current' : ''}${c.depth > 0 ? ' toc-child' : ''}`}
+                    style={c.depth > 0 ? { paddingLeft: `calc(var(--s4) + ${c.depth} * var(--s2))` } : undefined}
+                    onClick={() => {
+                      void adapterRef.current?.display(c.target);
+                      setTocOpen(false);
+                    }}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </>
+            ) : (
+              <>
+                <button className="chip chip-add" onClick={() => void addBookmark()}>
+                  <IconBookmark />
+                  bookmark this place
+                </button>
+                {bookmarks.length === 0 && (
+                  <div className="drawer-empty">
+                    <div className="type-title">no bookmarks yet</div>
+                    <p className="meta-label">ctrl+b drops one wherever you are</p>
+                  </div>
+                )}
+                {[...bookmarks]
+                  .sort((a, b) => (b.anchor.position?.percent ?? 0) - (a.anchor.position?.percent ?? 0))
+                  .map((b) => (
+                    <div key={b.id} className="note-card note-bookmark">
+                      <div className="note-card-head">
+                        <IconBookmark />
+                        <span className="meta-label note-chapter">
+                          {b.chapter ?? b.label ?? 'bookmark'}
+                          {b.anchor.position?.percent !== undefined && b.anchor.position.percent !== null
+                            ? ` · ${Math.round((b.anchor.position.percent ?? 0) * 100)}%`
+                            : ''}
+                        </span>
+                      </div>
+                      <div className="note-actions">
+                        <button
+                          className="sel-action"
+                          onClick={() => {
+                            void adapterRef.current?.jumpTo(b.anchor.primary);
+                            setTocOpen(false);
+                          }}
+                        >
+                          <IconChevronRight />
+                          jump
+                        </button>
+                        <button
+                          className="sel-action danger"
+                          onClick={() => {
+                            if (!book) return;
+                            void api.annotations.deleteBookmark(book.id, b.id);
+                            setBookmarks((prev) => prev.filter((x) => x.id !== b.id));
+                          }}
+                        >
+                          <IconTrash />
+                          remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </>
             )}
-            {chapters.map((c) => (
-              <button
-                key={`${c.target}-${c.label}`}
-                className={`toc-item${c.label === chapter ? ' toc-current' : ''}${c.depth > 0 ? ' toc-child' : ''}`}
-                style={c.depth > 0 ? { paddingLeft: `calc(var(--s4) + ${c.depth} * var(--s2))` } : undefined}
-                onClick={() => {
-                  void adapterRef.current?.display(c.target);
-                  setTocOpen(false);
-                }}
-              >
-                {c.label}
-              </button>
-            ))}
           </div>
         </aside>
       )}
@@ -1282,6 +1546,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
           onColor={(c) => void createHighlight(c, null)}
           onNote={() => setNoteMode(true)}
           onQuestion={() => setQuestionMode(true)}
+          onSticky={stickyFromSelection}
           onBookmark={() => {
             void createBookmarkFromSelection();
             setSelection(null);
@@ -1379,10 +1644,18 @@ function NoteComposer({
     save: (t) => onSave(t),
     autoSave: false,
   });
-  const x = selection.rect
-    ? Math.min(Math.max(selection.rect.x + selection.rect.w / 2, 160), window.innerWidth - 160)
+  /* anchored to the passage, never clipping: above the selection when
+   * there is room, below it when there is not — the composer is paper
+   * tinted with the amber wash, the note's own color. */
+  const HALF = 150;
+  const cx = selection.rect
+    ? selection.rect.x + selection.rect.w / 2
     : window.innerWidth / 2;
-  const y = selection.rect ? Math.max(selection.rect.y - 140, 64) : window.innerHeight / 2 - 120;
+  const x = clampCenter(cx, HALF);
+  const EST_H = 210;
+  const aboveY = selection.rect ? selection.rect.y - EST_H - 12 : window.innerHeight / 2 - 120;
+  const belowY = selection.rect ? selection.rect.y + (selection.rect.h || 24) + 12 : window.innerHeight / 2;
+  const y = aboveY >= 60 ? aboveY : Math.min(belowY, window.innerHeight - EST_H - 60);
   return (
     <>
       <div className="menu-scrim" onMouseDown={onClose} />

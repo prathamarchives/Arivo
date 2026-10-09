@@ -16,6 +16,10 @@ import {
   type Note,
   type ReadingProgress,
   type AppSettings,
+  type Sketch,
+  type StickyNote,
+  type StickyColor,
+  type InkStroke,
 } from '@arivo/core';
 
 const id = v.id();
@@ -70,6 +74,39 @@ const note: Validator<Note> = v.object({
   body: v.string({ min: 1, max: 20_000 }),
   chapter: chapterName,
   question: v.optional(v.boolean()),
+  createdAt: v.number({ min: 0 }),
+  updatedAt: v.number({ min: 0 }),
+});
+
+const stickyColor = v.enum('yellow', 'blue', 'green', 'pink', 'violet') as Validator<StickyColor>;
+
+const sticky: Validator<StickyNote> = v.object({
+  id,
+  bookId: id,
+  anchor,
+  body: v.string({ max: 20_000 }),
+  color: stickyColor,
+  x: v.number({ min: 0, max: 1 }),
+  y: v.number({ min: 0, max: 1 }),
+  chapter: chapterName,
+  createdAt: v.number({ min: 0 }),
+  updatedAt: v.number({ min: 0 }),
+});
+
+const inkStroke: Validator<InkStroke> = v.object({
+  tool: v.enum('pencil', 'pen', 'highlighter'),
+  color: stickyColor,
+  size: v.number({ min: 0.5, max: 64 }),
+  /** flat viewport-fraction pairs — even count, each 0-1 */
+  points: v.array(v.number({ min: 0, max: 1 }), { max: 4_096 }),
+});
+
+const sketch: Validator<Sketch> = v.object({
+  id,
+  bookId: id,
+  anchor,
+  strokes: v.array(inkStroke, { max: 512 }),
+  chapter: chapterName,
   createdAt: v.number({ min: 0 }),
   updatedAt: v.number({ min: 0 }),
 });
@@ -137,6 +174,11 @@ export const schemas = {
   noteCreate: v.object({ bookId: id, n: note }),
   noteUpdate: v.object({ bookId: id, n: note }),
   noteDelete: v.object({ bookId: id, id: v.id() }),
+  stickyCreate: v.object({ bookId: id, s: sticky }),
+  stickyUpdate: v.object({ bookId: id, s: sticky }),
+  stickyDelete: v.object({ bookId: id, id: v.id() }),
+  sketchSave: v.object({ bookId: id, s: sketch }),
+  sketchDelete: v.object({ bookId: id, id: v.id() }),
   deskDocList: v.object({ bookId: id }),
   deskDocCreate: v.object({ bookId: id, d: deskDoc }),
   deskDocUpdate: v.object({ bookId: id, d: deskDoc }),

@@ -255,6 +255,89 @@ describe('structured channels reject malformed structures', () => {
     }
   });
 
+  it('sticky:create — the page-object contract (fractions bounded, colors enumerated)', () => {
+    const stickyBase = {
+      id: 'st-1',
+      bookId: 'bk-1',
+      anchor: {
+        format: 'epub',
+        primary: 'epubcfi(/6/8)',
+        textRange: null,
+        position: { spineIndex: 3, page: 2, percent: 0.4 },
+      },
+      body: 'a paper pinned to the page',
+      color: 'yellow',
+      x: 0.55,
+      y: 0.2,
+      chapter: 'Chapter Two',
+      createdAt: 1,
+      updatedAt: 2,
+    };
+    expect(() => expectAccept(schemas.stickyCreate, { bookId: 'bk-1', s: stickyBase })).not.toThrow();
+    // spatial fractions are 0-1: a paper off the page is not a paper
+    expectReject(schemas.stickyCreate, { bookId: 'bk-1', s: { ...stickyBase, x: 1.5 } });
+    expectReject(schemas.stickyCreate, { bookId: 'bk-1', s: { ...stickyBase, y: -0.1 } });
+    // colors come from the annotation identity set
+    expectReject(schemas.stickyCreate, { bookId: 'bk-1', s: { ...stickyBase, color: 'chartreuse' } });
+    // an empty body IS legal here (a fresh paper starts blank)
+    expect(() =>
+      expectAccept(schemas.stickyCreate, { bookId: 'bk-1', s: { ...stickyBase, body: '' } }),
+    ).not.toThrow();
+    expectReject(schemas.stickyCreate, { bookId: 'bk-1', s: { ...stickyBase, body: 'x'.repeat(20_001) } });
+    for (const input of HOSTILE) {
+      expectReject(schemas.stickyCreate, input);
+    }
+  });
+
+  it('sketch:save — strokes are tool/color/points, points bounded and flat-paired', () => {
+    const sketchBase = {
+      id: 'sk-1',
+      bookId: 'bk-1',
+      anchor: {
+        format: 'pdf',
+        primary: 'page:12',
+        textRange: null,
+        position: { page: 12, percent: 0.3 },
+      },
+      strokes: [
+        { tool: 'pen', color: 'blue', size: 3.5, points: [0.1, 0.2, 0.3, 0.4] },
+        { tool: 'highlighter', color: 'yellow', size: 14, points: [0.5, 0.5] },
+      ],
+      chapter: null,
+      createdAt: 1,
+      updatedAt: 2,
+    };
+    expect(() => expectAccept(schemas.sketchSave, { bookId: 'bk-1', s: sketchBase })).not.toThrow();
+    // the tools are enumerated — no invented instruments cross the bridge
+    expectReject(schemas.sketchSave, {
+      bookId: 'bk-1',
+      s: { ...sketchBase, strokes: [{ tool: 'crayon', color: 'blue', size: 3, points: [0.1, 0.1] }] },
+    });
+    // points are viewport fractions: 0-1 only
+    expectReject(schemas.sketchSave, {
+      bookId: 'bk-1',
+      s: { ...sketchBase, strokes: [{ tool: 'pen', color: 'blue', size: 3, points: [1.2, 0.2] }] },
+    });
+    // size is a physical width, not a fraction — but still bounded
+    expectReject(schemas.sketchSave, {
+      bookId: 'bk-1',
+      s: { ...sketchBase, strokes: [{ tool: 'pen', color: 'blue', size: 100, points: [0.1, 0.1] }] },
+    });
+    // the stroke count is capped: a page holds ink, not a treaty
+    const many = Array.from({ length: 513 }, () => ({ tool: 'pen', color: 'blue', size: 3, points: [0.1, 0.1] }));
+    expectReject(schemas.sketchSave, { bookId: 'bk-1', s: { ...sketchBase, strokes: many } });
+    for (const input of HOSTILE) {
+      expectReject(schemas.sketchSave, input);
+    }
+  });
+
+  it('sticky/sketch delete channels — {bookId, id} strings only', () => {
+    expectReject(schemas.stickyDelete, { bookId: 'bk-1', id: 42 });
+    expect(() => expectAccept(schemas.stickyDelete, { bookId: 'bk-1', id: 'st-1' })).not.toThrow();
+    expectReject(schemas.sketchDelete, { bookId: 'bk-1', id: 42 });
+    expect(() => expectAccept(schemas.sketchDelete, { bookId: 'bk-1', id: 'sk-1' })).not.toThrow();
+  });
+
   it('note:delete — {bookId, id} strings only', () => {
     expectReject(schemas.noteDelete, { bookId: 'bk-1', id: 42 });
     expectReject(schemas.noteDelete, { bookId: '', id: 'n-1' });

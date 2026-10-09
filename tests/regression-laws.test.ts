@@ -78,10 +78,12 @@ describe('regression 5 — user text never disappears (L10, session 0007)', () =
     expect(READER_TSX).not.toMatch(/const \[body, setBody\] = useState/);
   });
 
-  it('mode switching mid-compose cannot cost text — Alt+1..5 bypasses the typing guard', () => {
-    const block = READER_TSX.match(/if \(e\.altKey[^)]*\)[\s\S]*?return;/)?.[0] ?? '';
+  it('the notes panel is one keystroke away — Ctrl+N bypasses the typing guard', () => {
+    // v0.3.1: the modes are gone; the panel that replaced them must stay
+    // reachable mid-compose (the mirror holds the text either way)
+    const block = READER_TSX.match(/if \(\(e\.ctrlKey \|\| e\.metaKey\)[^)]*\)[\s\S]*?return;/)?.[0] ?? '';
     expect(block).not.toBe('');
-    expect(block).toContain('setDeskMode');
+    expect(block).toContain('openNotes');
   });
 
   it('the notebook saves its edit drafts on unmount — blur never fires there', () => {
@@ -89,20 +91,21 @@ describe('regression 5 — user text never disappears (L10, session 0007)', () =
   });
 });
 
-describe('regression 6 — read mode stays sacred; modes preserve spatial memory (L10 exit predicate)', () => {
-  it('a fresh desk opens in read — the resting state', () => {
+describe('regression 6 — the reading stays primary; the panel preserves spatial memory (v0.3.1 exit predicate)', () => {
+  it('a fresh desk opens with the notes panel closed — the resting state', () => {
     const block = ROOM_TS.match(/goDesk: \(bookId, locator[\s\S]*?scheduleIdle\(\);/)?.[0] ?? '';
     expect(block).not.toBe('');
-    expect(block).toContain("mode: 'read'");
-    expect(block).toContain("workbenchDocId: null");
+    expect(block).toContain('notesOpen: false');
+    expect(block).toContain('workbenchDocId: null');
   });
 
-  it('only the work modes engage the room — read and mark trust the attention law', () => {
-    const block = ROOM_TS.match(/setDeskMode: \(mode\)[\s\S]*?},\s*\n\s*setWorkbenchDoc/)?.[0] ?? '';
+  it('only the panel engages the room — reading trusts the attention law', () => {
+    const block = ROOM_TS.match(/openNotes: \(tab\)[\s\S]*?},\s*\n\s*closeNotes/)?.[0] ?? '';
     expect(block).not.toBe('');
-    expect(block).toContain("mode === 'research'");
-    expect(block).toContain("mode === 'make'");
-    expect(block).toContain("mode === 'reflect'");
-    expect(block).not.toContain("mode !== 'read'");
+    expect(block).toContain('engaged: true');
+    expect(block).toContain("notesTab: tab");
+    // the modes are truly gone — no mode switcher remains anywhere
+    expect(ROOM_TS).not.toContain('setDeskMode');
+    expect(READER_TSX).not.toContain('DESK_MODES');
   });
 });

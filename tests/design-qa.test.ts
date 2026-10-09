@@ -82,9 +82,11 @@ describe('L16 — the state audit (device truths + authored states)', () => {
       'btn',
       'chip',
       'sel-action',
+      'sel-icon',
       'toc-item',
       'archive-ref',
-      'mode-chip',
+      'ink-tool',
+      'sticky-body',
       'archive-mark-open',
       'menu-item',
     ];
@@ -127,16 +129,18 @@ describe('L16 — the state audit (device truths + authored states)', () => {
     expect(WORKBENCH_TSX).toContain('opening the workbench');
   });
 
-  it('L17 — the source yields to the workbench: a transform, never a reflow', () => {
-    // the reader declares the workbench state
-    expect(READER_TSX).toContain("data-workbench={workMode ? 'open' : 'closed'}");
-    // the yield rule moves the column; it must never resize it
-    const yieldRule = APP_CSS.match(/\.reader\[data-workbench='open'\]\[data-format='epub'\] \.epub-container\s*\{[^}]*\}/)?.[0] ?? '';
-    expect(yieldRule).toContain('translateX');
-    expect(yieldRule).not.toMatch(/max-width|min-width|width\s*:/);
-    // the pdf pages yield by padding — canvases never resize
-    const pdfYield = APP_CSS.match(/\.reader\[data-workbench='open'\] \.pdf-scroll\s*\{[^}]*\}/)?.[0] ?? '';
-    expect(pdfYield).toContain('padding-right');
-    expect(pdfYield).not.toMatch(/width\s*:/);
+  it('v0.3.1 — the notes panel overlays: the reading column never moves', () => {
+    // the workbench yield rules are retired with the modes — no selector
+    // may shift or pad the reading column for any panel state
+    expect(APP_CSS).not.toContain("data-workbench='open'");
+    expect(READER_TSX).not.toContain('data-workbench');
+    // the stage exists: the adapter host + the page-object overlays
+    expect(APP_CSS).toMatch(/\.reader-stage\s*\{[^}]*position:\s*relative/);
+    // the panel is a drawer — absolute furniture over the work, dismissible
+    const drawer = APP_CSS.match(/\.drawer\s*\{[^}]*\}/)?.[0] ?? '';
+    expect(drawer).toMatch(/position:\s*absolute/);
+    // the reading column still centers by its own measure law (W2.4 intact)
+    const measure = APP_CSS.match(/\.reader\[data-format='epub'\] \.epub-container\s*\{[^}]*\}/)?.[0] ?? '';
+    expect(measure).toContain('margin: 0 auto');
   });
 });

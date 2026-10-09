@@ -49,6 +49,10 @@ export const ICON_PATHS = {
   pencil: 'M10.5 2.5 13.5 5.5 5.5 13.5 2.5 13.5 2.5 10.5 10.5 2.5Z',
   folder: 'M2 4.5h4l1.5 2H14v7H2v-9Z',
   pulse: 'M2.5 8.5 5 8.5 6.5 4.5 9 12 10.5 8.5 13.5 8.5',
+  /* v0.3.1 — the page objects: a tilted sticky paper (two dots of text
+     on a pinned sheet) and the copy pair. same grid, same stroke. */
+  sticky: 'M4.6 5.7 10.3 3.5 12.5 9.2 6.8 11.4 4.6 5.7ZM7 7.8h.01M9.4 6.9h.01',
+  copy: 'M5.5 5.5h7v7h-7v-7ZM3.5 10.5v-7h7',
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;
@@ -120,5 +124,7 @@ export const IconSettings = named('settings');
 export const IconInfo = named('info');
 export const IconTag = named('tag');
 export const IconPencil = named('pencil');
+export const IconSticky = named('sticky');
+export const IconCopy = named('copy');
 export const IconFolder = named('folder');
 export const IconPulse = named('pulse');

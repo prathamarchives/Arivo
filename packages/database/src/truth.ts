@@ -6,7 +6,7 @@
 import { readFileSync, mkdirSync, existsSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { writeFileSyncAtomic } from '@arivo/persistence';
-import type { DeskDoc, Highlight, Bookmark, Note, ReadingProgress } from '@arivo/core';
+import type { DeskDoc, Highlight, Bookmark, Note, ReadingProgress, Sketch, StickyNote } from '@arivo/core';
 
 export interface BookTruth {
   version: 1;
@@ -18,6 +18,10 @@ export interface BookTruth {
   notes: Note[];
   /** desk documents since schema 004 — absent in older files, tolerated on read */
   deskDocs: DeskDoc[];
+  /** sticky notes since schema 005 — absent in older files, tolerated on read */
+  stickies: StickyNote[];
+  /** page sketches since schema 005 — absent in older files, tolerated on read */
+  sketches: Sketch[];
 }
 
 const empty = (bookId: string): BookTruth => ({
@@ -28,6 +32,8 @@ const empty = (bookId: string): BookTruth => ({
   bookmarks: [],
   notes: [],
   deskDocs: [],
+  stickies: [],
+  sketches: [],
 });
 
 export function readTruth(bookDir: string, bookId: string): BookTruth {
@@ -44,6 +50,8 @@ export function readTruth(bookDir: string, bookId: string): BookTruth {
       bookmarks: raw.bookmarks,
       notes: Array.isArray(raw.notes) ? raw.notes : [],
       deskDocs: Array.isArray(raw.deskDocs) ? raw.deskDocs : [],
+      stickies: Array.isArray(raw.stickies) ? raw.stickies : [],
+      sketches: Array.isArray(raw.sketches) ? raw.sketches : [],
     };
   } catch {
     // corrupted truth file: salvage via .bak, else start empty — never crash the library
@@ -54,7 +62,14 @@ export function readTruth(bookDir: string, bookId: string): BookTruth {
         if (Array.isArray(salvaged.highlights)) {
           // the .bak is good — write it back as the live truth, atomically
           writeFileSyncAtomic(file, JSON.stringify({ ...salvaged, bookId }, null, 2));
-          return { ...salvaged, bookId, notes: salvaged.notes ?? [], deskDocs: salvaged.deskDocs ?? [] };
+          return {
+            ...salvaged,
+            bookId,
+            notes: salvaged.notes ?? [],
+            deskDocs: salvaged.deskDocs ?? [],
+            stickies: salvaged.stickies ?? [],
+            sketches: salvaged.sketches ?? [],
+          };
         }
       } catch {
         /* fall through */
