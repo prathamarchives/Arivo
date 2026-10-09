@@ -40,6 +40,8 @@ export const ICON_PATHS = {
   /* the three places (L8): standing books on a shelf line, the archive box.
      same grid, same stroke, same round caps — the language stays one. */
   shelf: 'M2.5 13.5h11M5 13.5V7.5M8 13.5V4.5M11 13.5V8.5',
+  /* v0.3.3 — the notebook: an open journal, two leaves meeting at the spine */
+  notebook: 'M2.5 4h4.5l1 1v7.5l-1-1H2.5V4ZM13.5 4H9l-1 1v7.5l1-1h4.5V4Z',
   archive: 'M2.5 5.5h11v8h-11v-8ZM2.5 9h11M6.5 11.5h3',
   /* the wave-1 surfaces (library tools + settings): settings sliders, info,
      tag, pencil, folder, pulse — the reading life's line. v0.3.2: the
@@ -100,6 +102,7 @@ export const IconPlus = named('plus');
 export const IconGrid = named('grid');
 export const IconList = named('list');
 export const IconBook = named('book');
+export const IconNotebook = named('notebook');
 export const IconSun = named('sun');
 export const IconMoon = named('moon');
 export const IconLamp = named('lamp');

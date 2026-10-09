@@ -4,7 +4,7 @@
  * error envelopes; unwrap here so codes survive into the renderer.
  */
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-import { unwrapEnvelope, type ArivoApi, type AppSettings, type ArchiveEntry, type Bookmark, type DeskDoc, type Highlight, type Note, type ImportResult, type SearchHit, type ReconciliationReport, type DiagnosticsReport, type SessionStats, type Sketch, type StickyNote } from '@arivo/core';
+import { unwrapEnvelope, type ArivoApi, type AppSettings, type AnnotationLink, type ArchiveEntry, type Bookmark, type DeskDoc, type Highlight, type Note, type ImportResult, type NotebookPage, type SearchHit, type ReconciliationReport, type DiagnosticsReport, type SessionStats, type Sketch, type StickyNote } from '@arivo/core';
 import type { BookWithProgress, Collection } from '@arivo/core';
 
 const invoke = async <T>(name: string, arg?: unknown): Promise<T> =>
@@ -63,6 +63,15 @@ const api: ArivoApi = {
   },
   archive: {
     marks: () => invoke<ArchiveEntry[]>('archive:marks'),
+  },
+  notebook: {
+    /** the book of you: write-in pages, links, where you left off */
+    get: () => invoke<{ pages: NotebookPage[]; links: AnnotationLink[]; state: { currentPage: number } }>('notebook:get'),
+    savePage: (p) => invoke<void>('notebook:savePage', { p }),
+    deletePage: (id) => invoke<void>('notebook:deletePage', { id }),
+    saveLink: (l) => invoke<void>('notebook:saveLink', { l }),
+    deleteLink: (id) => invoke<void>('notebook:deleteLink', { id }),
+    setPage: (currentPage) => invoke<void>('notebook:setPage', { currentPage }),
   },
   collections: {
     list: () => invoke<{ collection: Collection; count: number }[]>('collections:list'),

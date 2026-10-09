@@ -6,6 +6,7 @@ import { useRoom } from './stores/room.ts';
 import { Shell } from './shell/Shell.tsx';
 import { BookDetail } from './screens/BookDetail.tsx';
 import { SettingsScreen } from './screens/Settings.tsx';
+import { NotebookScreen } from './screens/Notebook.tsx';
 import { CommandPalette } from './features/palette/CommandPalette.tsx';
 import { api } from './services/api.ts';
 
@@ -41,6 +42,8 @@ export function App(): ReactNode {
   const goShelf = useRoom((s) => s.goShelf);
   const returnToDesk = useRoom((s) => s.returnToDesk);
   const setSettingsOpen = useRoom((s) => s.setSettingsOpen);
+  const openNotebook = useRoom((s) => s.openNotebook);
+  const notebookOpen = useRoom((s) => s.notebookOpen);
 
   useEffect(() => {
     void initSettings();
@@ -65,6 +68,13 @@ export function App(): ReactNode {
         setSettingsOpen(true);
         return;
       }
+      /* v0.3.3 — ctrl+J opens the journal: the notebook, the book of you */
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'j' || e.key === 'J')) {
+        e.preventDefault();
+        if (notebookOpen) useRoom.getState().closeNotebook();
+        else openNotebook();
+        return;
+      }
       if (typing || !(e.ctrlKey || e.metaKey)) return;
       if (e.key === '1') {
         e.preventDefault();
@@ -76,13 +86,14 @@ export function App(): ReactNode {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [setPaletteOpen, goShelf, returnToDesk, setSettingsOpen]);
+  }, [setPaletteOpen, goShelf, returnToDesk, setSettingsOpen, openNotebook, notebookOpen]);
 
   return (
     <>
       <Shell />
       <BookDetail />
       <SettingsScreen />
+      <NotebookScreen />
       <CommandPalette />
       <Toaster />
       <RecoveryBanner />

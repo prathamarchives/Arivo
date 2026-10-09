@@ -32,6 +32,7 @@ export function OrientationRail(): ReactNode {
   const goShelf = useRoom((s) => s.goShelf);
   const returnToDesk = useRoom((s) => s.returnToDesk);
   const setSettingsOpen = useRoom((s) => s.setSettingsOpen);
+  const openNotebook = useRoom((s) => s.openNotebook);
   const books = useLibrary((s) => s.books);
   const { settings, set } = useSettings();
 
@@ -88,6 +89,12 @@ export function OrientationRail(): ReactNode {
 
       <div className="rail-places">
         <NavItem icon="shelf" label="shelf" selected={place === 'shelf'} onSelect={goShelf} id="nav-shelf" />
+        <NavItem
+          icon="notebook"
+          label="notebook"
+          onSelect={openNotebook}
+          id="nav-notebook"
+        />
       </div>
 
       {current ? (

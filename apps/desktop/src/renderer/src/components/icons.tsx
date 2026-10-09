@@ -8,6 +8,7 @@ export {
   IconGrid,
   IconList,
   IconBook,
+  IconNotebook,
   IconSun,
   IconMoon,
   IconLamp,

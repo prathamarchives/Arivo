@@ -3,6 +3,7 @@
  * the renderer cannot touch the filesystem; it can only ask.
  */
 import type {
+  AnnotationLink,
   AppSettings,
   ArchiveEntry,
   Book,
@@ -11,6 +12,7 @@ import type {
   DeskDoc,
   Highlight,
   ImportResult,
+  NotebookPage,
   Note,
   ReadingProgress,
   SearchHit,
@@ -120,8 +122,20 @@ export interface ArivoApi {
   };
   archive: {
     /** every mark across every book, newest first — the archive's ledger.
-     *  one call, joined provenance; never n+1 from the renderer. */
+     *  one call, joined provenance; never n+1 from the renderer. this is
+     *  the NOTEBOOK's feed (v0.3.3): the auto-generated pages compose
+     *  from this timeline. */
     marks(): Promise<ArchiveEntry[]>;
+  };
+  notebook: {
+    /** the book of you: freeform pages, links, where you left off.
+     *  truth = library/notebook.json; small enough to load whole. */
+    get(): Promise<{ pages: NotebookPage[]; links: AnnotationLink[]; state: { currentPage: number } }>;
+    savePage(p: NotebookPage): Promise<void>;
+    deletePage(id: string): Promise<void>;
+    saveLink(l: AnnotationLink): Promise<void>;
+    deleteLink(id: string): Promise<void>;
+    setPage(currentPage: number): Promise<void>;
   };
   collections: {
     list(): Promise<{ collection: Collection; count: number }[]>;

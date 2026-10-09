@@ -464,3 +464,57 @@ export interface ImportProgress {
   phase: ImportPhase;
   percent: number;
 }
+
+// ---------- the notebook (v0.3.3 — the book of you) ----------
+
+/** what a link can tie: any annotation the reader has made */
+export type LinkKind = 'highlight' | 'note' | 'deskdoc' | 'page';
+
+/** one endpoint of a link — kind + id is the address */
+export interface LinkRef {
+  kind: LinkKind;
+  id: string;
+}
+
+/**
+ * v0.3.3 — the link primitive: one thread between two annotations,
+ * carrying the one line the reader wrote when they tied them. the
+ * reason is not metadata — it is the compounding itself ("same
+ * mechanism — self-exploitation"); a link without its reason is noise.
+ */
+export interface AnnotationLink {
+  id: string;
+  from: LinkRef;
+  to: LinkRef;
+  /** the one-line reason, written at link-time */
+  reason: string;
+  createdAt: number;
+}
+
+/**
+ * v0.3.3 — a freeform notebook page: the reader's own writing on the
+ * notebook's paper. text + write-in ink (the pen family reused). these
+ * interleave with the auto-generated timeline pages — the notebook is
+ * the journal of WHEN you captured, and a written page is a capture.
+ */
+export interface NotebookPage {
+  id: string;
+  title: string | null;
+  body: string;
+  strokes: InkStroke[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** the notebook's persisted state — where you left off */
+export interface NotebookState {
+  currentPage: number;
+}
+
+/** the notebook.json truth shape (library root — portable with the books) */
+export interface NotebookData {
+  version: 1;
+  pages: NotebookPage[];
+  links: AnnotationLink[];
+  state: NotebookState;
+}

@@ -26,7 +26,7 @@ describe('W5 gate: the icon language is one family', () => {
      * (settings, info, tag, pencil, folder, pulse) + the v0.3.1 page
      * objects (sticky, copy). a new glyph must extend the family,
      * never fork it. */
-    expect(Object.keys(ICON_PATHS)).toHaveLength(34);
+    expect(Object.keys(ICON_PATHS)).toHaveLength(35);
     for (const [name, d] of Object.entries(ICON_PATHS)) {
       expect(d!.startsWith('M')).toBe(true);
       void name;

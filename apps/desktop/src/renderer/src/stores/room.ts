@@ -72,6 +72,10 @@ interface RoomState {
 
   setPaletteOpen: (open: boolean) => void;
   setSettingsOpen: (open: boolean) => void;
+  /** v0.3.3 — the notebook: a surface over any place, the book of you */
+  notebookOpen: boolean;
+  openNotebook: () => void;
+  closeNotebook: () => void;
   openBookDetail: (bookId: string) => void;
   closeBookDetail: () => void;
   toast: (text: string) => void;
@@ -102,6 +106,7 @@ export const useRoom = create<RoomState>((set, get) => ({
   shelfScroll: 0,
   engaged: false,
   settingsOpen: false,
+  notebookOpen: false,
   detailBookId: null,
 
   goShelf: () => set({ place: 'shelf', attention: 'active' }),
@@ -168,6 +173,12 @@ export const useRoom = create<RoomState>((set, get) => ({
   },
 
   setPaletteOpen: (open) => set({ paletteOpen: open }),
+
+  /* the notebook is a surface, not a place — it opens over whatever
+   * room you are in and closes back to it. an open notebook is
+   * engagement: the chrome holds. */
+  openNotebook: () => set({ notebookOpen: true, engaged: true, attention: 'active' }),
+  closeNotebook: () => set({ notebookOpen: false }),
 
   /* drawers are engagement: the chrome cannot withdraw mid-work */
   setSettingsOpen: (open) => {

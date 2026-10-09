@@ -12,9 +12,10 @@ import { migration002 } from './002_fks_and_state.ts';
 import { migration003 } from './003_notes.ts';
 import { migration004 } from './004_desk_docs.ts';
 import { migration005 } from './005_page_objects.ts';
+import { migration006 } from './006_notebook.ts';
 import { readSchemaVersion, writeSchemaVersion, type Migration } from './types.ts';
 
-export const MIGRATIONS: readonly Migration[] = [migration001, migration002, migration003, migration004, migration005];
+export const MIGRATIONS: readonly Migration[] = [migration001, migration002, migration003, migration004, migration005, migration006];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1]!.version;
 

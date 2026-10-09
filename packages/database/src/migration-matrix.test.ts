@@ -109,7 +109,7 @@ describe('v2 → current (through 003 + 004)', () => {
   });
 });
 
-describe('v3 → current (through 005)', () => {
+describe('v3 → current (through 006)', () => {
   it('upgrades in place: notes intact (including malformed-legacy NULL fields), desk docs usable', () => {
     const dbPath = join(root, 'index.db');
     buildV3Db(dbPath);
@@ -117,9 +117,10 @@ describe('v3 → current (through 005)', () => {
     raw.pragma('foreign_keys = ON');
     const outcome = runMigrations(raw);
     expect(outcome.from).toBe(3);
-    expect(outcome.applied).toHaveLength(2);
+    expect(outcome.applied).toHaveLength(3);
     expect(outcome.applied[0]!.startsWith('4:')).toBe(true);
     expect(outcome.applied[1]!.startsWith('5:')).toBe(true);
+    expect(outcome.applied[2]!.startsWith('6:')).toBe(true);
     validateSchema(raw);
     const notes = raw.prepare('SELECT * FROM notes ORDER BY id').all() as Array<{
       id: string; body: string; pos_spine: number | null;

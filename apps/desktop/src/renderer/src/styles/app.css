@@ -1944,3 +1944,539 @@
   0% { filter: brightness(1.4); }
   100% { filter: brightness(1); }
 }
+
+/* ============ the notebook (v0.3.3 — the book of you) ============ */
+/* the surface: a full-room overlay of paper — the grain token, the
+   raised sheet, the room's own voice. the book opens over whatever
+   place you were in and closes back to it. */
+
+.notebook-surface {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.notebook-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--paper-grain);
+  opacity: var(--paper-grain-opacity);
+  pointer-events: none;
+}
+
+/* the cover stage: the closed notebook, centered, waiting */
+.notebook-cover-stage {
+  flex: 1;
+  display: grid;
+  place-items: center;
+}
+
+.notebook-cover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s3);
+  width: 380px;
+  padding: var(--s16) var(--s12);
+  background: var(--bg-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-generous);
+  box-shadow: var(--elevation-2);
+  /* the closed book has a spine — the fold lives in its material */
+  background-image: linear-gradient(to right, rgba(43, 33, 24, 0.06), rgba(43, 33, 24, 0) 14px);
+  transition:
+    box-shadow var(--dur-state) var(--ease-settle),
+    transform var(--dur-state) var(--ease-settle);
+}
+
+.notebook-cover:hover {
+  box-shadow: var(--elevation-3);
+  transform: translateY(-2px);
+}
+
+.notebook-cover:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--s2);
+}
+
+.notebook-cover-mark {
+  color: var(--ink);
+}
+
+.notebook-cover-title {
+  font-family: var(--font-read);
+  font-size: var(--text-2xl);
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.notebook-cover-stats,
+.notebook-cover-hint {
+  text-align: center;
+}
+
+/* the head — quiet chrome over the pages */
+.notebook-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  padding: var(--s3) var(--s6);
+  border-bottom: 1px solid var(--line);
+}
+
+.notebook-head-title {
+  font-family: var(--font-read);
+  font-size: var(--text-lg);
+  color: var(--ink);
+}
+
+.notebook-head-title:hover {
+  color: var(--ink-2);
+}
+
+.notebook-head-search {
+  flex: 1;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 0 var(--s3);
+  height: var(--control-h);
+  border: 1px solid var(--line);
+  border-radius: var(--r-interactive);
+  background: var(--bg-raised);
+  color: var(--ink-2);
+}
+
+.notebook-head-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: none;
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.notebook-head-search input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--sel);
+  border-radius: var(--r-interactive);
+}
+
+/* the book: the sheet, centered, with turn edges */
+.notebook-book {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: var(--s6) var(--s16);
+}
+
+.notebook-sheet {
+  width: min(760px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-generous);
+  box-shadow: var(--elevation-2);
+  overflow: hidden;
+  animation: arivo-sheet-turn var(--dur-surface-in) var(--ease-glide) both;
+}
+
+@keyframes arivo-sheet-turn {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.notebook-sheet-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: var(--s2) var(--s4);
+  border-bottom: 1px solid var(--line);
+}
+
+.notebook-sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--s4) var(--s6) var(--s6);
+}
+
+/* the turn edges — invisible corridors at the sheet's sides */
+.notebook-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--s16);
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+  transition: color var(--dur-state) var(--ease-settle);
+}
+
+.notebook-edge-prev {
+  left: var(--s4);
+}
+
+.notebook-edge-next {
+  right: var(--s4);
+}
+
+.notebook-edge-prev svg {
+  transform: rotate(180deg);
+}
+
+.notebook-edge:hover {
+  color: var(--ink);
+}
+
+.notebook-edge:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--s1);
+}
+
+/* the cards — objects with provenance */
+.notebook-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.notebook-card {
+  border: 1px solid var(--line);
+  border-radius: var(--r-object);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.notebook-card-open {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  width: 100%;
+  padding: var(--s3);
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-state) var(--ease-settle);
+}
+
+.notebook-card-open:hover {
+  background: var(--bg-sunken);
+}
+
+.notebook-card-open:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: calc(-1 * var(--s1));
+}
+
+.notebook-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  color: var(--ink-2);
+}
+
+.notebook-card-quote {
+  margin: 0;
+  font-family: var(--font-read);
+  font-size: var(--text-base);
+  line-height: 1.6;
+  color: var(--ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notebook-card-note {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notebook-card-note-own {
+  font-family: var(--font-read);
+  color: var(--ink);
+}
+
+.notebook-card-doc-title {
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.notebook-card-source {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  color: var(--ink-3);
+}
+
+.notebook-card-book {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+/* the link chips — the visible threads */
+.notebook-card-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1);
+  padding: 0 var(--s3) var(--s2);
+}
+
+.notebook-link-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-instrument);
+  background: var(--bg-raised);
+  overflow: hidden;
+}
+
+.notebook-link-chip-open {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--s1) var(--s2);
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+}
+
+.notebook-link-chip-open:hover {
+  color: var(--ink);
+  background: var(--bg-sunken);
+}
+
+.notebook-link-chip-open:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--s1);
+}
+
+.notebook-link-reason {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notebook-link-chip-x {
+  display: inline-grid;
+  place-items: center;
+  width: var(--s6);
+  align-self: stretch;
+  border-left: 1px solid var(--line);
+  color: var(--ink-3);
+}
+
+.notebook-link-chip-x:hover {
+  color: var(--ink);
+  background: var(--bg-sunken);
+}
+
+.notebook-card-link-add {
+  margin: 0 var(--s3) var(--s2);
+  align-self: flex-start;
+}
+
+/* the written page — the notebook's own paper */
+.notebook-paper {
+  position: relative;
+  min-height: 320px;
+}
+
+.notebook-written-title {
+  font-family: var(--font-read);
+  font-size: var(--text-xl);
+  color: var(--ink);
+  margin-bottom: var(--s3);
+}
+
+.notebook-written-body {
+  font-family: var(--font-read);
+  font-size: var(--text-md);
+  line-height: 1.75;
+  color: var(--ink);
+  white-space: pre-wrap;
+}
+
+.notebook-written-title-input,
+.notebook-written-input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--r-interactive);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-read);
+  padding: var(--s2) var(--s3);
+}
+
+.notebook-written-title-input {
+  font-size: var(--text-lg);
+  margin-bottom: var(--s2);
+}
+
+.notebook-written-input {
+  font-size: var(--text-md);
+  line-height: 1.75;
+  min-height: 220px;
+  resize: vertical;
+}
+
+.notebook-written-input:focus,
+.notebook-written-title-input:focus {
+  border-color: var(--ink-2);
+}
+
+.notebook-written-foot,
+.notebook-written-tools,
+.notebook-paper-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: var(--s3);
+  justify-content: flex-end;
+}
+
+.notebook-written-empty {
+  font-style: italic;
+}
+
+/* the ink layer rides the paper (write-in) */
+.notebook-paper .ink-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.notebook-paper .ink-toolbar {
+  position: absolute;
+  top: var(--s2);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* the link composer — a quiet glass dialog over the pages */
+.notebook-composer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-transient);
+  background: var(--img-scrim);
+  backdrop-filter: blur(var(--scrim-blur));
+}
+
+.notebook-composer {
+  position: fixed;
+  z-index: var(--z-transient);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, calc(100% - var(--s16)));
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s4);
+  border-radius: var(--r-generous);
+}
+
+.notebook-composer-search,
+.notebook-composer-reason {
+  height: var(--control-h);
+  border: 1px solid var(--line);
+  border-radius: var(--r-interactive);
+  background: var(--bg);
+  color: var(--ink);
+  padding: 0 var(--s3);
+  font-size: var(--text-sm);
+}
+
+.notebook-composer-search:focus,
+.notebook-composer-reason:focus {
+  border-color: var(--ink-2);
+}
+
+.notebook-composer-results {
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.notebook-composer-hit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  padding: var(--s2) var(--s3);
+  border: 1px solid transparent;
+  border-radius: var(--r-interactive);
+  text-align: left;
+}
+
+.notebook-composer-hit:hover {
+  background: var(--bg-sunken);
+}
+
+.notebook-composer-hit.is-target {
+  border-color: var(--ink);
+}
+
+.notebook-composer-hit-title {
+  font-size: var(--text-sm);
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notebook-composer-empty {
+  padding: var(--s4);
+  text-align: center;
+}
+
+.notebook-composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+/* the notebook's empty rooms */
+.notebook-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s3);
+  text-align: center;
+  color: var(--ink-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notebook-sheet {
+    animation-duration: 0ms;
+  }
+  .notebook-cover {
+    transition-duration: 0ms;
+  }
+}

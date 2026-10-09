@@ -26,6 +26,7 @@ interface Item {
 export function CommandPalette(): ReactNode {
   const { paletteOpen, setPaletteOpen, goDesk, goShelf, toast } = useRoom();
   const setSettingsOpen = useRoom((s) => s.setSettingsOpen);
+  const openNotebook = useRoom((s) => s.openNotebook);
   const { books, importDialog, refresh } = useLibrary();
   const { settings, set } = useSettings();
   const [q, setQ] = useState('');
@@ -136,6 +137,20 @@ export function CommandPalette(): ReactNode {
       });
     }
 
+    /* v0.3.3 — the notebook: the book of you */
+    if (ql.length === 0 || 'notebook journal'.includes(ql)) {
+      list.push({
+        id: 'action-notebook',
+        kind: 'action',
+        title: 'open the notebook',
+        context: 'every highlight, note, and link — your compounded reading',
+        run: () => {
+          setPaletteOpen(false);
+          openNotebook();
+        },
+      });
+    }
+
     if (platform === 'electron' && (ql.length === 0 || 'rebuild index'.includes(ql))) {
       list.push({
         id: 'action-rebuild',
@@ -174,7 +189,7 @@ export function CommandPalette(): ReactNode {
     }
 
     return list.slice(0, 14);
-  }, [q, books, remoteHits, settings.theme, set, setPaletteOpen, setSettingsOpen, goDesk, goShelf, importDialog, toast, refresh, platform]);
+  }, [q, books, remoteHits, settings.theme, set, setPaletteOpen, setSettingsOpen, openNotebook, goDesk, goShelf, importDialog, toast, refresh, platform]);
 
   useEffect(() => {
     setCursor((c) => Math.min(c, Math.max(0, items.length - 1)));

@@ -136,6 +136,24 @@ export function registerIpc(getServices: () => Services): void {
     s().store.deleteDeskDoc(bookId, did),
   );
 
+  /* v0.3.3 — the notebook: the book of you (truth = notebook.json) */
+  handle('notebook:get', () => s().store.getNotebook());
+  handleArg('notebook:savePage', schemas.notebookPageSave, ({ p }) =>
+    s().store.saveNotebookPage(p as import('@arivo/core').NotebookPage),
+  );
+  handleArg('notebook:deletePage', schemas.notebookPageDelete, ({ id: pid }) =>
+    s().store.deleteNotebookPage(pid),
+  );
+  handleArg('notebook:saveLink', schemas.notebookLinkSave, ({ l }) =>
+    s().store.saveNotebookLink(l as import('@arivo/core').AnnotationLink),
+  );
+  handleArg('notebook:deleteLink', schemas.notebookLinkDelete, ({ id: lid }) =>
+    s().store.deleteNotebookLink(lid),
+  );
+  handleArg('notebook:setPage', schemas.notebookPageSet, ({ currentPage }) =>
+    s().store.setNotebookPage(currentPage),
+  );
+
   handle('collections:list', () => s().store.listCollections());
   handleArg('collections:create', schemas.collectionsCreate, ({ name, description }) =>
     s().store.createCollection(name, description),

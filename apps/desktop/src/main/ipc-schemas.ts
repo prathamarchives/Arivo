@@ -21,6 +21,9 @@ import {
   type StickyColor,
   type InkColor,
   type InkStroke,
+  type LinkRef,
+  type AnnotationLink,
+  type NotebookPage,
 } from '@arivo/core';
 
 const id = v.id();
@@ -116,6 +119,30 @@ const sketch: Validator<Sketch> = v.object({
   updatedAt: v.number({ min: 0 }),
 });
 
+/* v0.3.3 — the notebook's own validators */
+const linkRef: Validator<LinkRef> = v.object({
+  kind: v.enum('highlight', 'note', 'deskdoc', 'page'),
+  id,
+});
+
+const annotationLink: Validator<AnnotationLink> = v.object({
+  id,
+  from: linkRef,
+  to: linkRef,
+  /** the one-line reason — a link without its reason is noise */
+  reason: v.string({ min: 1, max: 500 }),
+  createdAt: v.number({ min: 0 }),
+});
+
+const notebookPage: Validator<NotebookPage> = v.object({
+  id,
+  title: v.nullable(v.string({ max: 300 })),
+  body: v.string({ max: 100_000 }),
+  strokes: v.array(inkStroke, { max: 1024 }),
+  createdAt: v.number({ min: 0 }),
+  updatedAt: v.number({ min: 0 }),
+});
+
 const sourceRef: Validator<import('@arivo/core').SourceRef> = v.object({
   quote: v.string({ max: 20_000 }),
   locator: v.string({ min: 1, max: 4096 }),
@@ -187,6 +214,12 @@ export const schemas = {
   deskDocCreate: v.object({ bookId: id, d: deskDoc }),
   deskDocUpdate: v.object({ bookId: id, d: deskDoc }),
   deskDocDelete: v.object({ bookId: id, id: v.id() }),
+  /* v0.3.3 — the notebook channels */
+  notebookPageSave: v.object({ p: notebookPage }),
+  notebookPageDelete: v.object({ id: v.id() }),
+  notebookLinkSave: v.object({ l: annotationLink }),
+  notebookLinkDelete: v.object({ id: v.id() }),
+  notebookPageSet: v.object({ currentPage: v.number({ int: true, min: 0, max: 1_000_000 }) }),
   collectionsCreate: v.object({
     name: v.string({ min: 1, max: 200 }),
     description: v.nullable(v.string({ max: 2000 })),

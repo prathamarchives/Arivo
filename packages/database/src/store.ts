@@ -32,6 +32,9 @@ import type {
   Sketch,
   StickyNote,
   InkStroke,
+  AnnotationLink,
+  NotebookPage,
+  NotebookData,
 } from '@arivo/core';
 import { uuidv7, exportReadingNotes } from '@arivo/core';
 import { writeFileSyncAtomic } from '@arivo/persistence';
@@ -1228,6 +1231,101 @@ export class ArivoStore {
     this.writeCollections(truth);
     this.db.raw.prepare('DELETE FROM collections WHERE id = ?').run(id);
     this.db.raw.prepare('DELETE FROM collection_items WHERE collection_id = ?').run(id);
+  }
+
+  // ---------- the notebook (v0.3.3 — the book of you) ----------
+
+  /** the notebook's truth lives beside the library — portable with the
+   *  books, like collections.json. truth first, this index second. */
+  private notebookFile(): string {
+    return join(this.libraryRoot, 'library', 'notebook.json');
+  }
+
+  private readNotebook(): NotebookData {
+    const file = this.notebookFile();
+    if (!existsSync(file)) return { version: 1, pages: [], links: [], state: { currentPage: 0 } };
+    try {
+      const parsed = JSON.parse(readFileSync(file, 'utf-8')) as Partial<NotebookData>;
+      return {
+        version: 1,
+        pages: Array.isArray(parsed.pages) ? parsed.pages : [],
+        links: Array.isArray(parsed.links) ? parsed.links : [],
+        state: { currentPage: Number(parsed.state?.currentPage ?? 0) || 0 },
+      };
+    } catch {
+      /* a torn write never costs the notebook — the truth file is the
+       * last good state; an unreadable file reads as empty and the next
+       * write re-anchors it */
+      return { version: 1, pages: [], links: [], state: { currentPage: 0 } };
+    }
+  }
+
+  private writeNotebook(n: NotebookData): void {
+    writeFileSyncAtomic(this.notebookFile(), JSON.stringify(n, null, 2));
+  }
+
+  getNotebook(): { pages: NotebookPage[]; links: AnnotationLink[]; state: { currentPage: number } } {
+    const n = this.readNotebook();
+    return { pages: n.pages, links: n.links, state: n.state };
+  }
+
+  setNotebookPage(currentPage: number): void {
+    const n = this.readNotebook();
+    if (n.state.currentPage === currentPage) return;
+    n.state.currentPage = currentPage;
+    this.writeNotebook(n);
+  }
+
+  /** save = upsert: truth first, the index row second */
+  saveNotebookPage(p: NotebookPage): void {
+    const n = this.readNotebook();
+    const i = n.pages.findIndex((x) => x.id === p.id);
+    if (i !== -1) n.pages[i] = p;
+    else n.pages.push(p);
+    this.writeNotebook(n);
+    const res = this.db.raw
+      .prepare(
+        `UPDATE notebook_pages SET title = @title, body = @body, strokes = @strokes,
+           updated_at = @updatedAt WHERE id = @id`,
+      )
+      .run({ ...p, title: p.title, strokes: JSON.stringify(p.strokes) });
+    if (res.changes === 0) {
+      this.db.raw
+        .prepare(
+          `INSERT INTO notebook_pages (id, title, body, strokes, created_at, updated_at)
+           VALUES (@id, @title, @body, @strokes, @createdAt, @updatedAt)`,
+        )
+        .run({ ...p, title: p.title, strokes: JSON.stringify(p.strokes) });
+    }
+  }
+
+  deleteNotebookPage(id: string): void {
+    const n = this.readNotebook();
+    n.pages = n.pages.filter((p) => p.id !== id);
+    this.writeNotebook(n);
+    this.db.raw.prepare('DELETE FROM notebook_pages WHERE id = ?').run(id);
+  }
+
+  saveNotebookLink(l: AnnotationLink): void {
+    const n = this.readNotebook();
+    const i = n.links.findIndex((x) => x.id === l.id);
+    if (i !== -1) n.links[i] = l;
+    else n.links.push(l);
+    this.writeNotebook(n);
+    this.db.raw
+      .prepare(
+        `INSERT INTO annotation_links (id, from_kind, from_id, to_kind, to_id, reason, created_at)
+         VALUES (@id, @fromKind, @fromId, @toKind, @toId, @reason, @createdAt)
+         ON CONFLICT(id) DO UPDATE SET reason = excluded.reason`,
+      )
+      .run({ ...l, fromKind: l.from.kind, fromId: l.from.id, toKind: l.to.kind, toId: l.to.id });
+  }
+
+  deleteNotebookLink(id: string): void {
+    const n = this.readNotebook();
+    n.links = n.links.filter((l) => l.id !== id);
+    this.writeNotebook(n);
+    this.db.raw.prepare('DELETE FROM annotation_links WHERE id = ?').run(id);
   }
 
   assignToCollection(collectionId: string, bookId: string): void {

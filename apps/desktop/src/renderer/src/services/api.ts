@@ -3,6 +3,7 @@
  * everything above this file never learns which one is running.
  */
 import type {
+  AnnotationLink,
   ArivoApi,
   AppSettings,
   ArchiveEntry,
@@ -12,6 +13,7 @@ import type {
   DeskDoc,
   Highlight,
   ImportResult,
+  NotebookPage,
   Note,
   SearchHit,
   SessionStats,
@@ -60,6 +62,9 @@ export function createMockApi(): ArivoApi {
     stickies: StickyNote[];
     sketches: Sketch[];
     collections: { collection: Collection; count: number }[];
+    notebookPages: NotebookPage[];
+    notebookLinks: AnnotationLink[];
+    notebookPage: number;
     settings: AppSettings;
   }
   const load = (): MockState => {
@@ -72,6 +77,9 @@ export function createMockApi(): ArivoApi {
           ...fresh(),
           ...parsed,
           deskDocs: parsed.deskDocs ?? [],
+          notebookPages: parsed.notebookPages ?? [],
+          notebookLinks: parsed.notebookLinks ?? [],
+          notebookPage: parsed.notebookPage ?? 0,
           stickies: parsed.stickies ?? [],
           sketches: parsed.sketches ?? [],
         };
@@ -110,6 +118,9 @@ export function createMockApi(): ArivoApi {
     stickies: [],
     sketches: [],
     collections: [{ collection: { id: 'mock-col-1', name: 'philosophy', description: null, createdAt: Date.now() }, count: 1 }],
+    notebookPages: [],
+    notebookLinks: [],
+    notebookPage: 0,
     settings: { ...DEFAULT_SETTINGS },
   });
   let state = load();
@@ -404,6 +415,43 @@ export function createMockApi(): ArivoApi {
         }
         entries.sort((a, b) => b.updatedAt - a.updatedAt);
         return entries;
+      },
+    },
+    notebook: {
+      get: async () => ({
+        pages: state.notebookPages,
+        links: state.notebookLinks,
+        state: { currentPage: state.notebookPage },
+      }),
+      savePage: async (p) => {
+        const i = state.notebookPages.findIndex((x) => x.id === p.id);
+        state = {
+          ...state,
+          notebookPages:
+            i === -1 ? [...state.notebookPages, p] : state.notebookPages.map((x) => (x.id === p.id ? p : x)),
+        };
+        save();
+      },
+      deletePage: async (id) => {
+        state = { ...state, notebookPages: state.notebookPages.filter((p) => p.id !== id) };
+        save();
+      },
+      saveLink: async (l) => {
+        const i = state.notebookLinks.findIndex((x) => x.id === l.id);
+        state = {
+          ...state,
+          notebookLinks:
+            i === -1 ? [...state.notebookLinks, l] : state.notebookLinks.map((x) => (x.id === l.id ? l : x)),
+        };
+        save();
+      },
+      deleteLink: async (id) => {
+        state = { ...state, notebookLinks: state.notebookLinks.filter((l) => l.id !== id) };
+        save();
+      },
+      setPage: async (currentPage) => {
+        state = { ...state, notebookPage: currentPage };
+        save();
       },
     },
     collections: {
