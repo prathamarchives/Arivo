@@ -77,6 +77,11 @@ export interface FormatReaderHooks {
   onRelocated: (e: RelocatedEvent) => void;
   onSelection: (sel: SelectionInfo | null) => void;
   onAnnotationClick: (id: string) => void;
+  /** v0.3.2 — the toolbox: right-click anywhere in the reading surface.
+   *  the native context menu never shows; the coordinates arrive in
+   *  HOST-viewport pixels (the epub adapter translates them across the
+   *  iframe boundary). optional: adapters may not support it. */
+  onContextMenu?: (p: { x: number; y: number }) => void;
 }
 
 export interface FormatPlugin {

@@ -66,6 +66,8 @@ export class EpubAdapter implements FormatReader {
   private cfiBaseByIndex = new Map<number, string>();
   private currentChapter = 'Chapter 1';
   private lastContents: (Contents & { window: Window; document: Document }) | null = null;
+  /** v0.3.2 — context menus already wired, per rendered document */
+  private contextDocs = new WeakSet<Document>();
   /** @font-face css for the book content — the app injects it (fonts are app assets) */
   private fontFaceCss = '';
 
@@ -190,6 +192,24 @@ export class EpubAdapter implements FormatReader {
     // css-string theme path is broken in 0.3.93, so we inject it ourselves
     rendition.on('rendered', (_section: unknown, contents: Contents) => {
       this.injectStyleInto(contents as Contents & { document: Document });
+      this.wireContextMenu(contents as Contents & { document: Document });
+    });
+  }
+
+  /** v0.3.2 — the toolbox door: the native context menu never shows in
+   *  the book; the right-click speaks to the host in host coordinates
+   *  (the iframe rect translates the doc's own pixels). one wiring per
+   *  document — the weakset guards re-renders. */
+  private wireContextMenu(contents: Contents & { document: Document }): void {
+    const hook = this.hooks.onContextMenu;
+    const doc = contents.document;
+    if (!hook || !doc || this.contextDocs.has(doc)) return;
+    this.contextDocs.add(doc);
+    doc.addEventListener('contextmenu', (e: MouseEvent) => {
+      e.preventDefault();
+      const iframe = doc.defaultView?.frameElement as HTMLElement | null;
+      const ir = iframe?.getBoundingClientRect();
+      hook({ x: (ir?.left ?? 0) + e.clientX, y: (ir?.top ?? 0) + e.clientY });
     });
   }
 

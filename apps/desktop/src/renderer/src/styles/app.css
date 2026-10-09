@@ -848,12 +848,79 @@
 .sel-dot-blue { background: var(--anno-blue); }
 .sel-dot-green { background: var(--anno-sage); }
 .sel-dot-pink { background: var(--anno-rose); }
-.sel-dot-gray { background: var(--wash-gray); /* legacy pencil mark — violet arrives with the L10 annotation flow */ }
+.sel-dot-violet { background: var(--anno-violet); }
+.sel-dot-gray { background: var(--wash-gray); /* legacy pencil mark */ }
+/* v0.3.2 — graphite: the pencil's own voice, the room's ink */
+.sel-dot-ink { background: var(--ink); }
 
 .sel-sep {
   width: 1px;
   height: 18px;
   background: var(--glass-rim);
+}
+
+/* v0.3.2 — the page toolbox: the right-click instrument. rows of quiet
+ * actions in the glass voice; the pens and the palette speak like the
+ * ink toolbar they hand off to. */
+.page-toolbox {
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: var(--z-overlay);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  padding: var(--s2);
+  border-radius: var(--r-instrument);
+  min-width: 236px;
+}
+
+.toolbox-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+}
+
+.toolbox-row .sel-action {
+  flex: 1;
+  justify-content: flex-start;
+}
+
+.toolbox-pens {
+  gap: var(--s2);
+  padding: 0 var(--s1);
+}
+
+/* the ink width ladder — three quiet bars */
+.ink-width {
+  width: var(--control-h);
+  height: var(--control-h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-interactive);
+  color: var(--ink-2);
+  transition: color var(--dur-state) var(--ease-settle);
+}
+
+.ink-width:hover {
+  color: var(--ink);
+}
+
+.ink-width:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--s1);
+}
+
+.ink-width-glyph {
+  display: block;
+  width: 14px;
+  border-radius: var(--r-instrument);
+  background: currentColor;
+}
+
+.ink-width-active {
+  color: var(--ink);
+  background: var(--bg-sunken);
 }
 
 /* the icon actions — narrow enough to sit over one line of text. names
@@ -964,6 +1031,41 @@
   transition: none;
 }
 
+/* v0.3.2 — resize: the corner grip. a diagonal whisper of lines in the
+ * paper's own ink; the paper grows while it is held. */
+.sticky-resize {
+  position: absolute;
+  right: var(--s1);
+  bottom: var(--s1);
+  width: var(--s4);
+  height: var(--s4);
+  cursor: nwse-resize;
+  touch-action: none;
+  border-radius: var(--r-interactive);
+  background: linear-gradient(135deg, transparent 0 55%, var(--glass-rim) 55% 62%, transparent 62% 70%, var(--glass-rim) 70% 77%, transparent 77%);
+  opacity: 0;
+  transition: opacity var(--dur-state) var(--ease-settle);
+}
+
+.sticky-note:hover .sticky-resize {
+  opacity: 1;
+}
+
+.sticky-resize:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--s1);
+  opacity: 1;
+}
+
+.sticky-resizing {
+  box-shadow: var(--elevation-3);
+  transition: none;
+}
+
+.sticky-resizing .sticky-resize {
+  opacity: 1;
+}
+
 .sticky-note[data-color='yellow'] { background: var(--wash-amber); }
 .sticky-note[data-color='blue'] { background: var(--wash-blue); }
 .sticky-note[data-color='green'] { background: var(--wash-sage); }
@@ -1036,6 +1138,7 @@
   word-break: break-word;
   min-height: var(--s12);
   border-radius: 0 0 var(--r-object) var(--r-object);
+  overflow: hidden;
 }
 
 .sticky-body:hover {

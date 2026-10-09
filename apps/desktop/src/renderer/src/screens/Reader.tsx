@@ -7,6 +7,7 @@ import type {
   FormatReaderHooks,
   Highlight,
   HighlightColor,
+  InkColor,
   InkStroke,
   InkTool,
   Note,
@@ -15,7 +16,6 @@ import type {
   FormatReader,
   ReaderSettings,
   Sketch,
-  StickyColor,
   StickyNote,
 } from '@arivo/core';
 import { uuidv7, FONT_STEPS } from '@arivo/core';
@@ -37,9 +37,13 @@ import {
   onVisiblePage,
   pageAnchor,
   newSketch,
+  INK_COLORS,
+  INK_WIDTHS,
+  type InkWidthStep,
 } from './PageObjects.tsx';
 import {
   IconBack,
+  IconToc,
   IconNote,
   IconBookmark,
   IconX,
@@ -50,6 +54,7 @@ import {
   IconInfo,
   IconSticky,
   IconCopy,
+  IconList,
 } from '../components/icons.tsx';
 
 const COLORS: HighlightColor[] = ['yellow', 'blue', 'green', 'pink', 'gray'];
@@ -79,6 +84,7 @@ function clampCenter(x: number, half: number): number {
  */
 function SelectionMenu({
   selection,
+  at,
   onColor,
   onNote,
   onQuestion,
@@ -87,6 +93,9 @@ function SelectionMenu({
   onClose,
 }: {
   selection: SelectionInfo;
+  /** v0.3.2 — the right-click position: the instrument floats at the
+   *  hand when summoned by right-click, else above the selection. */
+  at?: { x: number; y: number } | null;
   onColor: (color: HighlightColor) => void;
   onNote: () => void;
   onQuestion: () => void;
@@ -95,12 +104,12 @@ function SelectionMenu({
   onClose: () => void;
 }): ReactNode {
   const HALF = 170;
-  const cx = selection.rect ? selection.rect.x + selection.rect.w / 2 : window.innerWidth / 2;
+  const cx = at ? at.x : selection.rect ? selection.rect.x + selection.rect.w / 2 : window.innerWidth / 2;
   const x = clampCenter(cx, HALF);
   const aboveY = selection.rect ? selection.rect.y - 52 : window.innerHeight / 2 - 60;
   /* near the top of the window: flip below the selection, never clipped */
   const belowY = selection.rect ? selection.rect.y + (selection.rect.h || 24) + 44 : window.innerHeight / 2;
-  const y = aboveY >= 64 ? aboveY : belowY;
+  const y = at ? Math.min(at.y + 6, window.innerHeight - 220) : aboveY >= 64 ? aboveY : belowY;
   return (
     <>
       <div className="menu-scrim" onMouseDown={onClose} />
@@ -139,6 +148,132 @@ function SelectionMenu({
         >
           <IconCopy />
         </button>
+      </div>
+    </>
+  );
+}
+
+// ---------------- the page toolbox (right-click) ----------------
+
+/**
+ * the page toolbox (v0.3.2) — the reader's single entry point for every
+ * page action, summoned by right-click anywhere on the reading surface.
+ * two minds in one instrument:
+ *   - the page's furniture: sticky here, bookmark, note, contents,
+ *     the highlights panel
+ *   - the pen family: pencil / pen / highlighter, the ink palette
+ *     (five identity colors + graphite), the width ladder
+ *
+ * a pen click enters the draw mode with the current config and hands
+ * the session to the ink toolbar; a color or width click only tunes —
+ * the toolbox stays until an action or the escape closes it.
+ */
+function PageToolbox({
+  at,
+  drawTool,
+  drawColor,
+  drawWidth,
+  onSticky,
+  onBookmark,
+  onNote,
+  onContents,
+  onNotes,
+  onTool,
+  onColor,
+  onWidth,
+  onClose,
+}: {
+  at: { x: number; y: number };
+  drawTool: InkTool;
+  drawColor: InkColor;
+  drawWidth: InkWidthStep;
+  onSticky: () => void;
+  onBookmark: () => void;
+  onNote: () => void;
+  onContents: () => void;
+  onNotes: () => void;
+  onTool: (t: InkTool) => void;
+  onColor: (c: InkColor) => void;
+  onWidth: (w: InkWidthStep) => void;
+  onClose: () => void;
+}): ReactNode {
+  const x = clampCenter(at.x, 140);
+  const y = Math.min(Math.max(at.y + 8, 64), window.innerHeight - 250);
+  return (
+    <>
+      <div
+        className="menu-scrim"
+        onMouseDown={onClose}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          onClose();
+        }}
+      />
+      <div className="page-toolbox glass rise" style={{ left: x, top: y }} role="menu" aria-label="page tools">
+        <div className="toolbox-row">
+          <button type="button" className="sel-action" onClick={onSticky}>
+            <IconSticky />
+            sticky
+          </button>
+          <button type="button" className="sel-action" onClick={onBookmark}>
+            <IconBookmark />
+            bookmark
+          </button>
+          <button type="button" className="sel-action" onClick={onNote}>
+            <IconNote />
+            note
+          </button>
+        </div>
+        <div className="toolbox-row">
+          <button type="button" className="sel-action" onClick={onContents}>
+            <IconToc />
+            contents
+          </button>
+          <button type="button" className="sel-action" onClick={onNotes}>
+            <IconList />
+            highlights
+          </button>
+        </div>
+        <div className="sel-sep" />
+        <div className="toolbox-row toolbox-pens">
+          {(['pencil', 'pen', 'highlighter'] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              className={`ink-tool${drawTool === t ? ' ink-tool-active' : ''}`}
+              onClick={() => onTool(t)}
+              aria-pressed={drawTool === t}
+              title={`draw with the ${t}`}
+            >
+              {t === 'pencil' ? <IconPencil /> : t === 'pen' ? <IconNote /> : <span className="ink-highlighter-glyph" aria-hidden="true" />}
+            </button>
+          ))}
+        </div>
+        <div className="toolbox-row">
+          {INK_COLORS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              className={`sel-dot${c === 'ink' ? ' sel-dot-ink' : ` sel-dot-${c}`}${drawColor === c ? ' sel-dot-active' : ''}`}
+              onClick={() => onColor(c)}
+              aria-label={`ink ${c}`}
+              aria-pressed={drawColor === c}
+            />
+          ))}
+          <span className="sel-sep" />
+          {INK_WIDTHS.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              className={`ink-width${drawWidth === i ? ' ink-width-active' : ''}`}
+              onClick={() => onWidth(i as InkWidthStep)}
+              aria-label={['fine line', 'medium line', 'bold line'][i]}
+              aria-pressed={drawWidth === i}
+            >
+              <span className="ink-width-glyph" style={{ height: `${(i + 1) * 2}px` }} aria-hidden="true" />
+            </button>
+          ))}
+        </div>
       </div>
     </>
   );
@@ -426,6 +561,10 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
   const [tocOpen, setTocOpen] = useState(false);
   const [tocTab, setTocTab] = useState<'contents' | 'bookmarks'>('contents');
   const [focusId, setFocusId] = useState<string | null>(null);
+  /* v0.3.2 — the toolbox: right-click summons it at the hand. with a
+   * selection it re-anchors the selection instrument; without, it is
+   * the page toolbox (furniture + pens). */
+  const [toolbox, setToolbox] = useState<{ x: number; y: number } | null>(null);
   const [percent, setPercent] = useState(0);
   const [chapter, setChapter] = useState('');
   const [chapters, setChapters] = useState<{ label: string; target: string; depth: number }[]>([]);
@@ -441,7 +580,8 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
   const [view, setView] = useState<RelocatedEvent | null>(null);
   const [drawMode, setDrawMode] = useState(false);
   const [drawTool, setDrawTool] = useState<InkTool>('pencil');
-  const [drawColor, setDrawColor] = useState<StickyColor>('yellow');
+  const [drawColor, setDrawColor] = useState<InkColor>('ink');
+  const [drawWidth, setDrawWidth] = useState<InkWidthStep>(1);
   const stageRef = useRef<HTMLDivElement | null>(null);
 
   /* chrome visibility is the shell's attention model — the reader reports
@@ -526,6 +666,11 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
           onAnnotationClick: (id) => {
             openNotes();
             setFocusId(id);
+          },
+          /* v0.3.2 — the toolbox door: right-click in the book text
+           * (the adapter translates the iframe coordinates) */
+          onContextMenu: (p) => {
+            setToolbox(p);
           },
         };
 
@@ -714,10 +859,13 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
           }
           break;
         case 'Escape':
-          /* the cascade: the drawer first, then the selection, then the
-           * draw mode, then the notes panel — each keystroke peels
-           * one layer back toward the reading */
-          if (tocOpen) {
+          /* the cascade: the toolbox first (the newest surface), then the
+           * drawer, then the selection, then the draw mode, then the
+           * notes panel — each keystroke peels one layer back toward the
+           * reading */
+          if (toolbox) {
+            setToolbox(null);
+          } else if (tocOpen) {
             setTocOpen(false);
           } else if (selection) {
             setSelection(null);
@@ -735,7 +883,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isPdf, settings.fontStep, tocOpen, selection, drawMode, notesOpen, setSettings, openNotes, closeNotes]);
+  }, [isPdf, settings.fontStep, tocOpen, selection, drawMode, notesOpen, toolbox, setSettings, openNotes, closeNotes]);
 
   useEffect(() => {
     const onBeforeUnload = (): void => persistProgress(true);
@@ -768,6 +916,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
       adapterRef.current?.clearSelection();
       setSelection(null);
       setNoteMode(false);
+      setToolbox(null);
     },
     [selection, book, highlights, rerenderAnnotations],
   );
@@ -862,6 +1011,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
       setNotes((prev) => [n, ...prev]);
       setQuestionMode(false);
       setSelection(null);
+      setToolbox(null);
       adapterRef.current?.clearSelection();
       toast('question kept');
     },
@@ -915,6 +1065,36 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
     [book],
   );
 
+  /** v0.3.2 — the toolbox's sticky: the paper lands where the hand
+   *  right-clicked, in stage fractions (client coords → stage rect) */
+  const stickyAtToolbox = useCallback((): void => {
+    const tb = toolbox;
+    const stage = stageRef.current;
+    let at: { x: number; y: number } | undefined;
+    if (tb && stage) {
+      const r = stage.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) {
+        at = {
+          x: (tb.x - r.left) / r.width,
+          y: (tb.y - r.top) / r.height,
+        };
+      }
+    }
+    setToolbox(null);
+    createSticky(at);
+  }, [toolbox, createSticky]);
+
+  /** v0.3.2 — the host-side right-click: the whole reader surface answers
+   *  (the adapters forward their own from inside the book). the paper is
+   *  self-contained — its controls are not the toolbox's business; inputs
+   *  keep their native paste menu. */
+  const onReaderContextMenu = useCallback((e: React.MouseEvent): void => {
+    const target = e.target as HTMLElement | null;
+    if (target?.closest('input, textarea, [contenteditable="true"], .sticky-note')) return;
+    e.preventDefault();
+    setToolbox({ x: e.clientX, y: e.clientY });
+  }, []);
+
   /** selection → sticky: the paper lands where the hand was, in stage
    *  fractions (window coords → stage rect) */
   const stickyFromSelection = useCallback((): void => {
@@ -931,9 +1111,10 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
       }
     }
     setSelection(null);
+    setToolbox(null);
     adapterRef.current?.clearSelection();
     createSticky(at);
-  }, [selection, createSticky]);
+  }, [selection, toolbox, createSticky]);
 
   const updateSticky = useCallback(
     (s: StickyNote): void => {
@@ -1039,6 +1220,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
       data-format={book?.format ?? 'epub'}
       data-page-mode={settings.pageMode}
       style={{ '--ar-measure': `${settings.measure}px` } as CSSProperties}
+      onContextMenu={onReaderContextMenu}
     >
       {/* v0.3.2 — the navbar is empty: the title and the way back, nothing
        * else. it slides up and fades out when the text owns the eyes
@@ -1068,6 +1250,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
             active={drawMode}
             tool={drawTool}
             color={drawColor}
+            widthStep={drawWidth}
             onCommitStrokes={commitStrokes}
           />
         )}
@@ -1075,8 +1258,10 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
           <InkToolbar
             tool={drawTool}
             color={drawColor}
+            widthStep={drawWidth}
             onTool={setDrawTool}
             onColor={setDrawColor}
+            onWidth={setDrawWidth}
             onUndo={undoStroke}
             onClear={clearInk}
             onExit={() => setDrawMode(false)}
@@ -1222,6 +1407,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
       {selection && !noteMode && !questionMode && (
         <SelectionMenu
           selection={selection}
+          at={toolbox}
           onColor={(c) => void createHighlight(c, null)}
           onNote={() => setNoteMode(true)}
           onQuestion={() => setQuestionMode(true)}
@@ -1229,8 +1415,47 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
           onBookmark={() => {
             void createBookmarkFromSelection();
             setSelection(null);
+            setToolbox(null);
           }}
-          onClose={() => setSelection(null)}
+          onClose={() => {
+            setSelection(null);
+            setToolbox(null);
+          }}
+        />
+      )}
+
+      {toolbox && !selection && (
+        <PageToolbox
+          at={toolbox}
+          drawTool={drawTool}
+          drawColor={drawColor}
+          drawWidth={drawWidth}
+          onSticky={stickyAtToolbox}
+          onBookmark={() => {
+            setToolbox(null);
+            void addBookmark();
+          }}
+          onNote={() => {
+            setToolbox(null);
+            openNotes();
+          }}
+          onContents={() => {
+            setToolbox(null);
+            setTocOpen(true);
+            setTocTab('contents');
+          }}
+          onNotes={() => {
+            setToolbox(null);
+            openNotes();
+          }}
+          onTool={(t) => {
+            setDrawTool(t);
+            setDrawMode(true);
+            setToolbox(null);
+          }}
+          onColor={setDrawColor}
+          onWidth={setDrawWidth}
+          onClose={() => setToolbox(null)}
         />
       )}
 
@@ -1245,6 +1470,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
           onClose={() => {
             setNoteMode(false);
             setSelection(null);
+            setToolbox(null);
           }}
         />
       )}
@@ -1260,6 +1486,7 @@ export function ReaderScreen({ bookId }: { bookId: string }): ReactNode {
           onClose={() => {
             setQuestionMode(false);
             setSelection(null);
+            setToolbox(null);
           }}
         />
       )}

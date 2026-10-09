@@ -58,6 +58,8 @@ export class PdfAdapter implements FormatReader {
   private loadingTask: ReturnType<typeof pdfjs.getDocument> | null = null;
   private container: HTMLElement | null = null;
   private scroller: HTMLElement | null = null;
+  /** v0.3.2 — the context-menu translator (the toolbox door) */
+  private onCtxMenu: ((e: MouseEvent) => void) | null = null;
   private zoom: ZoomMode = 'fit-width';
   private settings: ReaderSettings | null = null;
   /** every page's sized placeholder — the scroll geometry, always present */
@@ -92,6 +94,17 @@ export class PdfAdapter implements FormatReader {
     scroller.className = 'pdf-scroll';
     container.appendChild(scroller);
     this.scroller = scroller;
+
+    /* v0.3.2 — the toolbox door: the native context menu never shows on
+     * the pdf surface; the right-click speaks to the host directly */
+    if (this.hooks.onContextMenu) {
+      const hook = this.hooks.onContextMenu;
+      this.onCtxMenu = (e: MouseEvent): void => {
+        e.preventDefault();
+        hook({ x: e.clientX, y: e.clientY });
+      };
+      container.addEventListener('contextmenu', this.onCtxMenu);
+    }
 
     let doc: pdfjs.PDFDocumentProxy;
     try {
@@ -208,6 +221,8 @@ export class PdfAdapter implements FormatReader {
     if (this.scrollT) clearTimeout(this.scrollT);
     if (this.resizeT) clearTimeout(this.resizeT);
     window.removeEventListener('resize', this.onWindowResize);
+    if (this.onCtxMenu && this.container) this.container.removeEventListener('contextmenu', this.onCtxMenu);
+    this.onCtxMenu = null;
     for (const task of this.inflight.values()) task.cancel();
     this.inflight.clear();
     // v6: teardown lives on the loading task (the proxy's destroy is gone)

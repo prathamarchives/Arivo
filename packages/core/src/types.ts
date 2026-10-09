@@ -222,6 +222,10 @@ export type DeskDocKind = 'research' | 'make' | 'reflect';
 /** the sticky note's paper — one of the five identity washes (law 38) */
 export type StickyColor = 'yellow' | 'blue' | 'green' | 'pink' | 'violet';
 
+/** v0.3.2 — the ink palette: the five identity colors plus graphite
+ *  ('ink' — the pencil's own voice, the room's ink token). */
+export type InkColor = StickyColor | 'ink';
+
 /**
  * v0.3.1 — the sticky note: a small paper pinned to the PAGE you are
  * reading. it is spatial, not textual: x/y are fractions of the reader
@@ -239,6 +243,10 @@ export interface StickyNote {
   x: number;
   /** 0-1 fraction of the reader host's height, the note's top edge */
   y: number;
+  /** v0.3.2 — resizable paper: width/height as stage fractions. absent
+   *  on pre-v0.3.2 notes = the resting default size (the class truth). */
+  w?: number;
+  h?: number;
   chapter: string | null;
   createdAt: number;
   updatedAt: number;
@@ -247,11 +255,12 @@ export interface StickyNote {
 /** the ink tools — pencil (soft graphite), pen (solid ink), highlighter (wide translucent wash) */
 export type InkTool = 'pencil' | 'pen' | 'highlighter';
 
-/** one stroke: a tool, its color (an annotation identity color), its
- *  width, and its points as flat 0-1 viewport fractions (x,y pairs) */
+/** one stroke: a tool, its color (an annotation identity color or
+ *  graphite), its width, and its points as flat 0-1 viewport fractions
+ *  (x,y pairs) */
 export interface InkStroke {
   tool: InkTool;
-  color: StickyColor;
+  color: InkColor;
   size: number;
   /** flat [x0,y0,x1,y1,...] in 0-1 fractions of the reader host */
   points: number[];

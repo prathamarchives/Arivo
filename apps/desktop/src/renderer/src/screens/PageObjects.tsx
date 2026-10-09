@@ -16,12 +16,22 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { Anchor, Book, InkStroke, InkTool, RelocatedEvent, Sketch, StickyColor, StickyNote } from '@arivo/core';
+import type { Anchor, Book, InkColor, InkStroke, InkTool, RelocatedEvent, Sketch, StickyColor, StickyNote } from '@arivo/core';
 import { uuidv7 } from '@arivo/core';
 import { useDraft } from '../lib/useDraft.ts';
 import { IconX, IconCheck, IconTrash, IconPencil, IconNote, IconBack } from '../components/icons.tsx';
 
 export const STICKY_COLORS: readonly StickyColor[] = ['yellow', 'blue', 'green', 'pink', 'violet'];
+
+/** v0.3.2 — the ink palette grows: the five identity colors plus graphite
+ *  (the pencil's own voice). */
+export const INK_COLORS: readonly InkColor[] = ['ink', 'yellow', 'blue', 'green', 'pink', 'violet'];
+
+/** v0.3.2 — the width ladder: fine / medium / bold, a multiplier over each
+ *  tool's own base width (the pencil stays a whisper, the highlighter
+ *  stays a wash — the step scales the character, not the identity). */
+export const INK_WIDTHS: readonly number[] = [1, 1.8, 3.2];
+export type InkWidthStep = 0 | 1 | 2;
 
 /** the tilt set — a paper on a desk is never perfectly straight */
 const TILTS = ['-1.1deg', '0.6deg', '-0.5deg', '1.2deg', '-0.2deg'] as const;
@@ -128,12 +138,65 @@ function StickyCard({
     if (x !== note.x || y !== note.y) onUpdate({ ...note, x, y, updatedAt: Date.now() });
   };
 
+  /* v0.3.2 — resize: the corner grip stretches the paper live; the
+   * fraction commits once on release. the note keeps its place (top-left
+   * anchored), only the paper's size speaks. */
+  const resizeRef = useRef<{ startX: number; startY: number; w0: number; h0: number; sw: number; sh: number } | null>(null);
+  const [resizing, setResizing] = useState(false);
+  const onResizePointerDown = (e: React.PointerEvent<HTMLDivElement>): void => {
+    if (editing || e.button !== 0) return;
+    const stage = cardRef.current?.parentElement;
+    const el = cardRef.current;
+    if (!stage || !el) return;
+    const sr = stage.getBoundingClientRect();
+    const er = el.getBoundingClientRect();
+    resizeRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      w0: note.w ?? er.width / sr.width,
+      h0: note.h ?? er.height / sr.height,
+      sw: sr.width,
+      sh: sr.height,
+    };
+    setResizing(true);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    e.stopPropagation();
+  };
+  const onResizePointerMove = (e: React.PointerEvent<HTMLDivElement>): void => {
+    const d = resizeRef.current;
+    if (!d || !cardRef.current) return;
+    const w = Math.min(Math.max(d.w0 + (e.clientX - d.startX) / d.sw, 0.06), 0.95);
+    const h = Math.min(Math.max(d.h0 + (e.clientY - d.startY) / d.sh, 0.05), 0.95);
+    cardRef.current.style.width = `${w * 100}%`;
+    cardRef.current.style.height = `${h * 100}%`;
+    cardRef.current.dataset.w = String(w);
+    cardRef.current.dataset.h = String(h);
+  };
+  const onResizePointerUp = (): void => {
+    const d = resizeRef.current;
+    resizeRef.current = null;
+    setResizing(false);
+    if (!d) return;
+    const el = cardRef.current;
+    const w = el?.dataset.w ? Number(el.dataset.w) : d.w0;
+    const h = el?.dataset.h ? Number(el.dataset.h) : d.h0;
+    if (w !== (note.w ?? d.w0) || h !== (note.h ?? d.h0)) {
+      onUpdate({ ...note, w, h, updatedAt: Date.now() });
+    }
+  };
+
   return (
     <div
       ref={cardRef}
-      className={`sticky-note${dragging ? ' sticky-dragging' : ''}`}
+      className={`sticky-note${dragging ? ' sticky-dragging' : ''}${resizing ? ' sticky-resizing' : ''}`}
       data-color={note.color}
-      style={{ left: `${note.x * 100}%`, top: `${note.y * 100}%`, '--sticky-tilt': tiltFor(note.id) } as React.CSSProperties}
+      style={{
+        left: `${note.x * 100}%`,
+        top: `${note.y * 100}%`,
+        ...(note.w !== undefined ? { width: `${note.w * 100}%` } : {}),
+        ...(note.h !== undefined ? { height: `${note.h * 100}%` } : {}),
+        '--sticky-tilt': tiltFor(note.id),
+      } as React.CSSProperties}
       aria-label="sticky note"
     >
       <div
@@ -200,6 +263,18 @@ function StickyCard({
           {note.body || <span className="sticky-empty">write something…</span>}
         </button>
       )}
+      {!editing && (
+        <div
+          className="sticky-resize"
+          onPointerDown={onResizePointerDown}
+          onPointerMove={onResizePointerMove}
+          onPointerUp={onResizePointerUp}
+          onPointerCancel={onResizePointerUp}
+          title="resize"
+          role="separator"
+          aria-label="resize note"
+        />
+      )}
     </div>
   );
 }
@@ -226,10 +301,14 @@ export function StickyLayer({
 
 // ---------------- the ink layer ----------------
 
-/** resolve an annotation identity color to a paintable rgb string —
- *  law 38 keeps them constant, so one resolution serves every theme */
-function annoCss(varName: string): string {
-  const v = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+/** resolve an ink color to a paintable rgb string — the identity colors
+ *  are law-38 constants; graphite reads the room's own ink token. */
+function annoCss(color: InkColor): string {
+  const root = getComputedStyle(document.documentElement);
+  if (color === 'ink') {
+    return root.getPropertyValue('--ink').trim() || '#2b2118';
+  }
+  const v = root.getPropertyValue(`--anno-${color === 'yellow' ? 'amber' : color}`).trim();
   return v || '#DCA93B';
 }
 
@@ -246,12 +325,14 @@ export function InkLayer({
   active,
   tool,
   color,
+  widthStep,
   onCommitStrokes,
 }: {
   sketch: Sketch | null;
   active: boolean;
   tool: InkTool;
-  color: StickyColor;
+  color: InkColor;
+  widthStep: InkWidthStep;
   onCommitStrokes: (strokes: InkStroke[], sketchId: string | null) => void;
 }): ReactNode {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -270,13 +351,18 @@ export function InkLayer({
     ctx.clearRect(0, 0, size.w, size.h);
     const strokes = [...(sketch?.strokes ?? [])];
     if (liveRef.current && liveRef.current.length >= 4) {
-      strokes.push({ tool, color, size: TOOL_STYLE[tool].width, points: liveRef.current });
+      strokes.push({
+        tool,
+        color,
+        size: (TOOL_STYLE[tool]?.width ?? 2) * (INK_WIDTHS[widthStep] ?? 1),
+        points: liveRef.current,
+      });
     }
     for (const stroke of strokes) {
       const style = TOOL_STYLE[stroke.tool] ?? TOOL_STYLE.pen;
       ctx.globalAlpha = style.alpha;
       ctx.globalCompositeOperation = style.blend ? 'multiply' : 'source-over';
-      ctx.strokeStyle = annoCss(`--anno-${stroke.color === 'yellow' ? 'amber' : stroke.color}`);
+      ctx.strokeStyle = annoCss(stroke.color);
       ctx.lineWidth = stroke.size || style.width;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
@@ -290,7 +376,7 @@ export function InkLayer({
     }
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
-  }, [sketch, tool, color]);
+  }, [sketch, tool, color, widthStep]);
 
   /* the canvas tracks its stage: resize re-measures, re-scales, repaints.
    * dpr-aware so ink stays crisp on dense displays. */
@@ -355,7 +441,12 @@ export function InkLayer({
       redraw();
       return;
     }
-    const stroke: InkStroke = { tool, color, size: TOOL_STYLE[tool].width, points: live };
+    const stroke: InkStroke = {
+      tool,
+      color,
+      size: (TOOL_STYLE[tool]?.width ?? 2) * (INK_WIDTHS[widthStep] ?? 1),
+      points: live,
+    };
     const next = [...(sketch?.strokes ?? []), stroke];
     if (next.length > 512) next.splice(0, next.length - 512);
     onCommitStrokes(next, sketch?.id ?? null);
@@ -379,17 +470,21 @@ export function InkLayer({
 export function InkToolbar({
   tool,
   color,
+  widthStep,
   onTool,
   onColor,
+  onWidth,
   onUndo,
   onClear,
   onExit,
   canUndo,
 }: {
   tool: InkTool;
-  color: StickyColor;
+  color: InkColor;
+  widthStep: InkWidthStep;
   onTool: (t: InkTool) => void;
-  onColor: (c: StickyColor) => void;
+  onColor: (c: InkColor) => void;
+  onWidth: (w: InkWidthStep) => void;
   onUndo: () => void;
   onClear: () => void;
   onExit: () => void;
@@ -410,15 +505,32 @@ export function InkToolbar({
         </button>
       ))}
       <span className="sel-sep" />
-      {STICKY_COLORS.map((c) => (
+      {INK_COLORS.map((c) => (
         <button
           key={c}
           type="button"
-          className={`sel-dot sel-dot-${c}${color === c ? ' sel-dot-active' : ''}`}
+          className={`sel-dot${c === 'ink' ? ' sel-dot-ink' : ` sel-dot-${c}`}${color === c ? ' sel-dot-active' : ''}`}
           onClick={() => onColor(c)}
           aria-label={`ink ${c}`}
           aria-pressed={color === c}
         />
+      ))}
+      <span className="sel-sep" />
+      {INK_WIDTHS.map((_, i) => (
+        <button
+          key={i}
+          type="button"
+          className={`ink-width${widthStep === i ? ' ink-width-active' : ''}`}
+          onClick={() => onWidth(i as InkWidthStep)}
+          aria-label={['fine line', 'medium line', 'bold line'][i]}
+          aria-pressed={widthStep === i}
+        >
+          <span
+            className="ink-width-glyph"
+            style={{ height: `${(i + 1) * 2}px` }}
+            aria-hidden="true"
+          />
+        </button>
       ))}
       <span className="sel-sep" />
       <button type="button" className="ink-tool" onClick={onUndo} disabled={!canUndo} title="undo stroke" aria-label="undo stroke">

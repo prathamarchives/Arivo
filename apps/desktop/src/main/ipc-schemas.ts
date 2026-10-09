@@ -19,6 +19,7 @@ import {
   type Sketch,
   type StickyNote,
   type StickyColor,
+  type InkColor,
   type InkStroke,
 } from '@arivo/core';
 
@@ -79,6 +80,7 @@ const note: Validator<Note> = v.object({
 });
 
 const stickyColor = v.enum('yellow', 'blue', 'green', 'pink', 'violet') as Validator<StickyColor>;
+const inkColor = v.enum('yellow', 'blue', 'green', 'pink', 'violet', 'ink') as Validator<InkColor>;
 
 const sticky: Validator<StickyNote> = v.object({
   id,
@@ -88,6 +90,9 @@ const sticky: Validator<StickyNote> = v.object({
   color: stickyColor,
   x: v.number({ min: 0, max: 1 }),
   y: v.number({ min: 0, max: 1 }),
+  /** v0.3.2 — resizable paper (stage fractions, optional for legacy notes) */
+  w: v.optional(v.number({ min: 0.05, max: 0.95 })),
+  h: v.optional(v.number({ min: 0.04, max: 0.95 })),
   chapter: chapterName,
   createdAt: v.number({ min: 0 }),
   updatedAt: v.number({ min: 0 }),
@@ -95,7 +100,7 @@ const sticky: Validator<StickyNote> = v.object({
 
 const inkStroke: Validator<InkStroke> = v.object({
   tool: v.enum('pencil', 'pen', 'highlighter'),
-  color: stickyColor,
+  color: inkColor,
   size: v.number({ min: 0.5, max: 64 }),
   /** flat viewport-fraction pairs — even count, each 0-1 */
   points: v.array(v.number({ min: 0, max: 1 }), { max: 4_096 }),
